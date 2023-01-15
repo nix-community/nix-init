@@ -1,0 +1,57 @@
+[package]
+name = "nix-init"
+version = "0.1.0"
+authors = ["figsoda <figsoda@pm.me>"]
+edition = "2021"
+description = "Generate Nix packages with hash prefetching, license detection, and more"
+readme = "README.md"
+homepage = "https://github.com/nix-community/nix-init"
+repository = "https://github.com/nix-community/nix-init"
+license = "MPL-2.0"
+keywords = ["cli", "interactive", "generate", "nix", "package"]
+categories = ["command-line-utilities"]
+
+[dependencies]
+anyhow = "1.0.68"
+askalono = "0.4.6"
+bstr = "1.1.0"
+expand = "0.2.1"
+indoc = "1.0.8"
+once_cell = "1.17.0"
+owo-colors = "3.5.0"
+paste = "1.0.11"
+reqwest = { version = "0.11.13", default-features = false, features = ["json"] }
+rustc-hash = "1.1.0"
+semver = "1.0.16"
+serde = { version = "1.0.152", features = ["derive"] }
+serde_json = "1.0.91"
+toml = "0.5.10"
+url = "2.3.1"
+
+[dependencies.clap]
+version = "4.1.1"
+features = ["cargo", "derive", "unicode", "wrap_help"]
+
+[dependencies.rustyline]
+version = "10.1.0"
+git = "https://github.com/kkawakam/rustyline"
+default-features = false
+features = ["derive", "with-fuzzy"]
+
+[dependencies.tokio]
+version = "1.24.2"
+features = ["macros", "process", "rt-multi-thread"]
+
+[build-dependencies]
+askalono = "0.4.6"
+clap = { version = "4.1.1", features = ["derive"] }
+clap_complete = "4.1.0"
+clap_mangen = "0.2.7"
+
+[features]
+default = ["reqwest/rustls-tls"]
+
+[profile.release]
+lto = true
+panic = "abort"
+codegen-units = 1
