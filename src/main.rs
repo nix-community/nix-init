@@ -4,23 +4,25 @@ mod inputs;
 mod licenses;
 mod prompt;
 
-use anyhow::{bail, Context as _, Result};
+use anyhow::{bail, Context, Result};
 use askalono::{Match, Store, TextData};
 use bstr::ByteVec;
 use clap::Parser;
 use expand::expand;
 use indoc::{formatdoc, writedoc};
+use is_terminal::IsTerminal;
 use once_cell::sync::Lazy;
 use reqwest::Client;
 use rustc_hash::FxHashMap;
 use rustyline::{config::Configurer, CompletionType, Editor};
 use serde::Deserialize;
 use tokio::process::Command;
+use tracing_subscriber::EnvFilter;
 
 use std::{
     cmp::Ordering,
     fs::{read_dir, read_to_string, File},
-    io::{BufRead, Write},
+    io::{stderr, BufRead, Write},
     path::PathBuf,
     process::Output,
 };
@@ -65,6 +67,12 @@ pub enum BuildType {
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    tracing_subscriber::fmt()
+        .with_ansi(stderr().is_terminal())
+        .with_env_filter(EnvFilter::from_env("NIX_INIT_LOG"))
+        .with_writer(stderr)
+        .init();
+
     let opts = Opts::parse();
 
     tokio::spawn(async {

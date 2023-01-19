@@ -5,6 +5,7 @@ mod gitlab;
 use reqwest::{Client, IntoUrl};
 use rustc_hash::FxHashMap;
 use serde::Deserialize;
+use tracing::warn;
 
 use crate::prompt::Completion;
 
@@ -84,5 +85,17 @@ impl Fetcher {
 }
 
 pub async fn json<T: for<'a> Deserialize<'a>>(cl: &Client, url: impl IntoUrl) -> Option<T> {
-    cl.get(url).send().await.ok()?.json().await.ok()
+    cl.get(url)
+        .send()
+        .await
+        .map_err(|e| {
+            warn!("{e}");
+        })
+        .ok()?
+        .json()
+        .await
+        .map_err(|e| {
+            warn!("{e}");
+        })
+        .ok()
 }
