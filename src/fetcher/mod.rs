@@ -10,13 +10,16 @@ use tracing::warn;
 use crate::prompt::Completion;
 
 #[allow(clippy::enum_variant_names)]
-#[derive(Debug, Deserialize)]
+#[derive(Debug, serde::Serialize, Deserialize)]
 #[serde(tag = "fetcher", content = "args", rename_all = "camelCase")]
 pub enum Fetcher {
     FetchCrate {
         pname: String,
     },
+    #[serde(rename_all = "camelCase")]
     FetchFromGitHub {
+        #[serde(default = "default_github_base")]
+        github_base: String,
         owner: String,
         repo: String,
     },
@@ -27,6 +30,10 @@ pub enum Fetcher {
         owner: String,
         repo: String,
     },
+}
+
+fn default_github_base() -> String {
+    "github.com".into()
 }
 
 fn default_gitlab_domain() -> String {
@@ -56,9 +63,11 @@ impl Fetcher {
     pub async fn get_package_info(&self, cl: &Client) -> PackageInfo {
         match self {
             Fetcher::FetchCrate { pname } => crates_io::get_package_info(cl, pname).await,
-            Fetcher::FetchFromGitHub { owner, repo } => {
-                github::get_package_info(cl, owner, repo).await
-            }
+            Fetcher::FetchFromGitHub {
+                github_base,
+                owner,
+                repo,
+            } => github::get_package_info(cl, github_base, owner, repo).await,
             Fetcher::FetchFromGitLab {
                 domain,
                 group,
@@ -71,9 +80,11 @@ impl Fetcher {
     pub async fn get_version(&self, cl: &Client, rev: &str) -> Option<Version> {
         match self {
             Fetcher::FetchCrate { .. } => Some(Version::Tag),
-            Fetcher::FetchFromGitHub { owner, repo } => {
-                github::get_version(cl, owner, repo, rev).await
-            }
+            Fetcher::FetchFromGitHub {
+                github_base,
+                owner,
+                repo,
+            } => github::get_version(cl, github_base, owner, repo, rev).await,
             Fetcher::FetchFromGitLab {
                 domain,
                 group,

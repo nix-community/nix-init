@@ -39,8 +39,13 @@ struct Committer {
     date: String,
 }
 
-pub async fn get_package_info(cl: &Client, owner: &str, repo: &str) -> PackageInfo {
-    let root = format!("https://api.github.com/repos/{owner}/{repo}");
+pub async fn get_package_info(
+    cl: &Client,
+    github_base: &str,
+    owner: &str,
+    repo: &str,
+) -> PackageInfo {
+    let root = format!("https://api.{github_base}/repos/{owner}/{repo}");
 
     let (description, latest_release, tags, commits) = tokio::join!(
         async {
@@ -142,10 +147,16 @@ pub async fn get_package_info(cl: &Client, owner: &str, repo: &str) -> PackageIn
     }
 }
 
-pub async fn get_version(cl: &Client, owner: &str, repo: &str, rev: &str) -> Option<Version> {
+pub async fn get_version(
+    cl: &Client,
+    github_base: &str,
+    owner: &str,
+    repo: &str,
+    rev: &str,
+) -> Option<Version> {
     let Commit { sha, commit } = json(
         cl,
-        format!("https://api.github.com/repos/{owner}/{repo}/commits/{rev}"),
+        format!("https://api.{github_base}/repos/{owner}/{repo}/commits/{rev}"),
     )
     .await?;
 
