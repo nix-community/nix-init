@@ -1,3 +1,4 @@
+mod cfg;
 mod cli;
 mod fetcher;
 mod inputs;
@@ -28,6 +29,7 @@ use std::{
 };
 
 use crate::{
+    cfg::load_config,
     cli::Opts,
     fetcher::{Fetcher, PackageInfo, Revisions, Version},
     inputs::{load_riff_dependencies, write_all_lambda_inputs, write_inputs, AllInputs},
@@ -81,6 +83,8 @@ async fn main() -> Result<()> {
     tokio::spawn(async {
         Lazy::force(&NIX_LICENSES);
     });
+
+    let cfg = load_config(opts.config)?;
 
     let mut out = File::create(opts.output)?;
     writeln!(out, "{{ lib")?;
@@ -518,15 +522,11 @@ async fn main() -> Result<()> {
         }
     }
 
-    writedoc!(
-        out,
-        "
-            ;
-                maintainers = with maintainers; [ ];
-              }};
-            }}
-        ",
-    )?;
+    write!(out, ";\n    maintainers = with maintainers; [ ")?;
+    for maintainer in cfg.maintainers {
+        write!(out, "{maintainer} ")?;
+    }
+    writeln!(out, "];\n  }};\n}}")?;
 
     Ok(())
 }

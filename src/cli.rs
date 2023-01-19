@@ -13,4 +13,8 @@ pub struct Opts {
     /// Specify the URL
     #[arg(short, long)]
     pub url: Option<String>,
+
+    /// Specify the config file
+    #[arg(short, long)]
+    pub config: Option<PathBuf>,
 }
