@@ -2,12 +2,13 @@ mod crates_io;
 mod github;
 mod gitlab;
 
-use reqwest::{Client, IntoUrl};
+use anyhow::Result;
+use reqwest::{header::HeaderMap, Client, IntoUrl};
 use rustc_hash::FxHashMap;
 use serde::Deserialize;
 use tracing::warn;
 
-use crate::prompt::Completion;
+use crate::{cfg::AccessTokens, prompt::Completion};
 
 #[allow(clippy::enum_variant_names)]
 #[derive(Debug, serde::Serialize, Deserialize)]
@@ -60,6 +61,31 @@ pub struct PackageInfo {
 }
 
 impl Fetcher {
+    pub async fn create_client(&self, mut tokens: AccessTokens) -> Result<Client> {
+        match self {
+            Fetcher::FetchCrate { .. } => Ok(Client::new()),
+
+            Fetcher::FetchFromGitHub { github_base, .. } => {
+                let mut headers = HeaderMap::new();
+                tokens.insert_header(&mut headers, github_base).await;
+                Client::builder()
+                    .user_agent("Mozilla/5.0")
+                    .default_headers(headers)
+                    .build()
+                    .map_err(Into::into)
+            }
+
+            Fetcher::FetchFromGitLab { domain, .. } => {
+                let mut headers = HeaderMap::new();
+                tokens.insert_header(&mut headers, domain).await;
+                Client::builder()
+                    .default_headers(headers)
+                    .build()
+                    .map_err(Into::into)
+            }
+        }
+    }
+
     pub async fn get_package_info(&self, cl: &Client) -> PackageInfo {
         match self {
             Fetcher::FetchCrate { pname } => crates_io::get_package_info(cl, pname).await,

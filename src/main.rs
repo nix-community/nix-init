@@ -13,7 +13,6 @@ use expand::expand;
 use indoc::{formatdoc, writedoc};
 use is_terminal::IsTerminal;
 use once_cell::sync::Lazy;
-use reqwest::Client;
 use rustc_hash::FxHashMap;
 use rustyline::{config::Configurer, CompletionType, Editor};
 use serde::Deserialize;
@@ -106,7 +105,7 @@ async fn main() -> Result<()> {
 
     let fetcher = serde_json::from_slice(&stdout)?;
     let (pname, rev, version, desc) = if let MaybeFetcher::Known(fetcher) = &fetcher {
-        let cl = Client::builder().user_agent("Mozilla/5.0").build().unwrap();
+        let cl = fetcher.create_client(cfg.access_tokens).await?;
 
         let PackageInfo {
             pname,
