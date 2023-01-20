@@ -9,7 +9,7 @@
 Generate Nix packages from URLs (WIP)
 
 - Hash prefetching powered by [nurl]
-- Dependency inference for Rust packages using the [Riff](https://github.com/DeterminateSystems/riff) registry
+- Dependency inference for Rust packages using the [Riff](https://github.com/DeterminateSystems/riff) registry and python projects with a `pyproject.toml`
 - Interactive prompts with fuzzy tab completions
 - License detection
 - Supported builders

@@ -4,6 +4,7 @@ mod fetcher;
 mod inputs;
 mod licenses;
 mod prompt;
+mod python;
 
 use anyhow::{bail, Context, Result};
 use askalono::{Match, Store, TextData};
@@ -34,6 +35,7 @@ use crate::{
     inputs::{load_riff_dependencies, write_all_lambda_inputs, write_inputs, AllInputs},
     licenses::get_nix_licenses,
     prompt::{prompt, Prompter},
+    python::{get_dependency, parse_pyproject},
 };
 
 static LICENSE_STORE: Lazy<Option<Store>> =
@@ -61,9 +63,18 @@ struct Outputs {
 
 pub enum BuildType {
     BuildGoModule,
+    BuildPythonPackage {
+        application: bool,
+        format: PythonFormat,
+    },
     BuildRustPackage,
     MkDerivation,
     MkDerivationCargo,
+}
+
+pub enum PythonFormat {
+    Pyproject,
+    Setuptools,
 }
 
 #[tokio::main]
@@ -249,6 +260,9 @@ async fn main() -> Result<()> {
     let has_cmake = src_dir.join("CMakeLists.txt").is_file();
     let has_go = src_dir.join("go.mod").is_file();
     let has_meson = src_dir.join("meson.build").is_file();
+    let pyproject = src_dir.join("pyproject.toml");
+    let has_pyproject = pyproject.is_file();
+    let has_setuptools = src_dir.join("setup.py").is_file();
 
     if has_cargo {
         if has_meson {
@@ -265,9 +279,48 @@ async fn main() -> Result<()> {
             ));
         }
     }
+
     if has_go {
         choices.push((BuildType::BuildGoModule, "buildGoModule"));
     }
+
+    if has_pyproject {
+        choices.extend([
+            (
+                BuildType::BuildPythonPackage {
+                    application: true,
+                    format: PythonFormat::Pyproject,
+                },
+                "buildPythonApplication - pyproject",
+            ),
+            (
+                BuildType::BuildPythonPackage {
+                    application: false,
+                    format: PythonFormat::Pyproject,
+                },
+                "buildPythonPackage - pyproject",
+            ),
+        ]);
+    }
+    if has_setuptools {
+        choices.extend([
+            (
+                BuildType::BuildPythonPackage {
+                    application: true,
+                    format: PythonFormat::Setuptools,
+                },
+                "buildPythonApplication - setuptools",
+            ),
+            (
+                BuildType::BuildPythonPackage {
+                    application: false,
+                    format: PythonFormat::Setuptools,
+                },
+                "buildPythonPackage - setuptools",
+            ),
+        ]);
+    }
+
     choices.push((BuildType::MkDerivation, "stdenv.mkDerivation"));
 
     editor.set_helper(Some(Prompter::Build(choices)));
@@ -285,6 +338,9 @@ async fn main() -> Result<()> {
     match choice {
         BuildType::BuildGoModule => {
             writeln!(out, ", buildGoModule")?;
+        }
+        BuildType::BuildPythonPackage { .. } => {
+            writeln!(out, ", python3")?;
         }
         BuildType::BuildRustPackage => {
             writeln!(out, ", rustPlatform")?;
@@ -371,6 +427,67 @@ async fn main() -> Result<()> {
 
                 "#,
             )?;
+            res
+        }
+
+        BuildType::BuildPythonPackage {
+            application,
+            format,
+        } => {
+            let res = write_all_lambda_inputs(&mut out, &inputs, ["python"])?;
+
+            writedoc!(
+                out,
+                r#"
+                    }}:
+
+                    python3.pkgs.buildPython{} rec {{
+                      pname = {pname:?};
+                      version = {version:?};
+                      format = "{}";
+
+                      src = {src_expr};
+
+                "#,
+                if *application {
+                    "Application"
+                } else {
+                    "Package"
+                },
+                match format {
+                    PythonFormat::Pyproject => "pyproject",
+                    PythonFormat::Setuptools => "setuptools",
+                },
+            )?;
+
+            let name = match format {
+                PythonFormat::Pyproject => {
+                    if let Some(pyproject) = parse_pyproject(pyproject) {
+                        let mut deps = pyproject
+                            .project
+                            .dependencies
+                            .into_iter()
+                            .filter_map(get_dependency);
+
+                        if let Some(dep) = deps.next() {
+                            writeln!(out, "  propagatedBuildInputs = with python3.pkgs; [")?;
+                            writeln!(out, "    {dep}")?;
+                            for dep in deps {
+                                writeln!(out, "    {dep}")?;
+                            }
+                            writeln!(out, "  ];\n")?;
+                        }
+
+                        pyproject.project.name
+                    } else {
+                        pname
+                    }
+                }
+                _ => pname, // unimplemented
+            };
+
+            writeln!(out, "  pythonImportsCheck = [ {name:?} ];\n")?;
+
             res
         }
 
