@@ -464,30 +464,6 @@ async fn main() -> Result<()> {
                 },
             )?;
 
-            let name = match format {
-                PythonFormat::Pyproject => {
-                    if let Some(mut pyproject) = Pyproject::from_path(pyproject) {
-                        let mut deps = pyproject.get_dependencies().into_iter();
-
-                        if let Some(dep) = deps.next() {
-                            writeln!(out, "  propagatedBuildInputs = with python3.pkgs; [")?;
-                            writeln!(out, "    {dep}")?;
-                            for dep in deps {
-                                writeln!(out, "    {dep}")?;
-                            }
-                            writeln!(out, "  ];\n")?;
-                        }
-
-                        pyproject.get_name().unwrap_or(pname)
-                    } else {
-                        pname
-                    }
-                }
-                _ => pname, // unimplemented
-            };
-
-            writeln!(out, "  pythonImportsCheck = [ {name:?} ];\n")?;
-
             res
         }
 
@@ -572,6 +548,32 @@ async fn main() -> Result<()> {
     }
     if build_inputs {
         write_inputs(&mut out, &inputs.build_inputs, "buildInputs")?;
+    }
+
+    if let BuildType::BuildPythonPackage { format, .. } = choice {
+        let name = match format {
+            PythonFormat::Pyproject => {
+                if let Some(mut pyproject) = Pyproject::from_path(pyproject) {
+                    let mut deps = pyproject.get_dependencies().into_iter();
+
+                    if let Some(dep) = deps.next() {
+                        writeln!(out, "  propagatedBuildInputs = with python3.pkgs; [")?;
+                        writeln!(out, "    {dep}")?;
+                        for dep in deps {
+                            writeln!(out, "    {dep}")?;
+                        }
+                        writeln!(out, "  ];\n")?;
+                    }
+
+                    pyproject.get_name().unwrap_or(pname)
+                } else {
+                    pname
+                }
+            }
+            _ => pname, // unimplemented
+        };
+
+        writeln!(out, "  pythonImportsCheck = [ {name:?} ];\n")?;
     }
 
     let desc = desc.trim();
