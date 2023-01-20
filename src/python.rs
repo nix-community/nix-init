@@ -1,26 +1,61 @@
-use std::{fs, path::PathBuf};
-
 use serde::Deserialize;
+use serde_with::{serde_as, Map};
 use tracing::warn;
 
-#[derive(Deserialize)]
+use std::{fs, path::PathBuf};
+
+#[derive(Default, Deserialize)]
+#[serde(default)]
 pub struct Pyproject {
-    pub project: Project,
+    project: Project,
+    tool: Tool,
 }
 
-#[derive(Deserialize)]
-pub struct Project {
-    pub name: String,
-    pub dependencies: Vec<String>,
+#[derive(Default, Deserialize)]
+struct Project {
+    name: Option<String>,
+    dependencies: Option<Vec<String>>,
 }
 
-pub fn parse_pyproject(path: PathBuf) -> Option<Pyproject> {
-    toml::from_str(&fs::read_to_string(path).map_err(|e| warn!("{e}")).ok()?)
-        .map_err(|e| warn!("{e}"))
-        .ok()
+#[derive(Default, Deserialize)]
+struct Tool {
+    poetry: Poetry,
 }
 
-pub fn get_dependency(dep: String) -> Option<String> {
+#[serde_as]
+#[derive(Default, Deserialize)]
+struct Poetry {
+    name: Option<String>,
+    #[serde_as(as = "Option<Map<_, _>>")]
+    dependencies: Option<Vec<(String, String)>>,
+}
+
+impl Pyproject {
+    pub fn from_path(path: PathBuf) -> Option<Pyproject> {
+        toml::from_str(&fs::read_to_string(path).map_err(|e| warn!("{e}")).ok()?)
+            .map_err(|e| warn!("{e}"))
+            .ok()
+    }
+
+    pub fn get_name(&mut self) -> Option<String> {
+        self.project
+            .name
+            .take()
+            .or_else(|| self.tool.poetry.name.take())
+    }
+
+    pub fn get_dependencies(&mut self) -> Vec<String> {
+        if let Some(deps) = self.project.dependencies.take() {
+            deps.into_iter().filter_map(get_dependency).collect()
+        } else if let Some(deps) = self.tool.poetry.dependencies.take() {
+            deps.into_iter().map(|(dep, _)| dep).collect()
+        } else {
+            Vec::new()
+        }
+    }
+}
+
+fn get_dependency(dep: String) -> Option<String> {
     let mut chars = dep.chars().skip_while(|c| c.is_whitespace());
 
     let x = chars.next()?;

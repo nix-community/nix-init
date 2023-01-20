@@ -35,7 +35,7 @@ use crate::{
     inputs::{load_riff_dependencies, write_all_lambda_inputs, write_inputs, AllInputs},
     licenses::get_nix_licenses,
     prompt::{prompt, Prompter},
-    python::{get_dependency, parse_pyproject},
+    python::Pyproject,
 };
 
 static LICENSE_STORE: Lazy<Option<Store>> =
@@ -341,6 +341,10 @@ async fn main() -> Result<()> {
         }
         BuildType::BuildPythonPackage { .. } => {
             writeln!(out, ", python3")?;
+            inputs
+                .native_build_inputs
+                .always
+                .insert("python3.pkgs.poetry-core".into());
         }
         BuildType::BuildRustPackage => {
             writeln!(out, ", rustPlatform")?;
@@ -434,7 +438,7 @@ async fn main() -> Result<()> {
             application,
             format,
         } => {
-            let res = write_all_lambda_inputs(&mut out, &inputs, ["python"])?;
+            let res = write_all_lambda_inputs(&mut out, &inputs, ["python3"])?;
 
             writedoc!(
                 out,
@@ -462,12 +466,8 @@ async fn main() -> Result<()> {
 
             let name = match format {
                 PythonFormat::Pyproject => {
-                    if let Some(pyproject) = parse_pyproject(pyproject) {
-                        let mut deps = pyproject
-                            .project
-                            .dependencies
-                            .into_iter()
-                            .filter_map(get_dependency);
+                    if let Some(mut pyproject) = Pyproject::from_path(pyproject) {
+                        let mut deps = pyproject.get_dependencies().into_iter();
 
                         if let Some(dep) = deps.next() {
                             writeln!(out, "  propagatedBuildInputs = with python3.pkgs; [")?;
@@ -478,7 +478,7 @@ async fn main() -> Result<()> {
                             writeln!(out, "  ];\n")?;
                         }
 
-                        pyproject.project.name
+                        pyproject.get_name().unwrap_or(pname)
                     } else {
                         pname
                     }
