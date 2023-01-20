@@ -15,6 +15,7 @@ Generate Nix packages from URLs (WIP)
 - Supported builders
   - `stdenv.mkDerivation`
   - `rustPlatform.buildRustPackage`
+  - `buildPythonApplication` and `buildPythonPackage`
   - `buildGoModule`
 - Supported fetchers
   - `fetchCrate`
@@ -31,9 +32,27 @@ Arguments:
   <OUTPUT>  The path to output the generated file to
 
 Options:
-  -u, --url <URL>  Specify the URL
-  -h, --help       Print help
-  -V, --version    Print version
+  -u, --url <URL>        Specify the URL
+  -c, --config <CONFIG>  Specify the config file
+  -h, --help             Print help
+  -V, --version          Print version
+```
+
+## Configuration
+
+nix-init will try to find `nix-init/config.toml` under XDG configuration directories
+
+```toml
+# ~/.config/nix-init/config.toml
+
+# maintainers that will get added to the package meta
+maintainers = ["figsoda"]
+
+# access tokens to access private repositories and avoid rate limits
+[access-tokens]
+"github.com" = "ghp_blahblahblah..."
+"gitlab.com".command = ["secret-tool", "or", "whatever", "you", "use"]
+"gitlab.gnome.org".file = "/path/to/api/token"
 ```
 
 ## Changelog
