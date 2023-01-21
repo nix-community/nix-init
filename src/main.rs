@@ -408,12 +408,16 @@ async fn main() -> Result<()> {
         BuildType::BuildGoModule => {
             let hash = if src_dir.join("vendor").is_dir() {
                 "null".into()
+            } else if let Some(hash) = fod_hash(format!(
+                r#"(import<nixpkgs>{{}}).buildGoModule{{pname={pname:?};version={version:?};src={src};vendorHash="{FAKE_HASH}";}}"#,
+            )).await {
+                if hash == "sha256-pQpattmS9VmO3ZIQUFn66az8GSmB4IvYhTTCFn6SUmo=" {
+                    "null".into()
+                } else {
+                    format!(r#""{hash}""#)
+                }
             } else {
-                fod_hash(format!(
-                    r#"(import<nixpkgs>{{}}).buildGoModule{{pname={pname:?};version={version:?};src={src};vendorHash="{FAKE_HASH}";}}"#,
-                ))
-                .await
-                .map_or_else(|| format!(r#""{FAKE_HASH}""#), |hash| format!(r#""{hash}""#))
+                format!(r#""{FAKE_HASH}""#)
             };
 
             let res = write_all_lambda_inputs(&mut out, &inputs, ["rustPlatform"])?;
