@@ -22,7 +22,7 @@ use tracing_subscriber::EnvFilter;
 
 use std::{
     cmp::Ordering,
-    fs::{read_dir, read_to_string, File},
+    fs::{create_dir_all, read_dir, read_to_string, File},
     io::{stderr, BufRead, Write},
     path::PathBuf,
     process::Output,
@@ -96,6 +96,9 @@ async fn main() -> Result<()> {
 
     let cfg = load_config(opts.config)?;
 
+    if let Some(parent) = opts.output.parent() {
+        let _ = create_dir_all(parent);
+    }
     let mut out = File::create(opts.output)?;
     writeln!(out, "{{ lib")?;
 
