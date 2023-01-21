@@ -227,7 +227,7 @@ async fn main() -> Result<()> {
                             pname = {crate_name:?};
                             inherit version;
                             hash = "{hash}";
-                        }}"#,
+                          }}"#,
                 )
             }
         } else {
