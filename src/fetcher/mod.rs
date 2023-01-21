@@ -1,4 +1,5 @@
 mod crates_io;
+mod gitea;
 mod github;
 mod gitlab;
 
@@ -28,6 +29,11 @@ pub enum Fetcher {
         #[serde(default = "default_gitlab_domain")]
         domain: String,
         group: Option<String>,
+        owner: String,
+        repo: String,
+    },
+    FetchFromGitea {
+        domain: String,
         owner: String,
         repo: String,
     },
@@ -83,6 +89,15 @@ impl Fetcher {
                     .build()
                     .map_err(Into::into)
             }
+
+            Fetcher::FetchFromGitea { domain, .. } => {
+                let mut headers = HeaderMap::new();
+                tokens.insert_header(&mut headers, domain).await;
+                Client::builder()
+                    .default_headers(headers)
+                    .build()
+                    .map_err(Into::into)
+            }
         }
     }
 
@@ -100,6 +115,11 @@ impl Fetcher {
                 owner,
                 repo,
             } => gitlab::get_package_info(cl, domain, group, owner, repo).await,
+            Fetcher::FetchFromGitea {
+                domain,
+                owner,
+                repo,
+            } => gitea::get_package_info(cl, domain, owner, repo).await,
         }
     }
 
@@ -117,6 +137,11 @@ impl Fetcher {
                 owner,
                 repo,
             } => gitlab::get_version(cl, domain, group, owner, repo, rev).await,
+            Fetcher::FetchFromGitea {
+                domain,
+                owner,
+                repo,
+            } => gitea::get_version(cl, domain, owner, repo, rev).await,
         }
     }
 }

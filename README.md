@@ -21,6 +21,7 @@ Generate Nix packages from URLs (WIP)
   - `fetchCrate`
   - `fetchFromGitHub`
   - `fetchFromGitLab`
+  - `fetchFromGitea`
   - All other fetchers supported by [nurl](https://github.com/nix-community/nurl) are also supported, you just have to specify the tags manually
 
 ## Usage

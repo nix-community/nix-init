@@ -395,6 +395,7 @@ async fn main() -> Result<()> {
                     Fetcher::FetchCrate { .. } => "fetchCrate",
                     Fetcher::FetchFromGitHub { .. } => "fetchFromGitHub",
                     Fetcher::FetchFromGitLab { .. } => "fetchFromGitLab",
+                    Fetcher::FetchFromGitea { .. } => "fetchFromGitea",
                 },
             )?;
         }
