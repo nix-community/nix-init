@@ -2,7 +2,7 @@ use serde::Deserialize;
 use serde_with::{serde_as, Map};
 use tracing::warn;
 
-use std::{fs, path::PathBuf};
+use std::{cmp::Ordering, collections::BTreeSet, fs, path::PathBuf};
 
 #[derive(Default, Deserialize)]
 #[serde(default)]
@@ -27,7 +27,34 @@ struct Tool {
 struct Poetry {
     name: Option<String>,
     #[serde_as(as = "Option<Map<_, _>>")]
-    dependencies: Option<Vec<(String, String)>>,
+    dependencies: Option<BTreeSet<(String, PoetryDependency)>>,
+}
+
+#[derive(Deserialize)]
+#[serde(untagged)]
+enum PoetryDependency {
+    String(String),
+    Table {},
+}
+
+impl Eq for PoetryDependency {}
+
+impl Ord for PoetryDependency {
+    fn cmp(&self, _: &Self) -> Ordering {
+        Ordering::Equal
+    }
+}
+
+impl PartialEq<PoetryDependency> for PoetryDependency {
+    fn eq(&self, _: &Self) -> bool {
+        true
+    }
+}
+
+impl PartialOrd<PoetryDependency> for PoetryDependency {
+    fn partial_cmp(&self, _: &Self) -> Option<Ordering> {
+        None
+    }
 }
 
 impl Pyproject {
@@ -48,7 +75,9 @@ impl Pyproject {
         if let Some(deps) = self.project.dependencies.take() {
             deps.into_iter().filter_map(get_dependency).collect()
         } else if let Some(deps) = self.tool.poetry.dependencies.take() {
-            deps.into_iter().map(|(dep, _)| dep).collect()
+            deps.into_iter()
+                .filter_map(|(dep, _)| (dep != "python").then_some(dep))
+                .collect()
         } else {
             Vec::new()
         }
