@@ -18,6 +18,7 @@ struct Project {
 }
 
 #[derive(Default, Deserialize)]
+#[serde(default)]
 struct Tool {
     poetry: Poetry,
 }
@@ -74,10 +75,9 @@ impl Pyproject {
     pub fn get_dependencies(&mut self) -> Vec<String> {
         if let Some(deps) = self.project.dependencies.take() {
             deps.into_iter().filter_map(get_dependency).collect()
-        } else if let Some(deps) = self.tool.poetry.dependencies.take() {
-            deps.into_iter()
-                .filter_map(|(dep, _)| (dep != "python").then_some(dep))
-                .collect()
+        } else if let Some(mut deps) = self.tool.poetry.dependencies.take() {
+            deps.remove(&("python".into(), PoetryDependency::Table {}));
+            deps.into_iter().map(|(dep, _)| dep).collect()
         } else {
             Vec::new()
         }
