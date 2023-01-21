@@ -198,21 +198,38 @@ async fn main() -> Result<()> {
     cmd.arg(&url).arg(&rev);
 
     let src_expr = {
-        if let MaybeFetcher::Known(Fetcher::FetchCrate { .. }) = fetcher {
+        if let MaybeFetcher::Known(Fetcher::FetchCrate {
+            pname: ref crate_name,
+            ..
+        }) = fetcher
+        {
             let Output { stdout, status, .. } = cmd.arg("-H").output().await?;
 
             if !status.success() {
                 bail!("command exited with {status}");
             }
 
-            formatdoc!(
-                r#"
-                    fetchCrate {{
-                        inherit pname version;
-                        hash = "{}";
-                      }}"#,
-                String::from_utf8(stdout)?.trim_end(),
-            )
+            let hash = String::from_utf8(stdout)?;
+            let hash = hash.trim_end();
+
+            if &pname == crate_name {
+                formatdoc!(
+                    r#"
+                        fetchCrate {{
+                            inherit pname version;
+                            hash = "{hash}";
+                          }}"#,
+                )
+            } else {
+                formatdoc!(
+                    r#"
+                        fetchCrate {{
+                            pname = {crate_name:?};
+                            inherit version;
+                            hash = "{hash}";
+                        }}"#,
+                )
+            }
         } else {
             if rev == version {
                 cmd.arg("-o").arg("rev").arg("version");
