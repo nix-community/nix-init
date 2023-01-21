@@ -51,8 +51,8 @@ pub async fn get_package_info(
                 .await
                 .map(|latest_release: LatestRelease| latest_release.tag_name)
         },
-        async { json::<Vec<_>>(cl, format!("{root}/repository/tags")).await },
-        async { json::<Vec<_>>(cl, format!("{root}/repository/commits")).await },
+        async { json::<Vec<_>>(cl, format!("{root}/repository/tags?per_page=12")).await },
+        async { json::<Vec<_>>(cl, format!("{root}/repository/commits?per_page=12")).await },
     );
 
     let mut completions = vec![];
@@ -89,7 +89,7 @@ pub async fn get_package_info(
     }
 
     if let Some(commits) = commits {
-        let mut commits = commits.into_iter().take(12);
+        let mut commits = commits.into_iter();
 
         if let Some(Commit {
             id,

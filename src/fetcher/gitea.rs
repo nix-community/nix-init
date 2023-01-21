@@ -91,7 +91,7 @@ pub async fn get_package_info(cl: &Client, domain: &str, owner: &str, repo: &str
     }
 
     if let Some(commits) = commits {
-        let mut commits = commits.into_iter().take(12);
+        let mut commits = commits.into_iter();
 
         if let Some(Commit { sha, commit }) = commits.next() {
             if latest.is_empty() {
