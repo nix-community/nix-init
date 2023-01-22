@@ -76,7 +76,9 @@ impl Pyproject {
             deps.into_iter().filter_map(get_dependency).collect()
         } else if let Some(mut deps) = self.tool.poetry.dependencies.take() {
             deps.remove(&("python".into(), PoetryDependency::Table {}));
-            deps.into_iter().map(|(dep, _)| dep).collect()
+            deps.into_iter()
+                .map(|(dep, _)| dep.to_lowercase().replace(['_', '.'], "-"))
+                .collect()
         } else {
             Vec::new()
         }
@@ -94,12 +96,12 @@ fn get_dependency(dep: String) -> Option<String> {
 
     while let Some(c) = chars.next() {
         if c.is_alphabetic() {
-            name.push(c);
+            name.push(c.to_ascii_lowercase());
         } else if matches!(c, '-' | '.' | '_') {
             match chars.next() {
                 Some(c) if c.is_alphabetic() => {
                     name.push('-');
-                    name.push(c);
+                    name.push(c.to_ascii_lowercase());
                 }
                 _ => break,
             }

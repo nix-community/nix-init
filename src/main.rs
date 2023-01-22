@@ -69,6 +69,7 @@ pub enum BuildType {
     BuildPythonPackage {
         application: bool,
         format: PythonFormat,
+        cargo: bool,
     },
     BuildRustPackage,
     MkDerivation,
@@ -287,36 +288,37 @@ async fn main() -> Result<()> {
     let has_pyproject = pyproject.is_file();
     let has_setuptools = src_dir.join("setup.py").is_file();
 
-    if has_cargo {
-        choices.extend(if has_meson {
-            [
-                (
-                    BuildType::MkDerivationCargo,
-                    "stdenv.mkDerivation + rustPlatform.cargoSetupHook",
-                ),
-                (BuildType::BuildRustPackage, "rustPlatform.buildRustPackage"),
-            ]
-        } else {
-            [
-                (BuildType::BuildRustPackage, "rustPlatform.buildRustPackage"),
-                (
-                    BuildType::MkDerivationCargo,
-                    "stdenv.mkDerivation + rustPlatform.cargoSetupHook",
-                ),
-            ]
-        });
-    }
-
     if has_go {
         choices.push((BuildType::BuildGoModule, "buildGoModule"));
     }
 
     if has_pyproject {
+        if has_cargo {
+            choices.extend([
+                (
+                    BuildType::BuildPythonPackage {
+                        application: true,
+                        format: PythonFormat::Pyproject,
+                        cargo: true,
+                    },
+                    "buildPythonApplication - pyproject + cargoSetupHook",
+                ),
+                (
+                    BuildType::BuildPythonPackage {
+                        application: false,
+                        format: PythonFormat::Pyproject,
+                        cargo: true,
+                    },
+                    "buildPythonPackage - pyproject + cargoSetupHook",
+                ),
+            ]);
+        }
         choices.extend([
             (
                 BuildType::BuildPythonPackage {
                     application: true,
                     format: PythonFormat::Pyproject,
+                    cargo: false,
                 },
                 "buildPythonApplication - pyproject",
             ),
@@ -324,17 +326,40 @@ async fn main() -> Result<()> {
                 BuildType::BuildPythonPackage {
                     application: false,
                     format: PythonFormat::Pyproject,
+                    cargo: false,
                 },
                 "buildPythonPackage - pyproject",
             ),
         ]);
     }
+
     if has_setuptools {
+        if has_cargo {
+            choices.extend([
+                (
+                    BuildType::BuildPythonPackage {
+                        application: true,
+                        format: PythonFormat::Setuptools,
+                        cargo: true,
+                    },
+                    "buildPythonApplication - setuptools + cargoSetupHook",
+                ),
+                (
+                    BuildType::BuildPythonPackage {
+                        application: false,
+                        format: PythonFormat::Setuptools,
+                        cargo: true,
+                    },
+                    "buildPythonPackage - setuptools + cargoSetupHook",
+                ),
+            ]);
+        }
         choices.extend([
             (
                 BuildType::BuildPythonPackage {
                     application: true,
                     format: PythonFormat::Setuptools,
+                    cargo: false,
                 },
                 "buildPythonApplication - setuptools",
             ),
@@ -342,10 +367,31 @@ async fn main() -> Result<()> {
                 BuildType::BuildPythonPackage {
                     application: false,
                     format: PythonFormat::Setuptools,
+                    cargo: false,
                 },
                 "buildPythonPackage - setuptools",
             ),
         ]);
+    }
+
+    if has_cargo {
+        choices.extend(if has_meson {
+            [
+                (
+                    BuildType::MkDerivationCargo,
+                    "stdenv.mkDerivation + cargoSetupHook",
+                ),
+                (BuildType::BuildRustPackage, "buildRustPackage"),
+            ]
+        } else {
+            [
+                (BuildType::BuildRustPackage, "buildRustPackage"),
+                (
+                    BuildType::MkDerivationCargo,
+                    "stdenv.mkDerivation + cargoSetupHook",
+                ),
+            ]
+        });
     }
 
     choices.push((BuildType::MkDerivation, "stdenv.mkDerivation"));
@@ -366,12 +412,21 @@ async fn main() -> Result<()> {
         BuildType::BuildGoModule => {
             writeln!(out, ", buildGoModule")?;
         }
-        BuildType::BuildPythonPackage { .. } => {
+        BuildType::BuildPythonPackage { cargo, .. } => {
             writeln!(out, ", python3")?;
-            inputs
-                .native_build_inputs
-                .always
-                .insert("python3.pkgs.poetry-core".into());
+            if src_dir.join("poetry.lock").is_file() {
+                inputs
+                    .native_build_inputs
+                    .always
+                    .insert("python3.pkgs.poetry-core".into());
+            }
+            if *cargo {
+                inputs.native_build_inputs.always.extend([
+                    "rustPlatform.cargoSetupHook".into(),
+                    "rustPlatform.rust.cargo".into(),
+                    "rustPlatform.rust.rustc".into(),
+                ]);
+            }
         }
         BuildType::BuildRustPackage => {
             writeln!(out, ", rustPlatform")?;
@@ -469,7 +524,14 @@ async fn main() -> Result<()> {
         BuildType::BuildPythonPackage {
             application,
             format,
+            cargo,
         } => {
+            let hash = if *cargo {
+                Some(cargo_deps_hash(&mut inputs, &pname, &version, &src, &src_dir).await)
+            } else {
+                None
+            };
+
             let res = write_all_lambda_inputs(&mut out, &inputs, ["python3"])?;
 
             writedoc!(
@@ -495,6 +557,21 @@ async fn main() -> Result<()> {
                     PythonFormat::Setuptools => "setuptools",
                 },
             )?;
+
+            if let Some(hash) = hash {
+                write!(out, "  ")?;
+                writedoc!(
+                    out,
+                    r#"
+                        cargoDeps = rustPlatform.fetchCargoTarball {{
+                            inherit src;
+                            name = "${{pname}}-${{version}}";
+                            hash = "{hash}";
+                          }};
+
+                    "#
+                )?;
+            }
 
             res
         }
