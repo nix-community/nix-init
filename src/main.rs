@@ -5,6 +5,7 @@ mod inputs;
 mod licenses;
 mod prompt;
 mod python;
+mod rust;
 mod utils;
 
 use anyhow::{bail, Context, Result};
@@ -24,7 +25,7 @@ use tracing_subscriber::EnvFilter;
 use std::{
     cmp::Ordering,
     fs::{create_dir_all, read_dir, read_to_string, File},
-    io::{stderr, BufRead, Write},
+    io::{stderr, Write},
     path::PathBuf,
     process::Output,
 };
@@ -33,17 +34,17 @@ use crate::{
     cfg::load_config,
     cli::Opts,
     fetcher::{Fetcher, PackageInfo, Revisions, Version},
-    inputs::{load_riff_dependencies, write_all_lambda_inputs, write_inputs, AllInputs},
+    inputs::{write_all_lambda_inputs, write_inputs, AllInputs},
     licenses::get_nix_licenses,
     prompt::{prompt, Prompter},
     python::Pyproject,
+    rust::cargo_deps_hash,
+    utils::{fod_hash, FAKE_HASH},
 };
 
 static LICENSE_STORE: Lazy<Option<Store>> =
     Lazy::new(|| Store::from_cache(include_bytes!("../cache/askalono-cache.zstd") as &[_]).ok());
 static NIX_LICENSES: Lazy<FxHashMap<&'static str, &'static str>> = Lazy::new(get_nix_licenses);
-
-const FAKE_HASH: &str = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
 
 #[derive(Debug, Deserialize)]
 #[serde(untagged)]
@@ -286,19 +287,23 @@ async fn main() -> Result<()> {
     let has_setuptools = src_dir.join("setup.py").is_file();
 
     if has_cargo {
-        if has_meson {
-            choices.push((
-                BuildType::MkDerivationCargo,
-                "stdenv.mkDerivation + rustPlatform.cargoSetupHook",
-            ));
-            choices.push((BuildType::BuildRustPackage, "rustPlatform.buildRustPackage"));
+        choices.extend(if has_meson {
+            [
+                (
+                    BuildType::MkDerivationCargo,
+                    "stdenv.mkDerivation + rustPlatform.cargoSetupHook",
+                ),
+                (BuildType::BuildRustPackage, "rustPlatform.buildRustPackage"),
+            ]
         } else {
-            choices.push((BuildType::BuildRustPackage, "rustPlatform.buildRustPackage"));
-            choices.push((
-                BuildType::MkDerivationCargo,
-                "stdenv.mkDerivation + rustPlatform.cargoSetupHook",
-            ));
-        }
+            [
+                (BuildType::BuildRustPackage, "rustPlatform.buildRustPackage"),
+                (
+                    BuildType::MkDerivationCargo,
+                    "stdenv.mkDerivation + rustPlatform.cargoSetupHook",
+                ),
+            ]
+        });
     }
 
     if has_go {
@@ -493,61 +498,25 @@ async fn main() -> Result<()> {
             res
         }
 
-        BuildType::BuildRustPackage | BuildType::MkDerivationCargo => {
-            let hash = if let Ok(lock) = File::open(src_dir.join("Cargo.lock")) {
-                let (hash, ()) = tokio::join!(
-                    fod_hash(format!(
-                        r#"(import<nixpkgs>{{}}).rustPlatform.fetchCargoTarball{{name="{pname}-{version}";src={src};hash="{FAKE_HASH}";}}"#,
-                    )),
-                    load_riff_dependencies(&mut inputs, &lock),
-                );
+        BuildType::BuildRustPackage => {
+            let hash = cargo_deps_hash(&mut inputs, &pname, &version, &src, &src_dir).await;
+            let res = write_all_lambda_inputs(&mut out, &inputs, ["rustPlatform"])?;
+            writedoc!(
+                out,
+                r#"
+                    }}:
 
-                hash.unwrap_or_else(|| FAKE_HASH.into())
-            } else {
-                FAKE_HASH.into()
-            };
+                    rustPlatform.buildRustPackage rec {{
+                      pname = {pname:?};
+                      version = {version:?};
 
-            if matches!(choice, BuildType::BuildRustPackage) {
-                let res = write_all_lambda_inputs(&mut out, &inputs, ["rustPlatform"])?;
-                writedoc!(
-                    out,
-                    r#"
-                        }}:
+                      src = {src_expr};
 
-                        rustPlatform.buildRustPackage rec {{
-                          pname = {pname:?};
-                          version = {version:?};
+                      cargoHash = "{hash}";
 
-                          src = {src_expr};
-
-                          cargoHash = "{hash}";
-
-                    "#,
-                )?;
-                res
-            } else {
-                let res = write_all_lambda_inputs(&mut out, &inputs, ["stdenv"])?;
-                writedoc!(
-                    out,
-                    r#"
-                        }}:
-
-                        stdenv.mkDerivation rec {{
-                          pname = {pname:?};
-                          version = {version:?};
-
-                          src = {src_expr};
-
-                          cargoDeps = rustPlatform.fetchCargoTarball {{
-                            inherit src;
-                            name = "${{pname}}-${{version}}";
-                            hash = "{hash}";
-                          }};
-
-                    "#,
-                )?;
-                res
-            }
+                "#,
+            )?;
+            res
         }
 
         BuildType::MkDerivation => {
@@ -562,6 +531,31 @@ async fn main() -> Result<()> {
                       version = {version:?};
 
                       src = {src_expr};
+
+                "#,
+            )?;
+            res
+        }
+
+        BuildType::MkDerivationCargo => {
+            let hash = cargo_deps_hash(&mut inputs, &pname, &version, &src, &src_dir).await;
+            let res = write_all_lambda_inputs(&mut out, &inputs, ["stdenv"])?;
+            writedoc!(
+                out,
+                r#"
+                    }}:
+
+                    stdenv.mkDerivation rec {{
+                      pname = {pname:?};
+                      version = {version:?};
+
+                      src = {src_expr};
+
+                      cargoDeps = rustPlatform.fetchCargoTarball {{
+                        inherit src;
+                        name = "${{pname}}-${{version}}";
+                        hash = "{hash}";
+                      }};
 
                 "#,
             )?;
@@ -673,35 +667,4 @@ async fn main() -> Result<()> {
     writeln!(out, "];\n  }};\n}}")?;
 
     Ok(())
-}
-
-async fn fod_hash(expr: String) -> Option<String> {
-    let Output { stderr, status, .. } = Command::new("nix")
-        .arg("build")
-        .arg("--extra-experimental-features")
-        .arg("nix-command")
-        .arg("--impure")
-        .arg("--no-link")
-        .arg("--expr")
-        .arg(expr)
-        .output()
-        .await
-        .ok()?;
-
-    if status.success() {
-        return None;
-    }
-
-    let mut lines = stderr.lines();
-    loop {
-        let Ok(line) = lines.next()? else { continue; };
-        if !line.trim_start().starts_with("specified:") {
-            continue;
-        }
-        let Ok(line) = lines.next()? else { continue; };
-        let Some(hash) = line.trim_start().strip_prefix("got:") else {
-            continue;
-        };
-        return Some(hash.trim().to_owned());
-    }
 }

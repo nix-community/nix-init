@@ -1,12 +1,10 @@
 use anyhow::Result;
-use paste::paste;
 use rustc_hash::FxHashMap;
 use serde::Deserialize;
 
-use std::{
-    collections::BTreeSet,
-    io::{Read, Write},
-};
+use std::{collections::BTreeSet, io::Write};
+
+use crate::utils::ResultExt;
 
 #[derive(Default)]
 pub struct AllInputs {
@@ -17,131 +15,64 @@ pub struct AllInputs {
 #[derive(Default, Debug)]
 pub struct Inputs {
     pub always: BTreeSet<String>,
-    darwin: BTreeSet<String>,
-    aarch64_darwin: BTreeSet<String>,
-    x86_64_darwin: BTreeSet<String>,
-    linux: BTreeSet<String>,
-    aarch64_linux: BTreeSet<String>,
-    x86_64_linux: BTreeSet<String>,
+    pub darwin: BTreeSet<String>,
+    pub aarch64_darwin: BTreeSet<String>,
+    pub x86_64_darwin: BTreeSet<String>,
+    pub linux: BTreeSet<String>,
+    pub aarch64_linux: BTreeSet<String>,
+    pub x86_64_linux: BTreeSet<String>,
 }
 
 #[derive(Deserialize)]
-struct CargoLock {
-    package: Vec<CargoPackage>,
+pub struct RiffRegistry {
+    pub language: RiffLanguages,
 }
 
 #[derive(Deserialize)]
-struct CargoPackage {
-    name: String,
+pub struct RiffLanguages {
+    pub rust: RiffLanguage,
 }
 
 #[derive(Deserialize)]
-struct RiffRegistry {
-    language: RiffLanguages,
-}
-
-#[derive(Deserialize)]
-struct RiffLanguages {
-    rust: RiffLanguage,
-}
-
-#[derive(Deserialize)]
-struct RiffLanguage {
-    dependencies: FxHashMap<String, RiffDependency>,
+pub struct RiffLanguage {
+    pub dependencies: FxHashMap<String, RiffDependency>,
 }
 
 #[derive(Default, Deserialize)]
 #[serde(default)]
-struct RiffDependency {
+pub struct RiffDependency {
     #[serde(flatten)]
-    inputs: RiffInputs,
-    targets: RiffTargets,
+    pub inputs: RiffInputs,
+    pub targets: RiffTargets,
 }
 
 #[derive(Default, Deserialize)]
 #[serde(default)]
-struct RiffTargets {
+pub struct RiffTargets {
     #[serde(rename = "aarch64-apple-darwin")]
-    aarch64_darwin: RiffInputs,
+    pub aarch64_darwin: RiffInputs,
     #[serde(rename = "aarch64-unknown-linux-gnu")]
-    aarch64_linux: RiffInputs,
+    pub aarch64_linux: RiffInputs,
     #[serde(rename = "x86_64-apple-darwin")]
-    x86_64_darwin: RiffInputs,
+    pub x86_64_darwin: RiffInputs,
     #[serde(rename = "x86_64-unknown-linux-gnu")]
-    x86_64_linux: RiffInputs,
+    pub x86_64_linux: RiffInputs,
 }
 
 #[derive(Default, Deserialize)]
 #[serde(default, rename_all = "kebab-case")]
-struct RiffInputs {
-    native_build_inputs: Vec<String>,
-    build_inputs: Vec<String>,
+pub struct RiffInputs {
+    pub native_build_inputs: Vec<String>,
+    pub build_inputs: Vec<String>,
 }
 
-pub async fn load_riff_dependencies(inputs: &mut AllInputs, mut lock: impl Read) {
-    let (Some(lock), Some(mut registry)) = tokio::join!(
-        async {
-            let mut buf = String::new();
-            lock.read_to_string(&mut buf).ok()?;
-            toml::from_str::<CargoLock>(&buf).ok()
-        },
-        async {
-            reqwest::get("https://registry.riff.determinate.systems/riff-registry.json")
-                .await
-                .ok()?
-                .json::<RiffRegistry>()
-                .await
-                .ok()
-        },
-    ) else {
-        return;
-    };
-
-    for dep in lock.package {
-        let Some(dep) = registry.language.rust.dependencies.remove(&dep.name) else {
-            continue;
-        };
-
-        for input in dep.inputs.native_build_inputs {
-            inputs.native_build_inputs.always.insert(input);
-        }
-        for input in dep.inputs.build_inputs {
-            inputs.build_inputs.always.insert(input);
-        }
-
-        macro_rules! load {
-            ($inputs:ident, $sys:ident) => {
-                paste! {
-                    for input in dep.targets.[<aarch64_ $sys>].$inputs {
-                        if inputs.$inputs.always.contains(&input)
-                            || inputs.$inputs.$sys.contains(&input) {
-                            continue;
-                        } else if inputs.$inputs.[<x86_64_ $sys>].remove(&input) {
-                            inputs.$inputs.$sys.insert(input);
-                        } else {
-                            inputs.$inputs.[<aarch64_ $sys>].insert(input);
-                        }
-                    }
-
-                    for input in dep.targets.[<x86_64_ $sys>].$inputs {
-                        if inputs.$inputs.always.contains(&input)
-                            || inputs.$inputs.$sys.contains(&input) {
-                            continue;
-                        } else if inputs.$inputs.[<aarch64_ $sys>].remove(&input) {
-                            inputs.$inputs.$sys.insert(input);
-                        } else {
-                            inputs.$inputs.[<x86_64_ $sys>].insert(input);
-                        }
-                    }
-                }
-            };
-        }
-
-        load!(native_build_inputs, darwin);
-        load!(native_build_inputs, linux);
-        load!(build_inputs, darwin);
-        load!(build_inputs, linux);
-    }
+pub async fn get_riff_registry() -> Option<RiffRegistry> {
+    reqwest::get("https://registry.riff.determinate.systems/riff-registry.json")
+        .await
+        .ok_warn()?
+        .json()
+        .await
+        .ok_warn()
 }
 
 pub fn write_all_lambda_inputs<const N: usize>(
