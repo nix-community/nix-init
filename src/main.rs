@@ -39,11 +39,12 @@ use crate::{
     prompt::{prompt, Prompter},
     python::Pyproject,
     rust::cargo_deps_hash,
-    utils::{fod_hash, FAKE_HASH},
+    utils::{fod_hash, ResultExt, FAKE_HASH},
 };
 
-static LICENSE_STORE: Lazy<Option<Store>> =
-    Lazy::new(|| Store::from_cache(include_bytes!("../cache/askalono-cache.zstd") as &[_]).ok());
+static LICENSE_STORE: Lazy<Option<Store>> = Lazy::new(|| {
+    Store::from_cache(include_bytes!("../cache/askalono-cache.zstd") as &[_]).ok_warn()
+});
 static NIX_LICENSES: Lazy<FxHashMap<&'static str, &'static str>> = Lazy::new(get_nix_licenses);
 
 #[derive(Debug, Deserialize)]
@@ -167,7 +168,7 @@ async fn main() -> Result<()> {
             description,
         )
     } else {
-        let pname = url.parse::<url::Url>().ok().and_then(|url| {
+        let pname = url.parse::<url::Url>().ok_warn().and_then(|url| {
             url.path_segments()
                 .and_then(|xs| xs.last())
                 .map(|pname| pname.strip_suffix(".git").unwrap_or(pname).into())
