@@ -8,7 +8,7 @@ mod python;
 mod rust;
 mod utils;
 
-use anyhow::{bail, Context, Result};
+use anyhow::{Context, Result};
 use askalono::{Match, Store, TextData};
 use bstr::ByteVec;
 use clap::Parser;
@@ -27,7 +27,6 @@ use std::{
     fs::{create_dir_all, read_dir, read_to_string, File},
     io::{stderr, Write},
     path::PathBuf,
-    process::Output,
 };
 
 use crate::{
@@ -39,7 +38,7 @@ use crate::{
     prompt::{prompt, Prompter},
     python::Pyproject,
     rust::cargo_deps_hash,
-    utils::{fod_hash, ResultExt, FAKE_HASH},
+    utils::{fod_hash, CommandExt, ResultExt, FAKE_HASH},
 };
 
 static LICENSE_STORE: Lazy<Option<Store>> = Lazy::new(|| {
@@ -115,13 +114,13 @@ async fn main() -> Result<()> {
         None => editor.readline(&prompt("Enter url"))?,
     };
 
-    let Output { stdout, status, .. } = Command::new("nurl").arg(&url).arg("-p").output().await?;
-
-    if !status.success() {
-        bail!("command exited with {status}");
-    }
-
-    let fetcher = serde_json::from_slice(&stdout)?;
+    let fetcher = serde_json::from_slice(
+        &Command::new("nurl")
+            .arg(&url)
+            .arg("-p")
+            .get_stdout()
+            .await?,
+    )?;
     let (pname, rev, version, desc) = if let MaybeFetcher::Known(fetcher) = &fetcher {
         let cl = fetcher.create_client(cfg.access_tokens).await?;
 
@@ -207,13 +206,8 @@ async fn main() -> Result<()> {
             ..
         }) = fetcher
         {
-            let Output { stdout, status, .. } = cmd.arg("-H").output().await?;
-
-            if !status.success() {
-                bail!("command exited with {status}");
-            }
-
-            let hash = String::from_utf8(stdout)?;
+            let hash = String::from_utf8(cmd.arg("-H").get_stdout().await?)
+                .context("failed to parse nurl output")?;
             let hash = hash.trim_end();
 
             if &pname == crate_name {
@@ -243,17 +237,12 @@ async fn main() -> Result<()> {
                     .arg(rev.replacen(&version, "${version}", 1));
             }
 
-            let Output { stdout, status, .. } = cmd.arg("-i").arg("2").output().await?;
-
-            if !status.success() {
-                bail!("command exited with {status}");
-            }
-
-            String::from_utf8(stdout)?
+            String::from_utf8(cmd.arg("-i").arg("2").get_stdout().await?)
+                .context("failed to parse nurl output")?
         }
     };
 
-    let Output { stdout, status, .. } = Command::new("nix")
+    let stdout = Command::new("nix")
         .arg("build")
         .arg("--extra-experimental-features")
         .arg("nix-command")
@@ -264,12 +253,8 @@ async fn main() -> Result<()> {
         .arg(format!(
             "let pname={pname:?};version={version:?};in(import<nixpkgs>{{}}).{src_expr}"
         ))
-        .output()
+        .get_stdout()
         .await?;
-
-    if !status.success() {
-        bail!("command exited with {status}");
-    }
 
     let src = serde_json::from_slice::<Vec<BuildResult>>(&stdout)?
         .into_iter()

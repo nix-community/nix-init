@@ -6,7 +6,9 @@ use serde::Deserialize;
 use tokio::process::Command;
 use xdg::BaseDirectories;
 
-use std::{fs, path::PathBuf, process::Output};
+use std::{fs, path::PathBuf};
+
+use crate::utils::{CommandExt, ResultExt};
 
 #[derive(Default, Deserialize)]
 #[serde(default, rename_all = "kebab-case")]
@@ -26,13 +28,11 @@ impl AccessTokens {
             Some(AccessToken::Command { command }) => {
                 let mut args = command.iter();
                 let Some(cmd) = args.next() else { return; };
-                match Command::new(cmd).args(args).output().await {
-                    Ok(Output { status, stdout, .. }) if status.success() => {
-                        let Ok(token) = String::from_utf8(stdout) else { return; };
-                        format!("Bearer {}", token.trim())
-                    }
-                    _ => return,
-                }
+                let Some(stdout) = Command::new(cmd).args(args).get_stdout().await.ok_warn() else {
+                    return;
+                };
+                let Ok(token) = String::from_utf8(stdout) else { return; };
+                format!("Bearer {}", token.trim())
             }
 
             Some(AccessToken::File { file }) => {

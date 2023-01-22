@@ -1,5 +1,7 @@
+use anyhow::{bail, Result};
+use async_trait::async_trait;
 use tokio::process::Command;
-use tracing::warn;
+use tracing::{info, warn};
 
 use std::{fmt::Display, io::BufRead, process::Output};
 
@@ -19,20 +21,49 @@ impl<T, E: Display> ResultExt for Result<T, E> {
     }
 }
 
+#[async_trait]
+pub trait CommandExt {
+    async fn get_stdout(&mut self) -> Result<Vec<u8>>;
+}
+
+#[async_trait]
+impl CommandExt for Command {
+    async fn get_stdout(&mut self) -> Result<Vec<u8>> {
+        info!("{:?}", &self);
+
+        let Output {
+            status,
+            stdout,
+            stderr,
+        } = self.output().await?;
+
+        if !status.success() {
+            bail!(
+                "command exited with {status}\nstdout:\n{}\nstderr:\n{}",
+                String::from_utf8_lossy(&stdout),
+                String::from_utf8_lossy(&stderr),
+            );
+        }
+
+        Ok(stdout)
+    }
+}
+
 pub async fn fod_hash(expr: String) -> Option<String> {
-    let Output { stderr, status, .. } = Command::new("nix")
-        .arg("build")
+    let mut cmd = Command::new("nix");
+    cmd.arg("build")
         .arg("--extra-experimental-features")
         .arg("nix-command")
         .arg("--impure")
         .arg("--no-link")
         .arg("--expr")
-        .arg(expr)
-        .output()
-        .await
-        .ok_warn()?;
+        .arg(expr);
+
+    info!("{cmd:?}");
+    let Output { stderr, status, .. } = cmd.output().await.ok_warn()?;
 
     if status.success() {
+        warn!("command succeeded unexpectedly");
         return None;
     }
 
