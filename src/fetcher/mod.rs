@@ -7,9 +7,8 @@ use anyhow::Result;
 use reqwest::{header::HeaderMap, Client, IntoUrl};
 use rustc_hash::FxHashMap;
 use serde::Deserialize;
-use tracing::warn;
 
-use crate::{cfg::AccessTokens, prompt::Completion};
+use crate::{cfg::AccessTokens, prompt::Completion, utils::ResultExt};
 
 #[allow(clippy::enum_variant_names)]
 #[derive(Debug, serde::Serialize, Deserialize)]
@@ -150,17 +149,5 @@ impl Fetcher {
 }
 
 pub async fn json<T: for<'a> Deserialize<'a>>(cl: &Client, url: impl IntoUrl) -> Option<T> {
-    cl.get(url)
-        .send()
-        .await
-        .map_err(|e| {
-            warn!("{e}");
-        })
-        .ok()?
-        .json()
-        .await
-        .map_err(|e| {
-            warn!("{e}");
-        })
-        .ok()
+    cl.get(url).send().await.ok_warn()?.json().await.ok_warn()
 }

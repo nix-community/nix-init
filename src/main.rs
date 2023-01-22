@@ -5,6 +5,7 @@ mod inputs;
 mod licenses;
 mod prompt;
 mod python;
+mod utils;
 
 use anyhow::{bail, Context, Result};
 use askalono::{Match, Store, TextData};

@@ -1,8 +1,9 @@
 use serde::Deserialize;
 use serde_with::{serde_as, Map};
-use tracing::warn;
 
 use std::{cmp::Ordering, collections::BTreeSet, fs, path::PathBuf};
+
+use crate::utils::ResultExt;
 
 #[derive(Default, Deserialize)]
 #[serde(default)]
@@ -60,9 +61,7 @@ impl PartialOrd<PoetryDependency> for PoetryDependency {
 
 impl Pyproject {
     pub fn from_path(path: PathBuf) -> Option<Pyproject> {
-        toml::from_str(&fs::read_to_string(path).map_err(|e| warn!("{e}")).ok()?)
-            .map_err(|e| warn!("{e}"))
-            .ok()
+        toml::from_str(&fs::read_to_string(path).ok_warn()?).ok_warn()
     }
 
     pub fn get_name(&mut self) -> Option<String> {
