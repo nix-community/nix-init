@@ -14,7 +14,7 @@ categories = ["command-line-utilities"]
 [dependencies]
 anyhow = "1.0.68"
 askalono = "0.4.6"
-async-trait = "0.1.62"
+async-trait = "0.1.63"
 bstr = "1.1.0"
 expand = "0.2.1"
 indoc = "1.0.8"
