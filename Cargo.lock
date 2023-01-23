@@ -1349,7 +1349,7 @@ checksum = "5583e89e108996506031660fe09baa5011b9dd0341b89029313006d1fb508d70"
 [[package]]
 name = "rustyline"
 version = "10.1.0"
-source = "git+https://github.com/kkawakam/rustyline#74c793e36bcb67bdedbc493d688ac6413b05fa8d"
+source = "git+https://github.com/kkawakam/rustyline#45b9e3d3c2dff76f265f720663532aafe0e009b9"
 dependencies = [
  "bitflags",
  "cfg-if",
@@ -1370,7 +1370,7 @@ dependencies = [
 [[package]]
 name = "rustyline-derive"
 version = "0.7.0"
-source = "git+https://github.com/kkawakam/rustyline#74c793e36bcb67bdedbc493d688ac6413b05fa8d"
+source = "git+https://github.com/kkawakam/rustyline#45b9e3d3c2dff76f265f720663532aafe0e009b9"
 dependencies = [
  "proc-macro2",
  "quote",
