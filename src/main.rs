@@ -121,12 +121,13 @@ async fn main() -> Result<()> {
             .get_stdout()
             .await?,
     )?;
-    let (pname, rev, version, desc) = if let MaybeFetcher::Known(fetcher) = &fetcher {
+    let (pname, rev, version, desc, prefix) = if let MaybeFetcher::Known(fetcher) = &fetcher {
         let cl = fetcher.create_client(cfg.access_tokens).await?;
 
         let PackageInfo {
             pname,
             description,
+            file_url_prefix,
             revisions,
         } = fetcher.get_package_info(&cl).await;
 
@@ -166,6 +167,7 @@ async fn main() -> Result<()> {
             rev,
             editor.readline_with_initial(&prompt("Enter version"), (&version, ""))?,
             description,
+            file_url_prefix,
         )
     } else {
         let pname = url.parse::<url::Url>().ok_warn().and_then(|url| {
@@ -180,6 +182,7 @@ async fn main() -> Result<()> {
             editor.readline(&prompt("Enter tag or revision"))?,
             editor.readline(&prompt("Enter version"))?,
             "".into(),
+            None,
         )
     };
 
@@ -667,10 +670,36 @@ async fn main() -> Result<()> {
             meta = with lib; {{
                 description = {:?};
                 homepage = {url:?};
-                license = ",
+        ",
         desc.strip_suffix('.').unwrap_or(desc),
     )?;
 
+    if let Some(prefix) = prefix {
+        for entry in read_dir(&src_dir)? {
+            let entry = entry?;
+            let path = entry.path();
+
+            if !path.is_file() {
+                continue;
+            }
+
+            let name = entry.file_name();
+            let Some(name) = name.to_str() else { continue; };
+            if matches!(
+                name.to_ascii_lowercase().as_bytes(),
+                expand!([@b"changelog", ..] | [@b"changes", ..] | [@b"news"] | [@b"releases", ..]),
+            ) {
+                writeln!(
+                    out,
+                    r#"    changelog = "{prefix}{}/{name}";"#,
+                    rev.replacen(&version, "${version}", 1),
+                )?;
+                break;
+            }
+        }
+    }
+
+    write!(out, "    license = ")?;
     if let Some(store) = &*LICENSE_STORE {
         let nix_licenses = &*NIX_LICENSES;
         let mut licenses = Vec::new();

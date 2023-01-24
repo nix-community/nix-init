@@ -139,6 +139,7 @@ pub async fn get_package_info(
     PackageInfo {
         pname: repo.into(),
         description,
+        file_url_prefix: Some(format!("https://{github_base}/{owner}/{repo}/blob/")),
         revisions: Revisions {
             latest,
             completions,

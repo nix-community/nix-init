@@ -61,8 +61,9 @@ pub struct Revisions {
 
 pub struct PackageInfo {
     pub pname: String,
-    pub revisions: Revisions,
     pub description: String,
+    pub file_url_prefix: Option<String>,
+    pub revisions: Revisions,
 }
 
 impl Fetcher {
