@@ -204,19 +204,25 @@ async fn main() -> Result<()> {
     cmd.arg(&url).arg(&rev);
 
     let src_expr = {
-        if let MaybeFetcher::Known(Fetcher::FetchCrate {
-            pname: ref crate_name,
-            ..
-        }) = fetcher
+        if let MaybeFetcher::Known(
+            ref fetcher @ (Fetcher::FetchCrate { pname: ref name }
+            | Fetcher::FetchPypi { pname: ref name }),
+        ) = fetcher
         {
             let hash = String::from_utf8(cmd.arg("-H").get_stdout().await?)
                 .context("failed to parse nurl output")?;
             let hash = hash.trim_end();
 
-            if &pname == crate_name {
+            let fetcher = if matches!(fetcher, Fetcher::FetchCrate { .. }) {
+                "fetchCrate"
+            } else {
+                "fetchPypi"
+            };
+
+            if &pname == name {
                 formatdoc!(
                     r#"
-                        fetchCrate {{
+                        {fetcher} {{
                             inherit pname version;
                             hash = "{hash}";
                           }}"#,
@@ -224,8 +230,8 @@ async fn main() -> Result<()> {
             } else {
                 formatdoc!(
                     r#"
-                        fetchCrate {{
-                            pname = {crate_name:?};
+                        fetcher {{
+                            pname = {name:?};
                             inherit version;
                             hash = "{hash}";
                           }}"#,
@@ -466,6 +472,7 @@ async fn main() -> Result<()> {
                     Fetcher::FetchFromGitHub { .. } => "fetchFromGitHub",
                     Fetcher::FetchFromGitLab { .. } => "fetchFromGitLab",
                     Fetcher::FetchFromGitea { .. } => "fetchFromGitea",
+                    Fetcher::FetchPypi { .. } => "fetchPypi",
                 },
             )?;
         }
@@ -675,36 +682,37 @@ async fn main() -> Result<()> {
     )?;
 
     if let Some(prefix) = prefix {
-        for entry in read_dir(&src_dir)? {
-            let entry = entry?;
-            let path = entry.path();
+        if let Some(walk) = read_dir(&src_dir).ok_warn() {
+            for entry in walk {
+                let entry = entry?;
+                let path = entry.path();
 
-            if !path.is_file() {
-                continue;
-            }
+                if !path.is_file() {
+                    continue;
+                }
 
-            let name = entry.file_name();
-            let Some(name) = name.to_str() else { continue; };
-            if matches!(
-                name.to_ascii_lowercase().as_bytes(),
-                expand!([@b"changelog", ..] | [@b"changes", ..] | [@b"news"] | [@b"releases", ..]),
-            ) {
-                writeln!(
-                    out,
-                    r#"    changelog = "{prefix}{}/{name}";"#,
-                    rev.replacen(&version, "${version}", 1),
-                )?;
-                break;
+                let name = entry.file_name();
+                let Some(name) = name.to_str() else { continue; };
+                if matches!(
+                    name.to_ascii_lowercase().as_bytes(),
+                    expand!([@b"changelog", ..] | [@b"changes", ..] | [@b"news"] | [@b"releases", ..]),
+                ) {
+                    writeln!(
+                        out,
+                        r#"    changelog = "{prefix}{}/{name}";"#,
+                        rev.replacen(&version, "${version}", 1),
+                    )?;
+                    break;
+                }
             }
         }
     }
 
-    write!(out, "    license = ")?;
-    if let Some(store) = &*LICENSE_STORE {
+    if let (Some(store), Some(walk)) = (&*LICENSE_STORE, read_dir(src_dir).ok_warn()) {
         let nix_licenses = &*NIX_LICENSES;
         let mut licenses = Vec::new();
 
-        for entry in read_dir(src_dir)? {
+        for entry in walk {
             let entry = entry?;
             let path = entry.path();
 
@@ -730,6 +738,7 @@ async fn main() -> Result<()> {
 
         licenses.dedup_by_key(|(_, license)| *license);
 
+        write!(out, "    license = ")?;
         if let [(_, license)] = &licenses[..] {
             write!(out, "licenses.{license}")?;
         } else {
@@ -750,6 +759,8 @@ async fn main() -> Result<()> {
             }
             write!(out, "]")?;
         }
+    } else {
+        write!(out, "    licenses = with licenses; [ ]")?;
     }
 
     write!(out, ";\n    maintainers = with maintainers; [ ")?;

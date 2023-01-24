@@ -2,6 +2,7 @@ mod crates_io;
 mod gitea;
 mod github;
 mod gitlab;
+mod pypi;
 
 use anyhow::Result;
 use reqwest::{header::HeaderMap, Client, IntoUrl};
@@ -35,6 +36,9 @@ pub enum Fetcher {
         domain: String,
         owner: String,
         repo: String,
+    },
+    FetchPypi {
+        pname: String,
     },
 }
 
@@ -101,6 +105,8 @@ impl Fetcher {
                     .build()
                     .map_err(Into::into)
             }
+
+            Fetcher::FetchPypi { .. } => Ok(Client::new()),
         }
     }
 
@@ -123,6 +129,7 @@ impl Fetcher {
                 owner,
                 repo,
             } => gitea::get_package_info(cl, domain, owner, repo).await,
+            Fetcher::FetchPypi { pname } => pypi::get_package_info(cl, pname).await,
         }
     }
 
@@ -145,6 +152,7 @@ impl Fetcher {
                 owner,
                 repo,
             } => gitea::get_version(cl, domain, owner, repo, rev).await,
+            Fetcher::FetchPypi { .. } => Some(Version::Tag),
         }
     }
 }
