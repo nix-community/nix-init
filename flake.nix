@@ -5,7 +5,7 @@
 
   outputs = { self, nixpkgs }:
     let
-      inherit (nixpkgs.lib) genAttrs importTOML licenses optionals maintainers;
+      inherit (nixpkgs.lib) genAttrs importTOML licenses maintainers makeBinPath optionals;
       inherit (importTOML (self + "/Cargo.toml")) package;
 
       forEachSystem = genAttrs [
@@ -40,7 +40,7 @@
       packages = forEachSystem (system:
         let
           inherit (nixpkgs.legacyPackages.${system})
-            callPackage darwin installShellFiles makeWrapper nurl pkg-config rustPlatform spdx-license-list-data stdenv zstd;
+            callPackage darwin installShellFiles makeWrapper nix nurl pkg-config rustPlatform spdx-license-list-data stdenv zstd;
         in
         {
           default = rustPlatform.buildRustPackage {
@@ -66,7 +66,7 @@
 
             postInstall = ''
               wrapProgram $out/bin/nix-init \
-                --prefix PATH : ${nurl}/bin/nurl
+                --prefix PATH : ${makeBinPath [ nix nurl ]}
               installManPage artifacts/nix-init.1
               installShellCompletion artifacts/nix-init.{bash,fish} --zsh artifacts/_nix-init
             '';
