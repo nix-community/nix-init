@@ -13,13 +13,17 @@ use askalono::{Match, Store, TextData};
 use bstr::ByteVec;
 use clap::Parser;
 use expand::expand;
+use flate2::read::GzDecoder;
 use indoc::{formatdoc, writedoc};
 use is_terminal::IsTerminal;
 use once_cell::sync::Lazy;
 use rustc_hash::FxHashMap;
 use rustyline::{config::Configurer, CompletionType, Editor};
 use serde::Deserialize;
+use tar::Archive;
+use tempfile::tempdir;
 use tokio::process::Command;
+use tracing::debug;
 use tracing_subscriber::EnvFilter;
 
 use std::{
@@ -271,7 +275,26 @@ async fn main() -> Result<()> {
         .context("failed to build source")?
         .outputs
         .out;
-    let src_dir = PathBuf::from(&src);
+
+    let tmp = tempdir()?;
+    let (src, src_dir) = if let MaybeFetcher::Known(Fetcher::FetchPypi { ref pname }) = fetcher {
+        let mut archive = Archive::new(GzDecoder::new(File::open(&src)?));
+
+        let tmp = tmp.path();
+        debug!("{}", tmp.display());
+        archive.unpack(tmp)?;
+
+        let src_dir = tmp.join(format!("{pname}-{version}"));
+        let src = src_dir
+            .to_str()
+            .context("failed to convert path to UTF-8")?
+            .into();
+
+        (src, src_dir)
+    } else {
+        let src_dir = PathBuf::from(&src);
+        (src, src_dir)
+    };
 
     let mut choices = Vec::new();
     let has_cargo = src_dir.join("Cargo.toml").is_file();
