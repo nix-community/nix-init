@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{Context, Result};
 use reqwest::header::{HeaderMap, HeaderValue, AUTHORIZATION};
 use rustc_hash::FxHashMap;
 use secrecy::{ExposeSecret, SecretString};
@@ -31,19 +31,19 @@ impl AccessTokens {
                 let Some(stdout) = Command::new(cmd).args(args).get_stdout().await.ok_warn() else {
                     return;
                 };
-                let Ok(token) = String::from_utf8(stdout) else { return; };
+                let Some(token) = String::from_utf8(stdout).ok_warn() else { return; };
                 format!("Bearer {}", token.trim())
             }
 
             Some(AccessToken::File { file }) => {
-                let Ok(token) = fs::read_to_string(file) else { return; };
+                let Some(token) = fs::read_to_string(file).ok_warn() else { return; };
                 format!("Bearer {}", token.trim())
             }
 
             None => return,
         };
 
-        let Ok(mut value) = HeaderValue::from_str(&value) else { return; };
+        let Some(mut value) = HeaderValue::from_str(&value).ok_warn() else { return; };
         value.set_sensitive(true);
         headers.insert(AUTHORIZATION, value);
     }
@@ -64,7 +64,12 @@ pub fn load_config(cfg: Option<PathBuf>) -> Result<Config> {
                 .ok()
                 .and_then(|dirs| dirs.find_config_file("config.toml"))
         })
-        .map(|cfg| anyhow::Ok(toml::from_str(&fs::read_to_string(cfg)?)?))
+        .map(|cfg| {
+            anyhow::Ok(
+                toml::from_str(&fs::read_to_string(cfg).context("failed to read config file")?)
+                    .context("failed to parse config file")?,
+            )
+        })
         .transpose()?
         .unwrap_or_default())
 }

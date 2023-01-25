@@ -106,7 +106,7 @@ async fn main() -> Result<()> {
     if let Some(parent) = opts.output.parent() {
         let _ = create_dir_all(parent);
     }
-    let mut out = File::create(opts.output)?;
+    let mut out = File::create(opts.output).context("failed to create output file")?;
     writeln!(out, "{{ lib")?;
 
     let mut editor = Editor::new()?;
@@ -124,7 +124,9 @@ async fn main() -> Result<()> {
             .arg("-p")
             .get_stdout()
             .await?,
-    )?;
+    )
+    .context("failed to parse nurl output")?;
+
     let (pname, rev, version, desc, prefix) = if let MaybeFetcher::Known(fetcher) = &fetcher {
         let cl = fetcher.create_client(cfg.access_tokens).await?;
 
@@ -276,13 +278,16 @@ async fn main() -> Result<()> {
         .outputs
         .out;
 
-    let tmp = tempdir()?;
+    let tmp;
     let src_dir = if let MaybeFetcher::Known(Fetcher::FetchPypi { ref pname }) = fetcher {
         let mut archive = Archive::new(GzDecoder::new(File::open(&src)?));
 
+        tmp = tempdir().context("failed to create temporary directory")?;
         let tmp = tmp.path();
         debug!("{}", tmp.display());
-        archive.unpack(tmp)?;
+        archive
+            .unpack(tmp)
+            .context("failed to unpack pypi package")?;
 
         tmp.join(format!("{pname}-{version}"))
     } else {
@@ -700,7 +705,7 @@ async fn main() -> Result<()> {
     if let Some(prefix) = prefix {
         if let Some(walk) = read_dir(&src_dir).ok_warn() {
             for entry in walk {
-                let entry = entry?;
+                let Ok(entry) = entry else { continue; };
                 let path = entry.path();
 
                 if !path.is_file() {
@@ -729,7 +734,7 @@ async fn main() -> Result<()> {
         let mut licenses = Vec::new();
 
         for entry in walk {
-            let entry = entry?;
+            let Ok(entry) = entry else { continue; };
             let path = entry.path();
 
             if !path.is_file() {
@@ -745,7 +750,7 @@ async fn main() -> Result<()> {
                 continue;
             }
 
-            let Ok(text) = read_to_string(path) else { continue; };
+            let Some(text) = read_to_string(path).ok_warn() else { continue; };
             let Match { score, name, .. } = store.analyze(&TextData::from(text));
             if let Some(license) = nix_licenses.get(name) {
                 licenses.push((score, license));
