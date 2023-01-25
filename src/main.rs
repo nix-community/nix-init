@@ -758,7 +758,7 @@ async fn main() -> Result<()> {
         if let [(_, license)] = &licenses[..] {
             write!(out, "licenses.{license}")?;
         } else {
-            licenses.sort_by(|x, y| match x.0.partial_cmp(&y.0) {
+            licenses.sort_unstable_by(|x, y| match x.0.partial_cmp(&y.0) {
                 None | Some(Ordering::Equal) => x.1.cmp(y.1),
                 Some(cmp) => cmp,
             });

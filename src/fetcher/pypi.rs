@@ -61,7 +61,7 @@ pub async fn get_package_info(cl: &Client, pname: &str) -> PackageInfo {
                 (!release.yanked).then_some((version.clone(), release.upload_time))
             })
         })
-        .sorted_by_key(|(_, time)| *time)
+        .sorted_unstable_by_key(|(_, time)| *time)
         .map(|(version, _)| version)
         .rev()
     {
