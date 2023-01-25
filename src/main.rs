@@ -277,23 +277,16 @@ async fn main() -> Result<()> {
         .out;
 
     let tmp = tempdir()?;
-    let (src, src_dir) = if let MaybeFetcher::Known(Fetcher::FetchPypi { ref pname }) = fetcher {
+    let src_dir = if let MaybeFetcher::Known(Fetcher::FetchPypi { ref pname }) = fetcher {
         let mut archive = Archive::new(GzDecoder::new(File::open(&src)?));
 
         let tmp = tmp.path();
         debug!("{}", tmp.display());
         archive.unpack(tmp)?;
 
-        let src_dir = tmp.join(format!("{pname}-{version}"));
-        let src = src_dir
-            .to_str()
-            .context("failed to convert path to UTF-8")?
-            .into();
-
-        (src, src_dir)
+        tmp.join(format!("{pname}-{version}"))
     } else {
-        let src_dir = PathBuf::from(&src);
-        (src, src_dir)
+        PathBuf::from(&src)
     };
 
     let mut choices = Vec::new();
