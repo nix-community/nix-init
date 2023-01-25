@@ -24,6 +24,7 @@
           default = mkShell {
             NIX_INIT_LOG = "nix_init=trace";
             NIX_LICENSES = callPackage ./src/licenses.nix { };
+            RUST_BACKTRACE = true;
             SPDX_LICENSE_LIST_DATA = "${spdx-license-list-data.json}/json/details";
           };
         });
