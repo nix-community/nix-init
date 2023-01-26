@@ -718,11 +718,7 @@ async fn main() -> Result<()> {
                     name.to_ascii_lowercase().as_bytes(),
                     expand!([@b"changelog", ..] | [@b"changes", ..] | [@b"news"] | [@b"releases", ..]),
                 ) {
-                    writeln!(
-                        out,
-                        r#"    changelog = "{prefix}{}/{name}";"#,
-                        rev.replacen(&version, "${version}", 1),
-                    )?;
+                    writeln!(out, r#"    changelog = "{prefix}{name}";"#,)?;
                     break;
                 }
             }
