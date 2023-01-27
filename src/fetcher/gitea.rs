@@ -135,6 +135,7 @@ pub async fn get_package_info(cl: &Client, domain: &str, owner: &str, repo: &str
         pname: repo.into(),
         description,
         file_url_prefix: None,
+        license: None,
         revisions: Revisions {
             latest,
             completions,

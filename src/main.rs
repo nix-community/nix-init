@@ -127,6 +127,7 @@ async fn main() -> Result<()> {
     )
     .context("failed to parse nurl output")?;
 
+    let mut licenses = Vec::new();
     let (pname, rev, version, desc, prefix) = if let MaybeFetcher::Known(fetcher) = &fetcher {
         let cl = fetcher.create_client(cfg.access_tokens).await?;
 
@@ -134,8 +135,13 @@ async fn main() -> Result<()> {
             pname,
             description,
             file_url_prefix,
+            license,
             revisions,
         } = fetcher.get_package_info(&cl).await;
+
+        if let Some(license) = license {
+            licenses.push((1.0, license));
+        }
 
         let rev_msg = prompt(format_args!(
             "Enter tag or revision (defaults to {})",
@@ -727,7 +733,6 @@ async fn main() -> Result<()> {
 
     if let (Some(store), Some(walk)) = (&*LICENSE_STORE, read_dir(src_dir).ok_warn()) {
         let nix_licenses = &*NIX_LICENSES;
-        let mut licenses = Vec::new();
 
         for entry in walk {
             let Ok(entry) = entry else { continue; };
@@ -746,9 +751,10 @@ async fn main() -> Result<()> {
                 continue;
             }
 
-            let Some(text) = read_to_string(path).ok_warn() else { continue; };
+            let Some(text) = read_to_string(&path).ok_warn() else { continue; };
             let Match { score, name, .. } = store.analyze(&TextData::from(text));
-            if let Some(license) = nix_licenses.get(name) {
+            if let Some(&license) = nix_licenses.get(name) {
+                debug!("license found in {name}: {license}");
                 licenses.push((score, license));
             }
         }

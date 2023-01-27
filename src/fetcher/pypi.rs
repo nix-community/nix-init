@@ -2,11 +2,14 @@ use itertools::Itertools;
 use reqwest::Client;
 use serde::Deserialize;
 use serde_with::{serde_as, Map};
+use spdx::imprecise_license_id;
 use time::OffsetDateTime;
+use tracing::debug;
 
 use crate::{
     fetcher::{json, PackageInfo, Revisions, Version},
     prompt::Completion,
+    NIX_LICENSES,
 };
 
 #[serde_as]
@@ -21,6 +24,7 @@ struct Project {
 struct Info {
     version: String,
     summary: String,
+    license: String,
 }
 
 #[derive(Deserialize)]
@@ -38,6 +42,7 @@ pub async fn get_package_info(cl: &Client, pname: &str) -> PackageInfo {
         return PackageInfo {
             pname: pname.into(),
             file_url_prefix: None,
+            license: None,
             revisions: Revisions {
                 latest: "".into(),
                 completions,
@@ -78,6 +83,11 @@ pub async fn get_package_info(cl: &Client, pname: &str) -> PackageInfo {
     PackageInfo {
         pname: pname.into(),
         file_url_prefix: None,
+        license: imprecise_license_id(&project.info.license).and_then(|(id, _)| {
+            let license = NIX_LICENSES.get(id.name)?;
+            debug!("license from pypi: {license}");
+            Some(*license)
+        }),
         revisions: Revisions {
             latest: project.info.version,
             completions,

@@ -142,6 +142,7 @@ pub async fn get_package_info(
         file_url_prefix: Some(format!(
             "https://{github_base}/{owner}/{repo}/blob/${{src.rev}}/",
         )),
+        license: None,
         revisions: Revisions {
             latest,
             completions,
