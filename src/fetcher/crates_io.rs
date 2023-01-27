@@ -33,7 +33,7 @@ pub async fn get_package_info(cl: &Client, pname: &str) -> PackageInfo {
             pname: pname.into(),
             description: "".into(),
             file_url_prefix: None,
-            license: None,
+            license: Vec::new(),
             revisions: Revisions {
                 latest: "".into(),
                 completions,
@@ -86,7 +86,7 @@ pub async fn get_package_info(cl: &Client, pname: &str) -> PackageInfo {
         pname: pname.into(),
         description: info.krate.description,
         file_url_prefix: None,
-        license: None,
+        license: Vec::new(),
         revisions: Revisions {
             latest,
             completions,

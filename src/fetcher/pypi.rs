@@ -2,7 +2,7 @@ use itertools::Itertools;
 use reqwest::Client;
 use serde::Deserialize;
 use serde_with::{serde_as, Map};
-use spdx::imprecise_license_id;
+use spdx::{Expression, ParseMode};
 use time::OffsetDateTime;
 use tracing::debug;
 
@@ -42,7 +42,7 @@ pub async fn get_package_info(cl: &Client, pname: &str) -> PackageInfo {
         return PackageInfo {
             pname: pname.into(),
             file_url_prefix: None,
-            license: None,
+            license: Vec::new(),
             revisions: Revisions {
                 latest: "".into(),
                 completions,
@@ -83,11 +83,17 @@ pub async fn get_package_info(cl: &Client, pname: &str) -> PackageInfo {
     PackageInfo {
         pname: pname.into(),
         file_url_prefix: None,
-        license: imprecise_license_id(&project.info.license).and_then(|(id, _)| {
-            let license = NIX_LICENSES.get(id.name)?;
-            debug!("license from pypi: {license}");
-            Some(*license)
-        }),
+        license: Expression::parse_mode(&project.info.license, ParseMode::LAX)
+            .map(|expr| {
+                expr.requirements()
+                    .filter_map(|req| {
+                        let license = NIX_LICENSES.get(req.req.license.id()?.name)?;
+                        debug!("license from pypi: {license}");
+                        Some(*license)
+                    })
+                    .collect()
+            })
+            .unwrap_or_default(),
         revisions: Revisions {
             latest: project.info.version,
             completions,

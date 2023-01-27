@@ -67,7 +67,7 @@ pub struct PackageInfo {
     pub pname: String,
     pub description: String,
     pub file_url_prefix: Option<String>,
-    pub license: Option<&'static str>,
+    pub license: Vec<&'static str>,
     pub revisions: Revisions,
 }
 

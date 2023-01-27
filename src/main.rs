@@ -9,13 +9,14 @@ mod rust;
 mod utils;
 
 use anyhow::{Context, Result};
-use askalono::{Match, Store, TextData};
+use askalono::{IdentifiedLicense, ScanResult, ScanStrategy, Store, TextData};
 use bstr::ByteVec;
 use clap::Parser;
 use expand::expand;
 use flate2::read::GzDecoder;
 use indoc::{formatdoc, writedoc};
 use is_terminal::IsTerminal;
+use itertools::Itertools;
 use once_cell::sync::Lazy;
 use rustc_hash::FxHashMap;
 use rustyline::{config::Configurer, CompletionType, Editor};
@@ -28,6 +29,7 @@ use tracing_subscriber::EnvFilter;
 
 use std::{
     cmp::Ordering,
+    collections::BTreeMap,
     fs::{create_dir_all, read_dir, read_to_string, File},
     io::{stderr, Write},
     path::PathBuf,
@@ -127,7 +129,7 @@ async fn main() -> Result<()> {
     )
     .context("failed to parse nurl output")?;
 
-    let mut licenses = Vec::new();
+    let mut licenses = BTreeMap::new();
     let (pname, rev, version, desc, prefix) = if let MaybeFetcher::Known(fetcher) = &fetcher {
         let cl = fetcher.create_client(cfg.access_tokens).await?;
 
@@ -139,8 +141,8 @@ async fn main() -> Result<()> {
             revisions,
         } = fetcher.get_package_info(&cl).await;
 
-        if let Some(license) = license {
-            licenses.push((1.0, license));
+        for license in license {
+            licenses.insert(license, 1.0);
         }
 
         let rev_msg = prompt(format_args!(
@@ -732,6 +734,7 @@ async fn main() -> Result<()> {
     }
 
     if let (Some(store), Some(walk)) = (&*LICENSE_STORE, read_dir(src_dir).ok_warn()) {
+        let strategy = ScanStrategy::new(store).confidence_threshold(0.8);
         let nix_licenses = &*NIX_LICENSES;
 
         for entry in walk {
@@ -742,8 +745,8 @@ async fn main() -> Result<()> {
                 continue;
             }
 
-            let name = entry.file_name();
-            let name = <Vec<u8> as ByteVec>::from_os_str_lossy(&name);
+            let file_name = entry.file_name();
+            let name = <Vec<u8> as ByteVec>::from_os_str_lossy(&file_name);
             if !matches!(
                 name.to_ascii_lowercase()[..],
                 expand!([@b"license", ..] | [@b"licence", ..] | [@b"copying", ..]),
@@ -752,38 +755,42 @@ async fn main() -> Result<()> {
             }
 
             let Some(text) = read_to_string(&path).ok_warn() else { continue; };
-            let Match { score, name, .. } = store.analyze(&TextData::from(text));
-            if let Some(&license) = nix_licenses.get(name) {
-                debug!("license found in {name}: {license}");
-                licenses.push((score, license));
-            }
-        }
-
-        licenses.dedup_by_key(|(_, license)| *license);
-
-        write!(out, "    license = ")?;
-        if let [(_, license)] = &licenses[..] {
-            write!(out, "licenses.{license}")?;
-        } else {
-            licenses.sort_unstable_by(|x, y| match x.0.partial_cmp(&y.0) {
-                None | Some(Ordering::Equal) => x.1.cmp(y.1),
-                Some(cmp) => cmp,
-            });
-
-            let n = match licenses.iter().position(|(score, _)| score < &0.75) {
-                Some(0) => 1,
-                Some(n) => n,
-                None => licenses.len(),
+            let Some(ScanResult {
+                score,
+                license: Some(IdentifiedLicense { name, .. }),
+                ..
+            }) = strategy.scan(&TextData::from(text)).ok_warn() else {
+                continue;
             };
 
-            write!(out, "with licenses; [ ")?;
-            for (_, license) in licenses.into_iter().take(n) {
-                write!(out, "{license} ")?;
+            if let Some(&license) = nix_licenses.get(name) {
+                debug!(
+                    "license found in {}: {license}",
+                    file_name.to_string_lossy(),
+                );
+                licenses.entry(license).or_insert(score);
             }
-            write!(out, "]")?;
         }
+    }
+
+    let licenses: Vec<_> = licenses
+        .into_iter()
+        .sorted_unstable_by(|x, y| match x.1.partial_cmp(&y.1) {
+            None | Some(Ordering::Equal) => x.0.cmp(y.0),
+            Some(cmp) => cmp,
+        })
+        .map(|(license, _)| license)
+        .collect();
+
+    write!(out, "    license = ")?;
+    if let [license] = &licenses[..] {
+        write!(out, "licenses.{license}")?;
     } else {
-        write!(out, "    licenses = with licenses; [ ]")?;
+        write!(out, "with licenses; [ ")?;
+        for license in licenses {
+            write!(out, "{license} ")?;
+        }
+        write!(out, "]")?;
     }
 
     write!(out, ";\n    maintainers = with maintainers; [ ")?;
