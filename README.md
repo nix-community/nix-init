@@ -14,7 +14,7 @@ Generate Nix packages from URLs (WIP)
 - License detection
 - Supported builders
   - `stdenv.mkDerivation`
-  - `rustPlatform.buildRustPackage`
+  - `buildRustPackage`
   - `buildPythonApplication` and `buildPythonPackage`
   - `buildGoModule`
 - Supported fetchers
@@ -22,7 +22,8 @@ Generate Nix packages from URLs (WIP)
   - `fetchFromGitHub`
   - `fetchFromGitLab`
   - `fetchFromGitea`
-  - All other fetchers supported by [nurl](https://github.com/nix-community/nurl) are also supported, you just have to specify the tags manually
+  - `fetchPypi`
+  - All other fetchers supported by [nurl] are also supported, you just have to specify the tags manually
 
 ## Usage
 

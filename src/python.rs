@@ -77,7 +77,7 @@ impl Pyproject {
             .or_else(|| self.tool.poetry.name.take())
     }
 
-    pub fn get_dependencies(&mut self) -> Option<Vec<String>> {
+    pub fn get_dependencies(&mut self) -> Option<BTreeSet<String>> {
         if let Some(deps) = self.project.dependencies.take() {
             Some(deps.into_iter().filter_map(get_dependency).collect())
         } else if let Some(mut deps) = self.tool.poetry.dependencies.take() {
@@ -93,7 +93,7 @@ impl Pyproject {
     }
 }
 
-pub fn parse_requirements_txt(src: &Path) -> Option<Vec<String>> {
+pub fn parse_requirements_txt(src: &Path) -> Option<BTreeSet<String>> {
     File::open(src.join("requirements.txt"))
         .ok_warn()
         .map(|file| {
@@ -111,7 +111,7 @@ fn get_dependency(dep: String) -> Option<String> {
     if !x.is_alphabetic() {
         return None;
     }
-    let mut name = String::from(x);
+    let mut name = String::from(x.to_ascii_lowercase());
 
     while let Some(c) = chars.next() {
         if c.is_alphabetic() {
