@@ -41,7 +41,7 @@ use crate::{
     inputs::{write_all_lambda_inputs, write_inputs, AllInputs},
     license::{LICENSE_STORE, NIX_LICENSES},
     prompt::{prompt, Prompter},
-    python::Pyproject,
+    python::{parse_requirements_txt, Pyproject},
     rust::cargo_deps_hash,
     utils::{fod_hash, CommandExt, ResultExt, FAKE_HASH},
 };
@@ -667,29 +667,33 @@ async fn main() -> Result<()> {
     }
 
     if let BuildType::BuildPythonPackage { format, .. } = choice {
-        let name = match format {
+        let (name, deps) = match format {
             PythonFormat::Pyproject => {
                 if let Some(mut pyproject) = Pyproject::from_path(pyproject) {
-                    let mut deps = pyproject.get_dependencies().into_iter();
-
-                    if let Some(dep) = deps.next() {
-                        writeln!(out, "  propagatedBuildInputs = with python3.pkgs; [")?;
-                        writeln!(out, "    {dep}")?;
-                        for dep in deps {
-                            writeln!(out, "    {dep}")?;
-                        }
-                        writeln!(out, "  ];\n")?;
-                    }
-
-                    pyproject.get_name().unwrap_or(pname)
+                    (pyproject.get_name(), pyproject.get_dependencies())
                 } else {
-                    pname
+                    (None, None)
                 }
             }
-            _ => pname, // unimplemented
+            _ => (None, None),
         };
 
-        writeln!(out, "  pythonImportsCheck = [ {name:?} ];\n")?;
+        let deps = deps
+            .or_else(|| parse_requirements_txt(&src_dir))
+            .unwrap_or_default();
+        if !deps.is_empty() {
+            writeln!(out, "  propagatedBuildInputs = with python3.pkgs; [")?;
+            for dep in deps {
+                writeln!(out, "    {dep}")?;
+            }
+            writeln!(out, "  ];\n")?;
+        }
+
+        writeln!(
+            out,
+            "  pythonImportsCheck = [ {:?} ];\n",
+            name.unwrap_or(pname)
+        )?;
     }
 
     let desc = desc.trim();

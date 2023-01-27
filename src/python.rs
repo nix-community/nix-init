@@ -1,7 +1,13 @@
 use serde::Deserialize;
 use serde_with::{serde_as, Map};
 
-use std::{cmp::Ordering, collections::BTreeSet, fs, path::PathBuf};
+use std::{
+    cmp::Ordering,
+    collections::BTreeSet,
+    fs::{self, File},
+    io::{BufRead, BufReader},
+    path::{Path, PathBuf},
+};
 
 use crate::utils::ResultExt;
 
@@ -71,18 +77,31 @@ impl Pyproject {
             .or_else(|| self.tool.poetry.name.take())
     }
 
-    pub fn get_dependencies(&mut self) -> Vec<String> {
+    pub fn get_dependencies(&mut self) -> Option<Vec<String>> {
         if let Some(deps) = self.project.dependencies.take() {
-            deps.into_iter().filter_map(get_dependency).collect()
+            Some(deps.into_iter().filter_map(get_dependency).collect())
         } else if let Some(mut deps) = self.tool.poetry.dependencies.take() {
             deps.remove(&("python".into(), PoetryDependency::Table {}));
-            deps.into_iter()
-                .map(|(dep, _)| dep.to_lowercase().replace(['_', '.'], "-"))
-                .collect()
+            Some(
+                deps.into_iter()
+                    .map(|(dep, _)| dep.to_lowercase().replace(['_', '.'], "-"))
+                    .collect(),
+            )
         } else {
-            Vec::new()
+            None
         }
     }
+}
+
+pub fn parse_requirements_txt(src: &Path) -> Option<Vec<String>> {
+    File::open(src.join("requirements.txt"))
+        .ok_warn()
+        .map(|file| {
+            BufReader::new(file)
+                .lines()
+                .filter_map(|line| line.ok_warn().and_then(get_dependency))
+                .collect()
+        })
 }
 
 fn get_dependency(dep: String) -> Option<String> {
