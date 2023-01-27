@@ -2,14 +2,14 @@ mod cfg;
 mod cli;
 mod fetcher;
 mod inputs;
-mod licenses;
+mod license;
 mod prompt;
 mod python;
 mod rust;
 mod utils;
 
 use anyhow::{Context, Result};
-use askalono::{IdentifiedLicense, ScanResult, ScanStrategy, Store, TextData};
+use askalono::{IdentifiedLicense, ScanResult, ScanStrategy, TextData};
 use bstr::ByteVec;
 use clap::Parser;
 use expand::expand;
@@ -18,7 +18,6 @@ use indoc::{formatdoc, writedoc};
 use is_terminal::IsTerminal;
 use itertools::Itertools;
 use once_cell::sync::Lazy;
-use rustc_hash::FxHashMap;
 use rustyline::{config::Configurer, CompletionType, Editor};
 use serde::Deserialize;
 use tar::Archive;
@@ -40,17 +39,12 @@ use crate::{
     cli::Opts,
     fetcher::{Fetcher, PackageInfo, Revisions, Version},
     inputs::{write_all_lambda_inputs, write_inputs, AllInputs},
-    licenses::get_nix_licenses,
+    license::{LICENSE_STORE, NIX_LICENSES},
     prompt::{prompt, Prompter},
     python::Pyproject,
     rust::cargo_deps_hash,
     utils::{fod_hash, CommandExt, ResultExt, FAKE_HASH},
 };
-
-static LICENSE_STORE: Lazy<Option<Store>> = Lazy::new(|| {
-    Store::from_cache(include_bytes!("../cache/askalono-cache.zstd") as &[_]).ok_warn()
-});
-static NIX_LICENSES: Lazy<FxHashMap<&'static str, &'static str>> = Lazy::new(get_nix_licenses);
 
 #[derive(Debug, Deserialize)]
 #[serde(untagged)]

@@ -8,8 +8,8 @@ use tracing::debug;
 
 use crate::{
     fetcher::{json, PackageInfo, Revisions, Version},
+    license::NIX_LICENSES,
     prompt::Completion,
-    NIX_LICENSES,
 };
 
 #[serde_as]

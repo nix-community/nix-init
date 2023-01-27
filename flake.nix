@@ -23,7 +23,7 @@
         {
           default = mkShell {
             NIX_INIT_LOG = "nix_init=trace";
-            NIX_LICENSES = callPackage ./src/licenses.nix { };
+            NIX_LICENSES = callPackage ./src/license.nix { };
             RUST_BACKTRACE = true;
             SPDX_LICENSE_LIST_DATA = "${spdx-license-list-data.json}/json/details";
           };
@@ -72,7 +72,7 @@
             '';
 
             GEN_ARTIFACTS = "artifacts";
-            NIX_LICENSES = callPackage ./src/licenses.nix { };
+            NIX_LICENSES = callPackage ./src/license.nix { };
             SPDX_LICENSE_LIST_DATA = "${spdx-license-list-data.json}/json/details";
             ZSTD_SYS_USE_PKG_CONFIG = true;
 
