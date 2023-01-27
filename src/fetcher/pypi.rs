@@ -2,13 +2,11 @@ use itertools::Itertools;
 use reqwest::Client;
 use serde::Deserialize;
 use serde_with::{serde_as, Map};
-use spdx::{Expression, ParseMode};
 use time::OffsetDateTime;
-use tracing::debug;
 
 use crate::{
     fetcher::{json, PackageInfo, Revisions, Version},
-    license::NIX_LICENSES,
+    license::parse_spdx_expression,
     prompt::Completion,
 };
 
@@ -83,17 +81,7 @@ pub async fn get_package_info(cl: &Client, pname: &str) -> PackageInfo {
     PackageInfo {
         pname: pname.into(),
         file_url_prefix: None,
-        license: Expression::parse_mode(&project.info.license, ParseMode::LAX)
-            .map(|expr| {
-                expr.requirements()
-                    .filter_map(|req| {
-                        let license = NIX_LICENSES.get(req.req.license.id()?.name)?;
-                        debug!("license from pypi: {license}");
-                        Some(*license)
-                    })
-                    .collect()
-            })
-            .unwrap_or_default(),
+        license: parse_spdx_expression(&project.info.license, "pypi"),
         revisions: Revisions {
             latest: project.info.version,
             completions,

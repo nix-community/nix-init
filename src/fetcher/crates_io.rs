@@ -3,6 +3,7 @@ use serde::Deserialize;
 
 use crate::{
     fetcher::{json, PackageInfo, Revisions, Version},
+    license::parse_spdx_expression,
     prompt::Completion,
 };
 
@@ -20,6 +21,7 @@ struct Crate {
 
 #[derive(Deserialize)]
 struct CrateVersion {
+    license: String,
     num: String,
     yanked: bool,
 }
@@ -45,27 +47,35 @@ pub async fn get_package_info(cl: &Client, pname: &str) -> PackageInfo {
     let mut crate_versions = info
         .versions
         .into_iter()
-        .filter_map(|CrateVersion { num, yanked }| (!yanked).then_some(num))
+        .filter_map(
+            |CrateVersion {
+                 num,
+                 yanked,
+                 license,
+             }| (!yanked).then_some((num, license)),
+        )
         .peekable();
 
-    let (mut found_latest, mut latest) = if let Some(version) = crate_versions.next() {
-        completions.push(Completion {
-            display: version.clone(),
-            replacement: version.clone(),
-        });
-        versions.insert(version.clone(), Version::Tag);
+    let (mut found_latest, mut latest, mut latest_license) =
+        if let Some((version, license)) = crate_versions.next() {
+            completions.push(Completion {
+                display: version.clone(),
+                replacement: version.clone(),
+            });
+            versions.insert(version.clone(), Version::Tag);
 
-        (
-            version
-                .parse::<semver::Version>()
-                .map_or(false, |version| version.pre.is_empty()),
-            version,
-        )
-    } else {
-        (false, "".into())
-    };
+            (
+                version
+                    .parse::<semver::Version>()
+                    .map_or(false, |version| version.pre.is_empty()),
+                version,
+                Some(license),
+            )
+        } else {
+            (false, "".into(), None)
+        };
 
-    for version in crate_versions {
+    for (version, license) in crate_versions {
         if !found_latest
             && version
                 .parse::<semver::Version>()
@@ -73,6 +83,7 @@ pub async fn get_package_info(cl: &Client, pname: &str) -> PackageInfo {
         {
             found_latest = true;
             latest = version.clone();
+            latest_license = Some(license);
         }
 
         completions.push(Completion {
@@ -86,7 +97,9 @@ pub async fn get_package_info(cl: &Client, pname: &str) -> PackageInfo {
         pname: pname.into(),
         description: info.krate.description,
         file_url_prefix: None,
-        license: Vec::new(),
+        license: latest_license.map_or_else(Vec::new, |license| {
+            parse_spdx_expression(&license, "crates.io")
+        }),
         revisions: Revisions {
             latest,
             completions,
