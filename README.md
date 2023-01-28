@@ -6,7 +6,7 @@
 [![license](https://img.shields.io/badge/license-MPL--2.0-blue?style=flat-square)](https://www.mozilla.org/en-US/MPL/2.0)
 [![ci](https://img.shields.io/github/actions/workflow/status/nix-community/nix-init/ci.yml?label=ci&logo=github-actions&style=flat-square)](https://github.com/nix-community/nix-init/actions?query=workflow:ci)
 
-Generate Nix packages from URLs (WIP)
+Generate Nix packages from URLs
 
 - Hash prefetching powered by [nurl]
 - Dependency inference for Rust packages using the [Riff](https://github.com/DeterminateSystems/riff) registry and python projects
@@ -24,6 +24,8 @@ Generate Nix packages from URLs (WIP)
   - `fetchFromGitea`
   - `fetchPypi`
   - All other fetchers supported by [nurl] are also supported, you just have to specify the tags manually
+
+[![](https://asciinema.org/a/555367.svg)](https://asciinema.org/a/555367)
 
 ## Usage
 
