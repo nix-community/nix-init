@@ -1,15 +1,15 @@
 use serde::Deserialize;
-use serde_with::{serde_as, Map};
+use serde_with::{serde_as, DefaultOnError, Map};
 
 use std::{
     cmp::Ordering,
-    collections::BTreeSet,
+    collections::{BTreeMap, BTreeSet},
     fs::{self, File},
     io::{BufRead, BufReader},
     path::{Path, PathBuf},
 };
 
-use crate::utils::ResultExt;
+use crate::{license::parse_spdx_expression, utils::ResultExt};
 
 #[derive(Default, Deserialize)]
 #[serde(default)]
@@ -18,9 +18,12 @@ pub struct Pyproject {
     tool: Tool,
 }
 
+#[serde_as]
 #[derive(Default, Deserialize)]
 struct Project {
     name: Option<String>,
+    #[serde_as(as = "DefaultOnError")]
+    license: Option<String>,
     dependencies: Option<Vec<String>>,
 }
 
@@ -34,6 +37,8 @@ struct Tool {
 #[derive(Default, Deserialize)]
 struct Poetry {
     name: Option<String>,
+    #[serde_as(as = "DefaultOnError")]
+    license: Option<String>,
     #[serde_as(as = "Option<Map<_, _>>")]
     dependencies: Option<BTreeSet<(String, PoetryDependency)>>,
 }
@@ -75,6 +80,19 @@ impl Pyproject {
             .name
             .take()
             .or_else(|| self.tool.poetry.name.take())
+    }
+
+    pub fn load_license(&self, licenses: &mut BTreeMap<&'static str, f32>) {
+        if let Some(license) = self
+            .project
+            .license
+            .as_ref()
+            .or(self.tool.poetry.license.as_ref())
+        {
+            for license in parse_spdx_expression(license, "pyproject.toml") {
+                licenses.insert(license, 1.0);
+            }
+        }
     }
 
     pub fn get_dependencies(&mut self) -> Option<BTreeSet<String>> {

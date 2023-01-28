@@ -674,6 +674,7 @@ async fn main() -> Result<()> {
         let (name, deps) = match format {
             PythonFormat::Pyproject => {
                 if let Some(mut pyproject) = Pyproject::from_path(pyproject) {
+                    pyproject.load_license(&mut licenses);
                     (pyproject.get_name(), pyproject.get_dependencies())
                 } else {
                     (None, None)
