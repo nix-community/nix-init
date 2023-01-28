@@ -79,7 +79,7 @@ impl Pyproject {
 
     pub fn get_dependencies(&mut self) -> Option<BTreeSet<String>> {
         if let Some(deps) = self.project.dependencies.take() {
-            Some(deps.into_iter().filter_map(get_dependency).collect())
+            Some(deps.into_iter().filter_map(get_python_dependency).collect())
         } else if let Some(mut deps) = self.tool.poetry.dependencies.take() {
             deps.remove(&("python".into(), PoetryDependency::Table {}));
             Some(
@@ -94,17 +94,15 @@ impl Pyproject {
 }
 
 pub fn parse_requirements_txt(src: &Path) -> Option<BTreeSet<String>> {
-    File::open(src.join("requirements.txt"))
-        .ok_warn()
-        .map(|file| {
-            BufReader::new(file)
-                .lines()
-                .filter_map(|line| line.ok_warn().and_then(get_dependency))
-                .collect()
-        })
+    File::open(src.join("requirements.txt")).ok().map(|file| {
+        BufReader::new(file)
+            .lines()
+            .filter_map(|line| line.ok_warn().and_then(get_python_dependency))
+            .collect()
+    })
 }
 
-fn get_dependency(dep: String) -> Option<String> {
+pub fn get_python_dependency(dep: String) -> Option<String> {
     let mut chars = dep.chars().skip_while(|c| c.is_whitespace());
 
     let x = chars.next()?;

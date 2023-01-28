@@ -28,7 +28,7 @@ use tracing_subscriber::EnvFilter;
 
 use std::{
     cmp::Ordering,
-    collections::BTreeMap,
+    collections::{BTreeMap, BTreeSet},
     fs::{create_dir_all, read_dir, read_to_string, File},
     io::{stderr, Write},
     path::PathBuf,
@@ -124,75 +124,79 @@ async fn main() -> Result<()> {
     .context("failed to parse nurl output")?;
 
     let mut licenses = BTreeMap::new();
-    let (pname, rev, version, desc, prefix) = if let MaybeFetcher::Known(fetcher) = &fetcher {
-        let cl = fetcher.create_client(cfg.access_tokens).await?;
+    let (pname, rev, version, desc, prefix, python_deps) =
+        if let MaybeFetcher::Known(fetcher) = &fetcher {
+            let cl = fetcher.create_client(cfg.access_tokens).await?;
 
-        let PackageInfo {
-            pname,
-            description,
-            file_url_prefix,
-            license,
-            revisions,
-        } = fetcher.get_package_info(&cl).await;
+            let PackageInfo {
+                pname,
+                description,
+                file_url_prefix,
+                license,
+                python_dependencies,
+                revisions,
+            } = fetcher.get_package_info(&cl).await;
 
-        for license in license {
-            licenses.insert(license, 1.0);
-        }
+            for license in license {
+                licenses.insert(license, 1.0);
+            }
 
-        let rev_msg = prompt(format_args!(
-            "Enter tag or revision (defaults to {})",
-            revisions.latest
-        ));
-        editor.set_helper(Some(Prompter::Revision(revisions)));
+            let rev_msg = prompt(format_args!(
+                "Enter tag or revision (defaults to {})",
+                revisions.latest
+            ));
+            editor.set_helper(Some(Prompter::Revision(revisions)));
 
-        let rev = editor.readline(&rev_msg)?;
+            let rev = editor.readline(&rev_msg)?;
 
-        let Some(Prompter::Revision(revisions)) = editor.helper_mut() else {
+            let Some(Prompter::Revision(revisions)) = editor.helper_mut() else {
                 unreachable!();
             };
-        let rev = if rev.is_empty() {
-            revisions.latest.clone()
+            let rev = if rev.is_empty() {
+                revisions.latest.clone()
+            } else {
+                rev
+            };
+
+            let version = match match revisions.versions.remove(&rev) {
+                Some(version) => Some(version),
+                None => fetcher.get_version(&cl, &rev).await,
+            } {
+                Some(Version::Latest | Version::Tag) => {
+                    rev[rev.find(char::is_numeric).unwrap_or_default() ..].into()
+                }
+                Some(Version::Head { date, .. } | Version::Commit { date, .. }) => {
+                    format!("unstable-{date}")
+                }
+                None => "".into(),
+            };
+
+            editor.set_helper(Some(Prompter::NonEmpty));
+            (
+                Some(pname),
+                rev,
+                editor.readline_with_initial(&prompt("Enter version"), (&version, ""))?,
+                description,
+                file_url_prefix,
+                python_dependencies,
+            )
         } else {
-            rev
+            let pname = url.parse::<url::Url>().ok_warn().and_then(|url| {
+                url.path_segments()
+                    .and_then(|xs| xs.last())
+                    .map(|pname| pname.strip_suffix(".git").unwrap_or(pname).into())
+            });
+
+            editor.set_helper(Some(Prompter::NonEmpty));
+            (
+                pname,
+                editor.readline(&prompt("Enter tag or revision"))?,
+                editor.readline(&prompt("Enter version"))?,
+                "".into(),
+                None,
+                BTreeSet::new(),
+            )
         };
-
-        let version = match match revisions.versions.remove(&rev) {
-            Some(version) => Some(version),
-            None => fetcher.get_version(&cl, &rev).await,
-        } {
-            Some(Version::Latest | Version::Tag) => {
-                rev[rev.find(char::is_numeric).unwrap_or_default() ..].into()
-            }
-            Some(Version::Head { date, .. } | Version::Commit { date, .. }) => {
-                format!("unstable-{date}")
-            }
-            None => "".into(),
-        };
-
-        editor.set_helper(Some(Prompter::NonEmpty));
-        (
-            Some(pname),
-            rev,
-            editor.readline_with_initial(&prompt("Enter version"), (&version, ""))?,
-            description,
-            file_url_prefix,
-        )
-    } else {
-        let pname = url.parse::<url::Url>().ok_warn().and_then(|url| {
-            url.path_segments()
-                .and_then(|xs| xs.last())
-                .map(|pname| pname.strip_suffix(".git").unwrap_or(pname).into())
-        });
-
-        editor.set_helper(Some(Prompter::NonEmpty));
-        (
-            pname,
-            editor.readline(&prompt("Enter tag or revision"))?,
-            editor.readline(&prompt("Enter version"))?,
-            "".into(),
-            None,
-        )
-    };
 
     let pname = if let Some(pname) = pname {
         editor.readline_with_initial(
@@ -238,7 +242,7 @@ async fn main() -> Result<()> {
             } else {
                 formatdoc!(
                     r#"
-                        fetcher {{
+                        {fetcher} {{
                             pname = {name:?};
                             inherit version;
                             hash = "{hash}";
@@ -680,7 +684,7 @@ async fn main() -> Result<()> {
 
         let deps = deps
             .or_else(|| parse_requirements_txt(&src_dir))
-            .unwrap_or_default();
+            .unwrap_or(python_deps);
         if !deps.is_empty() {
             writeln!(out, "  propagatedBuildInputs = with python3.pkgs; [")?;
             for dep in deps {

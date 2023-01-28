@@ -1,13 +1,16 @@
 use itertools::Itertools;
 use reqwest::Client;
 use serde::Deserialize;
-use serde_with::{serde_as, Map};
+use serde_with::{serde_as, DefaultOnNull, Map};
 use time::OffsetDateTime;
+
+use std::collections::BTreeSet;
 
 use crate::{
     fetcher::{json, PackageInfo, Revisions, Version},
     license::parse_spdx_expression,
     prompt::Completion,
+    python::get_python_dependency,
 };
 
 #[serde_as]
@@ -18,11 +21,14 @@ struct Project {
     releases: Vec<(String, Vec<Release>)>,
 }
 
+#[serde_as]
 #[derive(Deserialize)]
 struct Info {
-    version: String,
-    summary: String,
     license: String,
+    #[serde_as(as = "DefaultOnNull")]
+    requires_dist: Vec<String>,
+    summary: String,
+    version: String,
 }
 
 #[derive(Deserialize)]
@@ -39,14 +45,15 @@ pub async fn get_package_info(cl: &Client, pname: &str) -> PackageInfo {
     let Some(project) = json::<Project>(cl, format!("https://pypi.org/pypi/{pname}/json")).await else {
         return PackageInfo {
             pname: pname.into(),
+            description: "".into(),
             file_url_prefix: None,
             license: Vec::new(),
+            python_dependencies: BTreeSet::new(),
             revisions: Revisions {
                 latest: "".into(),
                 completions,
                 versions,
             },
-            description: "".into(),
         };
     };
 
@@ -80,13 +87,19 @@ pub async fn get_package_info(cl: &Client, pname: &str) -> PackageInfo {
 
     PackageInfo {
         pname: pname.into(),
+        description: project.info.summary,
         file_url_prefix: None,
         license: parse_spdx_expression(&project.info.license, "pypi"),
+        python_dependencies: project
+            .info
+            .requires_dist
+            .into_iter()
+            .filter_map(get_python_dependency)
+            .collect(),
         revisions: Revisions {
             latest: project.info.version,
             completions,
             versions,
         },
-        description: project.info.summary,
     }
 }

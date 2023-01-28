@@ -9,6 +9,8 @@ use reqwest::{header::HeaderMap, Client, IntoUrl};
 use rustc_hash::FxHashMap;
 use serde::Deserialize;
 
+use std::collections::BTreeSet;
+
 use crate::{cfg::AccessTokens, prompt::Completion, utils::ResultExt};
 
 #[allow(clippy::enum_variant_names)]
@@ -68,6 +70,7 @@ pub struct PackageInfo {
     pub description: String,
     pub file_url_prefix: Option<String>,
     pub license: Vec<&'static str>,
+    pub python_dependencies: BTreeSet<String>,
     pub revisions: Revisions,
 }
 

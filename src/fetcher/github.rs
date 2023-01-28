@@ -2,6 +2,8 @@ use reqwest::Client;
 use rustc_hash::FxHashMap;
 use serde::Deserialize;
 
+use std::collections::BTreeSet;
+
 use crate::{
     fetcher::{json, PackageInfo, Revisions, Version},
     prompt::Completion,
@@ -143,6 +145,7 @@ pub async fn get_package_info(
             "https://{github_base}/{owner}/{repo}/blob/${{src.rev}}/",
         )),
         license: Vec::new(),
+        python_dependencies: BTreeSet::new(),
         revisions: Revisions {
             latest,
             completions,

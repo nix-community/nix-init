@@ -1,6 +1,8 @@
 use reqwest::Client;
 use serde::Deserialize;
 
+use std::collections::BTreeSet;
+
 use crate::{
     fetcher::{json, PackageInfo, Revisions, Version},
     license::parse_spdx_expression,
@@ -36,6 +38,7 @@ pub async fn get_package_info(cl: &Client, pname: &str) -> PackageInfo {
             description: "".into(),
             file_url_prefix: None,
             license: Vec::new(),
+            python_dependencies: BTreeSet::new(),
             revisions: Revisions {
                 latest: "".into(),
                 completions,
@@ -100,6 +103,7 @@ pub async fn get_package_info(cl: &Client, pname: &str) -> PackageInfo {
         license: latest_license.map_or_else(Vec::new, |license| {
             parse_spdx_expression(&license, "crates.io")
         }),
+        python_dependencies: BTreeSet::new(),
         revisions: Revisions {
             latest,
             completions,
