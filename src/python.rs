@@ -2,7 +2,6 @@ use serde::Deserialize;
 use serde_with::{serde_as, DefaultOnError, Map};
 
 use std::{
-    cmp::Ordering,
     collections::{BTreeMap, BTreeSet},
     fs::{self, File},
     io::{BufRead, BufReader},
@@ -39,35 +38,8 @@ struct Poetry {
     name: Option<String>,
     #[serde_as(as = "DefaultOnError")]
     license: Option<String>,
-    #[serde_as(as = "Option<Map<_, _>>")]
-    dependencies: Option<BTreeSet<(String, PoetryDependency)>>,
-}
-
-#[derive(Deserialize)]
-#[serde(untagged)]
-enum PoetryDependency {
-    String(String),
-    Table {},
-}
-
-impl Eq for PoetryDependency {}
-
-impl Ord for PoetryDependency {
-    fn cmp(&self, _: &Self) -> Ordering {
-        Ordering::Equal
-    }
-}
-
-impl PartialEq<PoetryDependency> for PoetryDependency {
-    fn eq(&self, _: &Self) -> bool {
-        true
-    }
-}
-
-impl PartialOrd<PoetryDependency> for PoetryDependency {
-    fn partial_cmp(&self, _: &Self) -> Option<Ordering> {
-        None
-    }
+    #[serde_as(as = "Option<Map<_, DefaultOnError>>")]
+    dependencies: Option<BTreeSet<(String, ())>>,
 }
 
 impl Pyproject {
@@ -99,7 +71,7 @@ impl Pyproject {
         if let Some(deps) = self.project.dependencies.take() {
             Some(deps.into_iter().filter_map(get_python_dependency).collect())
         } else if let Some(mut deps) = self.tool.poetry.dependencies.take() {
-            deps.remove(&("python".into(), PoetryDependency::Table {}));
+            deps.remove(&("python".into(), ()));
             Some(
                 deps.into_iter()
                     .map(|(dep, _)| dep.to_lowercase().replace(['_', '.'], "-"))
