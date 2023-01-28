@@ -29,8 +29,9 @@ use tracing_subscriber::EnvFilter;
 use std::{
     cmp::Ordering,
     collections::{BTreeMap, BTreeSet},
+    fmt::Write as _,
     fs::{create_dir_all, read_dir, read_to_string, File},
-    io::{stderr, Write},
+    io::{stderr, Write as _},
     path::PathBuf,
 };
 
@@ -102,7 +103,13 @@ async fn main() -> Result<()> {
     if let Some(parent) = opts.output.parent() {
         let _ = create_dir_all(parent);
     }
-    let mut out = File::create(opts.output).context("failed to create output file")?;
+    let mut out_file = File::options()
+        .create(true)
+        .write(true)
+        .open(opts.output)
+        .context("failed to create output file")?;
+
+    let mut out = String::new();
     writeln!(out, "{{ lib")?;
 
     let mut editor = Editor::new()?;
@@ -801,6 +808,9 @@ async fn main() -> Result<()> {
         write!(out, "{maintainer} ")?;
     }
     writeln!(out, "];\n  }};\n}}")?;
+
+    out_file.set_len(0)?;
+    write!(out_file, "{out}")?;
 
     Ok(())
 }

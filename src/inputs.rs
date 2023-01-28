@@ -2,7 +2,7 @@ use anyhow::Result;
 use rustc_hash::FxHashMap;
 use serde::Deserialize;
 
-use std::{collections::BTreeSet, io::Write};
+use std::{collections::BTreeSet, fmt::Write};
 
 use crate::utils::ResultExt;
 
