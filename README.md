@@ -27,7 +27,7 @@ Generate Nix packages from URLs
   - `fetchPypi`
   - All other fetchers supported by [nurl] are also supported, you just have to specify the tags manually
 
-[![](https://asciinema.org/a/555367.svg)](https://asciinema.org/a/555367)
+![](https://user-images.githubusercontent.com/40620903/215294082-81f7c171-c39a-47c3-8a28-0956fd7b9fa9.gif)
 
 ## Usage
 
