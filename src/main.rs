@@ -708,7 +708,9 @@ async fn main() -> Result<()> {
         )?;
     }
 
-    let desc = desc.trim();
+    let desc = desc
+        .trim_start_matches(|c: char| !c.is_alphanumeric())
+        .trim_end();
     write!(out, "  ")?;
     writedoc!(
         out,
