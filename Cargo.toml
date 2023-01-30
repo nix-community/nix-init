@@ -52,7 +52,7 @@ default-features = false
 features = ["derive", "with-fuzzy"]
 
 [dependencies.tokio]
-version = "1.24.2"
+version = "1.25.0"
 features = ["macros", "process", "rt-multi-thread"]
 
 [build-dependencies]
