@@ -10,24 +10,31 @@ Generate Nix packages from URLs
 
 > Note: It is likely that the generated package will not work without some tweaks, also remember to double check the license and description even if it does work
 
-- Hash prefetching powered by [nurl]
+- Hash prefetching powered by [nurl] with support for `cargoHash` and `vendorHash`
 - Dependency inference for Rust packages using the [Riff](https://github.com/DeterminateSystems/riff) registry and python projects
 - Interactive prompts with fuzzy tab completions
 - License detection
-- Supported builders
-  - `stdenv.mkDerivation`
-  - `buildRustPackage`
-  - `buildPythonApplication` and `buildPythonPackage`
-  - `buildGoModule`
-- Supported fetchers
-  - `fetchCrate`
-  - `fetchFromGitHub`
-  - `fetchFromGitLab`
-  - `fetchFromGitea`
-  - `fetchPypi`
-  - All other fetchers supported by [nurl] are also supported, you just have to specify the tags manually
 
 ![](https://user-images.githubusercontent.com/40620903/215294082-81f7c171-c39a-47c3-8a28-0956fd7b9fa9.gif)
+
+## Installation
+
+The latest release of nix-init is packaged in nixpkgs and kept up to date on the unstable branches
+
+![](https://repology.org/badge/vertical-allrepos/nix-init.svg)
+
+If you want to use a more recent snapshot of nix-init, it is also available as a flake.
+The following command is equivalent to running `nix-init --help`:
+
+```bash
+nix run github:nix-community/nix-init -- --help
+```
+
+or if you don't have flakes enabled:
+
+```bash
+nix run --extra-experimental-features "flakes nix-command" github:nix-community/nix-init -- --help
+```
 
 ## Usage
 
@@ -43,6 +50,22 @@ Options:
   -h, --help             Print help
   -V, --version          Print version
 ```
+
+### Supported builders
+
+- `stdenv.mkDerivation`
+- `buildRustPackage`
+- `buildPythonApplication` and `buildPythonPackage`
+- `buildGoModule`
+
+### Supported fetchers
+
+- `fetchCrate`
+- `fetchFromGitHub`
+- `fetchFromGitLab`
+- `fetchFromGitea`
+- `fetchPypi`
+- All other fetchers supported by [nurl] are also supported, you just have to manually input the tag/revision of the package
 
 ## Configuration
 
