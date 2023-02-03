@@ -24,11 +24,12 @@ pub async fn cargo_deps_hash(
     version: impl Display,
     src: impl Display,
     src_dir: &Path,
+    nixpkgs: &str,
 ) -> String {
     if let Ok(lock) = File::open(src_dir.join("Cargo.lock")) {
         let (hash, ()) = tokio::join!(
             fod_hash(format!(
-                r#"(import<nixpkgs>{{}}).rustPlatform.fetchCargoTarball{{name="{pname}-{version}";src={src};hash="{FAKE_HASH}";}}"#,
+                r#"(import({nixpkgs}){{}}).rustPlatform.fetchCargoTarball{{name="{pname}-{version}";src={src};hash="{FAKE_HASH}";}}"#,
             )),
             load_riff_dependencies(inputs, lock),
         );

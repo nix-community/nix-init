@@ -219,8 +219,14 @@ async fn main() -> Result<()> {
         editor.readline(&prompt("Enter pname"))?
     };
 
+    let nixpkgs = opts
+        .nixpkgs
+        .or(cfg.nixpkgs)
+        .unwrap_or_else(|| "<nixpkgs>".into());
     let mut cmd = Command::new("nurl");
     cmd.arg(&url).arg(&rev);
+    // TODO: change to this once https://github.com/NixOS/nixpkgs/pull/214422 is in nixos-unstable
+    // cmd.arg(&url).arg(&rev).arg("-n").arg(&nixpkgs);
 
     let src_expr = {
         if let MaybeFetcher::Known(
@@ -279,7 +285,7 @@ async fn main() -> Result<()> {
         .arg("--json")
         .arg("--expr")
         .arg(format!(
-            "let pname={pname:?};version={version:?};in(import<nixpkgs>{{}}).{}{src_expr}",
+            "let pname={pname:?};version={version:?};in(import({nixpkgs}){{}}).{}{src_expr}",
             if matches!(fetcher, MaybeFetcher::Known(Fetcher::FetchPypi { .. })) {
                 "python3.pkgs."
             } else {
@@ -525,7 +531,7 @@ async fn main() -> Result<()> {
             let hash = if src_dir.join("vendor").is_dir() {
                 "null".into()
             } else if let Some(hash) = fod_hash(format!(
-                r#"(import<nixpkgs>{{}}).buildGoModule{{pname={pname:?};version={version:?};src={src};vendorHash="{FAKE_HASH}";}}"#,
+                r#"(import({nixpkgs}){{}}).buildGoModule{{pname={pname:?};version={version:?};src={src};vendorHash="{FAKE_HASH}";}}"#,
             )).await {
                 if hash == "sha256-pQpattmS9VmO3ZIQUFn66az8GSmB4IvYhTTCFn6SUmo=" {
                     "null".into()
@@ -561,7 +567,7 @@ async fn main() -> Result<()> {
             cargo,
         } => {
             let hash = if *cargo {
-                Some(cargo_deps_hash(&mut inputs, &pname, &version, &src, &src_dir).await)
+                Some(cargo_deps_hash(&mut inputs, &pname, &version, &src, &src_dir, &nixpkgs).await)
             } else {
                 None
             };
@@ -611,7 +617,8 @@ async fn main() -> Result<()> {
         }
 
         BuildType::BuildRustPackage => {
-            let hash = cargo_deps_hash(&mut inputs, &pname, &version, &src, &src_dir).await;
+            let hash =
+                cargo_deps_hash(&mut inputs, &pname, &version, &src, &src_dir, &nixpkgs).await;
             let res = write_all_lambda_inputs(&mut out, &inputs, ["rustPlatform"])?;
             writedoc!(
                 out,
@@ -650,7 +657,8 @@ async fn main() -> Result<()> {
         }
 
         BuildType::MkDerivationCargo => {
-            let hash = cargo_deps_hash(&mut inputs, &pname, &version, &src, &src_dir).await;
+            let hash =
+                cargo_deps_hash(&mut inputs, &pname, &version, &src, &src_dir, &nixpkgs).await;
             let res = write_all_lambda_inputs(&mut out, &inputs, ["stdenv"])?;
             writedoc!(
                 out,

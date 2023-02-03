@@ -14,6 +14,10 @@ pub struct Opts {
     #[arg(short, long)]
     pub url: Option<String>,
 
+    /// Path to nixpkgs (in nix)
+    #[arg(short, long)]
+    pub nixpkgs: Option<String>,
+
     /// Specify the config file
     #[arg(short, long)]
     pub config: Option<PathBuf>,
