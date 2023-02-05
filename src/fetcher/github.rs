@@ -20,8 +20,9 @@ struct LatestRelease {
 }
 
 #[derive(Deserialize)]
-struct Tag {
-    name: String,
+struct Reference {
+    #[serde(rename = "ref")]
+    reference: String,
 }
 
 #[derive(Deserialize)]
@@ -60,7 +61,7 @@ pub async fn get_package_info(
                 .await
                 .map(|latest_release: LatestRelease| latest_release.tag_name)
         },
-        async { json::<Vec<_>>(cl, format!("{root}/tags?per_page=12")).await },
+        async { json::<Vec<_>>(cl, format!("{root}/git/matching-refs/tags/")).await },
         async { json::<Vec<_>>(cl, format!("{root}/commits?per_page=12")).await },
     );
 
@@ -79,21 +80,29 @@ pub async fn get_package_info(
     };
 
     if let Some(tags) = tags {
+        let mut tags = tags
+            .into_iter()
+            .rev()
+            .filter_map(|Reference { reference }| {
+                reference.strip_prefix("refs/tags/").map(Into::into)
+            })
+            .take(12);
+
         if latest.is_empty() {
-            if let Some(Tag { name }) = tags.first() {
-                latest = name.clone();
+            if let Some(tag) = tags.next() {
+                latest = tag;
             }
         }
 
-        for Tag { name } in tags {
-            if matches!(&latest_release, Some(tag) if tag == &name) {
+        for tag in tags {
+            if matches!(&latest_release, Some(latest) if latest == &tag) {
                 continue;
             }
             completions.push(Completion {
-                display: format!("{name} (tag)"),
-                replacement: name.clone(),
+                display: format!("{tag} (tag)"),
+                replacement: tag.clone(),
             });
-            versions.insert(name, Version::Tag);
+            versions.insert(tag, Version::Tag);
         }
     }
 
