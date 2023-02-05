@@ -224,9 +224,7 @@ async fn main() -> Result<()> {
         .or(cfg.nixpkgs)
         .unwrap_or_else(|| "<nixpkgs>".into());
     let mut cmd = Command::new("nurl");
-    cmd.arg(&url).arg(&rev);
-    // TODO: change to this once https://github.com/NixOS/nixpkgs/pull/214422 is in nixos-unstable
-    // cmd.arg(&url).arg(&rev).arg("-n").arg(&nixpkgs);
+    cmd.arg(&url).arg(&rev).arg("-n").arg(&nixpkgs);
 
     let src_expr = {
         if let MaybeFetcher::Known(
