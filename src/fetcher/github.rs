@@ -84,13 +84,18 @@ pub async fn get_package_info(
             .into_iter()
             .rev()
             .filter_map(|Reference { reference }| {
-                reference.strip_prefix("refs/tags/").map(Into::into)
+                reference.strip_prefix("refs/tags/").map(ToOwned::to_owned)
             })
             .take(12);
 
         if latest.is_empty() {
             if let Some(tag) = tags.next() {
-                latest = tag;
+                latest = tag.clone();
+                completions.push(Completion {
+                    display: format!("{tag} (tag)"),
+                    replacement: tag.clone(),
+                });
+                versions.insert(tag, Version::Tag);
             }
         }
 
