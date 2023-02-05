@@ -112,8 +112,34 @@ pub fn get_python_dependency(dep: String) -> Option<String> {
                 }
                 _ => break,
             }
+        } else {
+            break;
         }
     }
 
     Some(name)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::get_python_dependency;
+
+    #[test]
+    fn basic() {
+        assert_eq!(
+            get_python_dependency("requests".into()),
+            Some("requests".into()),
+        );
+        assert_eq!(
+            get_python_dependency("Click>=7.0".into()),
+            Some("click".into()),
+        );
+        assert_eq!(
+            get_python_dependency("tomli;python_version<'3.11'".into()),
+            Some("tomli".into()),
+        );
+
+        assert_eq!(get_python_dependency("".into()), None);
+        assert_eq!(get_python_dependency("# comment".into()), None);
+    }
 }
