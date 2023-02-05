@@ -18,6 +18,7 @@ use indoc::{formatdoc, writedoc};
 use is_terminal::IsTerminal;
 use itertools::Itertools;
 use once_cell::sync::Lazy;
+use owo_colors::OwoColorize;
 use rustyline::{config::Configurer, CompletionType, Editor};
 use serde::Deserialize;
 use tar::Archive;
@@ -99,6 +100,20 @@ async fn main() -> Result<()> {
     });
 
     let cfg = load_config(opts.config)?;
+    let mut editor = Editor::new()?;
+    editor.set_completion_type(CompletionType::Fuzzy);
+    editor.set_max_history_size(0)?;
+
+    if opts.output.exists()
+        && editor
+            .readline(&prompt(format_args!(
+                "Do you want to overwrite {}? (Y/n)",
+                opts.output.display().green(),
+            )))?
+            .starts_with(['n', 'N'])
+    {
+        return Ok(());
+    }
 
     if let Some(parent) = opts.output.parent() {
         let _ = create_dir_all(parent);
@@ -111,10 +126,6 @@ async fn main() -> Result<()> {
 
     let mut out = String::new();
     writeln!(out, "{{ lib")?;
-
-    let mut editor = Editor::new()?;
-    editor.set_completion_type(CompletionType::Fuzzy);
-    editor.set_max_history_size(0)?;
 
     let url = match opts.url {
         Some(url) => url,
