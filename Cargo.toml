@@ -12,7 +12,7 @@ keywords = ["cli", "interactive", "generate", "nix", "package"]
 categories = ["command-line-utilities"]
 
 [dependencies]
-anyhow = "1.0.68"
+anyhow = "1.0.69"
 askalono = "0.4.6"
 async-trait = "0.1.64"
 bstr = "1.2.0"
