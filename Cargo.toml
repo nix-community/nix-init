@@ -1,6 +1,6 @@
 [package]
 name = "nix-init"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["figsoda <figsoda@pm.me>"]
 edition = "2021"
 description = "Generate Nix packages from URLs with hash prefetching, dependency inference, license detection, and more"

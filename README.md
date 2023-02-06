@@ -45,10 +45,11 @@ Arguments:
   <OUTPUT>  The path to output the generated file to
 
 Options:
-  -u, --url <URL>        Specify the URL
-  -c, --config <CONFIG>  Specify the config file
-  -h, --help             Print help
-  -V, --version          Print version
+  -u, --url <URL>          Specify the URL
+  -n, --nixpkgs <NIXPKGS>  Path to nixpkgs (in nix)
+  -c, --config <CONFIG>    Specify the config file
+  -h, --help               Print help
+  -V, --version            Print version
 ```
 
 ### Supported builders
@@ -76,6 +77,9 @@ nix-init will try to find `nix-init/config.toml` under XDG configuration directo
 
 # maintainers that will get added to the package meta
 maintainers = ["figsoda"]
+
+# path to nixpkgs, equivalent to `--nixpkgs`
+nixpkgs = "<nixpkgs>"
 
 # access tokens to access private repositories and avoid rate limits
 [access-tokens]
