@@ -332,8 +332,8 @@ async fn main() -> Result<()> {
     let has_cmake = src_dir.join("CMakeLists.txt").is_file();
     let has_go = src_dir.join("go.mod").is_file();
     let has_meson = src_dir.join("meson.build").is_file();
-    let pyproject = src_dir.join("pyproject.toml");
-    let has_pyproject = pyproject.is_file();
+    let pyproject_toml = src_dir.join("pyproject.toml");
+    let has_pyproject = pyproject_toml.is_file();
     let has_setuptools = src_dir.join("setup.py").is_file();
 
     if has_go {
@@ -535,6 +535,7 @@ async fn main() -> Result<()> {
         }
     }
 
+    let mut pyproject = None;
     let (native_build_inputs, build_inputs) = match choice {
         BuildType::BuildGoModule => {
             let hash = if src_dir.join("vendor").is_dir() {
@@ -580,6 +581,14 @@ async fn main() -> Result<()> {
             } else {
                 None
             };
+
+            if matches!(format, PythonFormat::Pyproject) {
+                if let Some(pyproject_found) = Pyproject::from_path(pyproject_toml) {
+                    pyproject_found.load_license(&mut licenses);
+                    pyproject_found.load_build_dependencies(&mut inputs);
+                    pyproject = Some(pyproject_found)
+                }
+            }
 
             let res = write_all_lambda_inputs(&mut out, &inputs, ["python3"])?;
 
@@ -699,17 +708,11 @@ async fn main() -> Result<()> {
         write_inputs(&mut out, &inputs.build_inputs, "buildInputs")?;
     }
 
-    if let BuildType::BuildPythonPackage { format, .. } = choice {
-        let (name, deps) = match format {
-            PythonFormat::Pyproject => {
-                if let Some(mut pyproject) = Pyproject::from_path(pyproject) {
-                    pyproject.load_license(&mut licenses);
-                    (pyproject.get_name(), pyproject.get_dependencies())
-                } else {
-                    (None, None)
-                }
-            }
-            _ => (None, None),
+    if let BuildType::BuildPythonPackage { .. } = choice {
+        let (name, deps) = if let Some(mut pyproject) = pyproject {
+            (pyproject.get_name(), pyproject.get_dependencies())
+        } else {
+            (None, None)
         };
 
         let deps = deps

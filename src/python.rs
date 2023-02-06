@@ -8,13 +8,21 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use crate::{license::parse_spdx_expression, utils::ResultExt};
+use crate::{inputs::AllInputs, license::parse_spdx_expression, utils::ResultExt};
 
 #[derive(Default, Deserialize)]
-#[serde(default)]
+#[serde(default, rename_all = "kebab-case")]
 pub struct Pyproject {
+    build_system: BuildSystem,
     project: Project,
     tool: Tool,
+}
+
+#[serde_as]
+#[derive(Default, Deserialize)]
+#[serde(default)]
+struct BuildSystem {
+    requires: Vec<String>,
 }
 
 #[serde_as]
@@ -67,16 +75,26 @@ impl Pyproject {
         }
     }
 
-    pub fn get_dependencies(&mut self) -> Option<BTreeSet<String>> {
-        if let Some(deps) = self.project.dependencies.take() {
-            Some(deps.into_iter().filter_map(get_python_dependency).collect())
-        } else if let Some(mut deps) = self.tool.poetry.dependencies.take() {
-            deps.remove(&("python".into(), ()));
-            Some(
-                deps.into_iter()
-                    .map(|(dep, _)| dep.to_lowercase().replace(['_', '.'], "-"))
-                    .collect(),
-            )
+    pub fn load_build_dependencies(&self, inputs: &mut AllInputs) {
+        inputs.native_build_inputs.always.extend(
+            self.build_system
+                .requires
+                .iter()
+                .filter_map(get_python_dependency)
+                .map(|dep| format!("python3.pkgs.{dep}")),
+        );
+    }
+
+    pub fn get_dependencies(&self) -> Option<BTreeSet<String>> {
+        if let Some(deps) = &self.project.dependencies {
+            Some(deps.iter().filter_map(get_python_dependency).collect())
+        } else if let Some(deps) = &self.tool.poetry.dependencies {
+            let mut deps: BTreeSet<_> = deps
+                .iter()
+                .map(|(dep, _)| dep.to_lowercase().replace(['_', '.'], "-"))
+                .collect();
+            deps.remove("python");
+            Some(deps)
         } else {
             None
         }
@@ -92,8 +110,8 @@ pub fn parse_requirements_txt(src: &Path) -> Option<BTreeSet<String>> {
     })
 }
 
-pub fn get_python_dependency(dep: String) -> Option<String> {
-    let mut chars = dep.chars().skip_while(|c| c.is_whitespace());
+pub fn get_python_dependency(dep: impl AsRef<str>) -> Option<String> {
+    let mut chars = dep.as_ref().chars().skip_while(|c| c.is_whitespace());
 
     let x = chars.next()?;
     if !x.is_alphabetic() {
@@ -126,20 +144,14 @@ mod tests {
 
     #[test]
     fn basic() {
+        assert_eq!(get_python_dependency("requests"), Some("requests".into()));
+        assert_eq!(get_python_dependency("Click>=7.0"), Some("click".into()));
         assert_eq!(
-            get_python_dependency("requests".into()),
-            Some("requests".into()),
-        );
-        assert_eq!(
-            get_python_dependency("Click>=7.0".into()),
-            Some("click".into()),
-        );
-        assert_eq!(
-            get_python_dependency("tomli;python_version<'3.11'".into()),
+            get_python_dependency("tomli;python_version<'3.11'"),
             Some("tomli".into()),
         );
 
-        assert_eq!(get_python_dependency("".into()), None);
-        assert_eq!(get_python_dependency("# comment".into()), None);
+        assert_eq!(get_python_dependency(""), None);
+        assert_eq!(get_python_dependency("# comment"), None);
     }
 }
