@@ -26,3 +26,19 @@ pub fn parse_spdx_expression(license: &str, source: &'static str) -> Vec<&'stati
                 .collect()
         })
 }
+
+#[cfg(test)]
+mod tests {
+    use super::parse_spdx_expression;
+
+    #[test]
+    fn basic() {
+        assert_eq!(parse_spdx_expression("MPL-2.0", ""), ["mpl20"]);
+        assert_eq!(parse_spdx_expression("GPL-3.0", ""), ["gpl3Only"]);
+        assert_eq!(parse_spdx_expression("unknown license", ""), [""; 0]);
+        assert_eq!(
+            parse_spdx_expression("MIT or Apache-2.0", ""),
+            ["mit", "asl20"],
+        );
+    }
+}
