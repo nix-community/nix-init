@@ -84,6 +84,10 @@ pub enum PythonFormat {
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    run().await
+}
+
+async fn run() -> Result<()> {
     tracing_subscriber::fmt()
         .with_ansi(stderr().is_terminal())
         .with_env_filter(EnvFilter::from_env("NIX_INIT_LOG"))
