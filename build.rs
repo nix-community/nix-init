@@ -12,6 +12,7 @@ use std::{
 include!("src/cli.rs");
 
 fn main() {
+    println!("cargo:rerun-if-changed=cache/askalono-cache.zstd");
     println!("cargo:rerun-if-env-changed=GEN_ARTIFACTS");
     println!("cargo:rerun-if-env-changed=SPDX_LICENSE_LIST_DATA");
 
