@@ -27,6 +27,7 @@ struct BuildSystem {
 
 #[serde_as]
 #[derive(Default, Deserialize)]
+#[serde(default)]
 struct Project {
     name: Option<String>,
     #[serde_as(as = "DefaultOnError")]
@@ -42,6 +43,7 @@ struct Tool {
 
 #[serde_as]
 #[derive(Default, Deserialize)]
+#[serde(default)]
 struct Poetry {
     name: Option<String>,
     #[serde_as(as = "DefaultOnError")]
