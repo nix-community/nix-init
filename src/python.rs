@@ -83,7 +83,13 @@ impl Pyproject {
                 .requires
                 .iter()
                 .filter_map(get_python_dependency)
-                .map(|dep| format!("python3.pkgs.{dep}")),
+                .map(|dep| {
+                    if dep == "maturin" {
+                        "rustPlatform.maturinBuildHook".into()
+                    } else {
+                        format!("python3.pkgs.{dep}")
+                    }
+                }),
         );
     }
 
