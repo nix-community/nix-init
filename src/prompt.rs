@@ -54,7 +54,7 @@ impl Completer for Prompter {
                     .iter()
                     .enumerate()
                     .map(|(i, &(_, msg))| Completion {
-                        display: msg.into(),
+                        display: format!("{i} - {msg}"),
                         replacement: i.to_string(),
                     })
                     .collect(),
@@ -152,7 +152,7 @@ impl Validator for Prompter {
                     .ok()
                     .and_then(|choice| choices.get(choice))
                 {
-                    ValidationResult::Valid(Some(choice.into()))
+                    ValidationResult::Valid(Some(format!(" - {choice}")))
                 } else {
                     ValidationResult::Invalid(None)
                 }
