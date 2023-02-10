@@ -5,7 +5,8 @@
 
   outputs = { self, nixpkgs }:
     let
-      inherit (nixpkgs.lib) genAttrs importTOML licenses maintainers makeBinPath optionals;
+      inherit (builtins) path;
+      inherit (nixpkgs.lib) genAttrs importTOML licenses maintainers makeBinPath optionals sourceByRegex;
       inherit (importTOML (self + "/Cargo.toml")) package;
 
       forEachSystem = genAttrs [
@@ -47,11 +48,17 @@
             pname = "nix-init";
             inherit (package) version;
 
-            src = self;
+            src = sourceByRegex self [
+              "src(/.*)?"
+              "Cargo\\.(toml|lock)"
+              "build.rs"
+            ];
 
             cargoLock = {
               allowBuiltinFetchGit = true;
-              lockFile = self + "/Cargo.lock";
+              lockFile = path {
+                path = self + "/Cargo.lock";
+              };
             };
 
             nativeBuildInputs = [
