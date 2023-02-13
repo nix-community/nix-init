@@ -10,7 +10,7 @@ mod utils;
 
 use anyhow::{Context, Result};
 use askalono::{IdentifiedLicense, ScanResult, ScanStrategy, TextData};
-use bstr::ByteVec;
+use bstr::{ByteSlice, ByteVec};
 use clap::Parser;
 use expand::expand;
 use flate2::read::GzDecoder;
@@ -18,7 +18,6 @@ use indoc::{formatdoc, writedoc};
 use is_terminal::IsTerminal;
 use itertools::Itertools;
 use once_cell::sync::Lazy;
-use owo_colors::OwoColorize;
 use rustyline::{config::Configurer, CompletionType, Editor};
 use serde::Deserialize;
 use tar::Archive;
@@ -31,7 +30,7 @@ use std::{
     cmp::Ordering,
     collections::{BTreeMap, BTreeSet},
     fmt::Write as _,
-    fs::{create_dir_all, read_dir, read_to_string, File},
+    fs::{create_dir_all, metadata, read_dir, read_to_string, File},
     io::{stderr, Write as _},
     path::PathBuf,
 };
@@ -42,7 +41,7 @@ use crate::{
     fetcher::{Fetcher, PackageInfo, Revisions, Version},
     inputs::{write_all_lambda_inputs, write_inputs, AllInputs},
     license::{LICENSE_STORE, NIX_LICENSES},
-    prompt::{prompt, Prompter},
+    prompt::{ask_overwrite, prompt, Prompter},
     python::{parse_requirements_txt, Pyproject},
     rust::cargo_deps_hash,
     utils::{fod_hash, CommandExt, ResultExt, FAKE_HASH},
@@ -108,24 +107,36 @@ async fn run() -> Result<()> {
     editor.set_completion_type(CompletionType::Fuzzy);
     editor.set_max_history_size(0)?;
 
-    if opts.output.exists()
-        && editor
-            .readline(&prompt(format_args!(
-                "Do you want to overwrite {}? (Y/n)",
-                opts.output.display().green(),
-            )))?
-            .starts_with(['n', 'N'])
+    let output = PathBuf::from(&opts.output);
+    let (_, out_path) = if let Ok(metadata) = metadata(&output) {
+        if metadata.is_dir() {
+            let out_path = output.join("default.nix");
+            if out_path.exists() && ask_overwrite(&mut editor, &out_path)? {
+                return Ok(());
+            }
+            (Some(output.as_path()), out_path)
+        } else if ask_overwrite(&mut editor, &output)? {
+            return Ok(());
+        } else {
+            (output.parent(), output.clone())
+        }
+    } else if <[u8] as ByteSlice>::from_path(&opts.output)
+        .map_or(false, |out_path| out_path.ends_with_str(b"/"))
     {
-        return Ok(());
-    }
+        let _ = create_dir_all(&output);
+        (Some(output.as_ref()), output.join("default.nix"))
+    } else {
+        let out_dir = output.parent();
+        if let Some(out_dir) = out_dir {
+            let _ = create_dir_all(out_dir);
+        }
+        (out_dir, output.clone())
+    };
 
-    if let Some(parent) = opts.output.parent() {
-        let _ = create_dir_all(parent);
-    }
     let mut out_file = File::options()
         .create(true)
         .write(true)
-        .open(opts.output)
+        .open(out_path)
         .context("failed to create output file")?;
 
     let mut out = String::new();

@@ -1,11 +1,12 @@
-use std::fmt::Display;
+use std::{fmt::Display, path::Path};
 
 use owo_colors::{OwoColorize, Style};
 use rustyline::{
     completion::{Candidate, Completer},
     hint::{Hint, Hinter},
+    history::History,
     validate::{ValidationContext, ValidationResult, Validator},
-    Context, Helper, Highlighter,
+    Context, Editor, Helper, Highlighter,
 };
 
 use crate::{
@@ -163,4 +164,16 @@ impl Validator for Prompter {
 
 pub fn prompt(prompt: impl Display) -> String {
     format!("{}\n{} ", prompt.bold(), "❯".blue())
+}
+
+pub fn ask_overwrite(
+    editor: &mut Editor<impl Helper, impl History>,
+    path: &Path,
+) -> Result<bool, anyhow::Error> {
+    Ok(editor
+        .readline(&prompt(format_args!(
+            "Do you want to overwrite {}? (Y/n)",
+            path.display().green(),
+        )))?
+        .starts_with(['n', 'N']))
 }

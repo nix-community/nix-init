@@ -8,6 +8,7 @@ use std::path::PathBuf;
 #[command(version, verbatim_doc_comment)]
 pub struct Opts {
     /// The path to output the generated file to
+    #[arg(default_value = ".")]
     pub output: PathBuf,
 
     /// Specify the URL
