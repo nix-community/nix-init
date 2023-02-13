@@ -144,7 +144,10 @@ async fn run() -> Result<()> {
 
     let url = match opts.url {
         Some(url) => url,
-        None => editor.readline(&prompt("Enter url"))?,
+        None => {
+            editor.set_helper(Some(Prompter::NonEmpty));
+            editor.readline(&prompt("Enter url"))?
+        }
     };
 
     let fetcher = serde_json::from_slice(
