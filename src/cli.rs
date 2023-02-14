@@ -7,9 +7,8 @@ use std::path::PathBuf;
 #[derive(Parser)]
 #[command(version, verbatim_doc_comment)]
 pub struct Opts {
-    /// The path to output the generated file to
-    #[arg(default_value = ".")]
-    pub output: PathBuf,
+    /// The path or directory to output the generated file to
+    pub output: Option<PathBuf>,
 
     /// Specify the URL
     #[arg(short, long)]

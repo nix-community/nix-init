@@ -1,12 +1,12 @@
 use reqwest::Client;
 use rustc_hash::FxHashMap;
+use rustyline::completion::Pair;
 use serde::Deserialize;
 
 use std::collections::BTreeSet;
 
 use crate::{
     fetcher::{json, PackageInfo, Version},
-    prompt::Completion,
     Revisions,
 };
 
@@ -62,7 +62,7 @@ pub async fn get_package_info(
 
     let mut latest = if let Some(latest) = &latest_release {
         versions.insert(latest.clone(), Version::Latest);
-        completions.push(Completion {
+        completions.push(Pair {
             display: format!("{latest} (latest release)"),
             replacement: latest.clone(),
         });
@@ -82,7 +82,7 @@ pub async fn get_package_info(
             if matches!(&latest_release, Some(tag) if tag == &name) {
                 continue;
             }
-            completions.push(Completion {
+            completions.push(Pair {
                 display: format!("{name} (tag)"),
                 replacement: name.clone(),
             });
@@ -105,7 +105,7 @@ pub async fn get_package_info(
 
             let date = &committed_date[0 .. 10];
 
-            completions.push(Completion {
+            completions.push(Pair {
                 display: format!("{id} ({date} - HEAD) {title}"),
                 replacement: id.clone(),
             });
@@ -125,7 +125,7 @@ pub async fn get_package_info(
         } in commits
         {
             let date = &committed_date[0 .. 10];
-            completions.push(Completion {
+            completions.push(Pair {
                 display: format!("{id} ({date}) {title}"),
                 replacement: id.clone(),
             });

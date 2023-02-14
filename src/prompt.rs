@@ -2,7 +2,7 @@ use std::{fmt::Display, path::Path};
 
 use owo_colors::{OwoColorize, Style};
 use rustyline::{
-    completion::{Candidate, Completer},
+    completion::{Completer, FilenameCompleter, Pair},
     hint::{Hint, Hinter},
     history::History,
     validate::{ValidationContext, ValidationResult, Validator},
@@ -16,45 +16,49 @@ use crate::{
 
 #[derive(Helper, Highlighter)]
 pub enum Prompter {
+    Path(FilenameCompleter),
     Revision(Revisions),
     NonEmpty,
     Build(Vec<(BuildType, &'static str)>),
 }
 
-#[derive(Clone)]
-pub struct Completion {
-    pub display: String,
-    pub replacement: String,
-}
-
-impl Candidate for Completion {
-    fn display(&self) -> &str {
-        &self.display
-    }
-
-    fn replacement(&self) -> &str {
-        &self.replacement
-    }
-}
-
 impl Completer for Prompter {
-    type Candidate = Completion;
+    type Candidate = Pair;
 
     fn complete(
         &self,
-        _: &str,
-        _: usize,
+        line: &str,
+        pos: usize,
         _: &Context<'_>,
     ) -> rustyline::Result<(usize, Vec<Self::Candidate>)> {
         match self {
-            Prompter::Revision(revisions) => Ok((0, revisions.completions.clone())),
+            Prompter::Path(completer) => {
+                let mut completions = completer.complete_path(line, pos)?;
+                completions.1.sort_by(|x, y| {
+                    y.replacement
+                        .ends_with('/')
+                        .cmp(&x.replacement.ends_with('/'))
+                });
+                Ok(completions)
+            }
+            Prompter::Revision(revisions) => Ok((
+                0,
+                revisions
+                    .completions
+                    .iter()
+                    .map(|pair| Pair {
+                        display: pair.display.clone(),
+                        replacement: pair.replacement.clone(),
+                    })
+                    .collect(),
+            )),
             Prompter::NonEmpty => Ok((0, Vec::new())),
             Prompter::Build(choices) => Ok((
                 0,
                 choices
                     .iter()
                     .enumerate()
-                    .map(|(i, &(_, msg))| Completion {
+                    .map(|(i, &(_, msg))| Pair {
                         display: format!("{i} - {msg}"),
                         replacement: i.to_string(),
                     })
@@ -81,6 +85,8 @@ impl Hinter for Prompter {
 
     fn hint(&self, line: &str, _: usize, _: &Context<'_>) -> Option<Self::Hint> {
         match self {
+            Prompter::Path(_) => None,
+
             Prompter::Revision(revisions) => {
                 let style = Style::new().blue().italic();
                 if line.is_empty() {
@@ -124,6 +130,10 @@ impl Hinter for Prompter {
 impl Validator for Prompter {
     fn validate(&self, ctx: &mut ValidationContext) -> rustyline::Result<ValidationResult> {
         Ok(match self {
+            Prompter::Path(_) => {
+                ValidationResult::Valid(ctx.input().is_empty().then(|| ".".into()))
+            }
+
             Prompter::Revision(revisions) => {
                 if ctx.input().is_empty() {
                     if revisions.latest.is_empty() {

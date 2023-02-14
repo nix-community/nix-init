@@ -19,7 +19,7 @@ use indoc::{formatdoc, writedoc};
 use is_terminal::IsTerminal;
 use itertools::Itertools;
 use once_cell::sync::Lazy;
-use rustyline::{config::Configurer, CompletionType, Editor};
+use rustyline::{completion::FilenameCompleter, config::Configurer, CompletionType, Editor};
 use serde::Deserialize;
 use tar::Archive;
 use tempfile::tempdir;
@@ -109,7 +109,21 @@ async fn run() -> Result<()> {
     editor.set_completion_type(CompletionType::Fuzzy);
     editor.set_max_history_size(0)?;
 
-    let output = PathBuf::from(&opts.output);
+    let output = match opts.output {
+        Some(output) => output,
+        None => {
+            editor.set_helper(Some(Prompter::Path(FilenameCompleter::new())));
+            let output =
+                editor.readline(&prompt("Enter output path (defaults to current directory)"))?;
+            editor.set_helper(None);
+            if output.is_empty() {
+                PathBuf::from(".")
+            } else {
+                PathBuf::from(output)
+            }
+        }
+    };
+
     let (_, out_path) = if let Ok(metadata) = metadata(&output) {
         if metadata.is_dir() {
             let out_path = output.join("default.nix");
@@ -122,7 +136,7 @@ async fn run() -> Result<()> {
         } else {
             (output.parent(), output.clone())
         }
-    } else if <[u8] as ByteSlice>::from_path(&opts.output)
+    } else if <[u8] as ByteSlice>::from_path(&output)
         .map_or(false, |out_path| out_path.ends_with_str(b"/"))
     {
         let _ = create_dir_all(&output);

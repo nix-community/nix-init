@@ -7,11 +7,12 @@ mod pypi;
 use anyhow::Result;
 use reqwest::{header::HeaderMap, Client, IntoUrl};
 use rustc_hash::FxHashMap;
+use rustyline::completion::Pair;
 use serde::Deserialize;
 
 use std::collections::BTreeSet;
 
-use crate::{cfg::AccessTokens, prompt::Completion, utils::ResultExt};
+use crate::{cfg::AccessTokens, utils::ResultExt};
 
 #[allow(clippy::enum_variant_names)]
 #[derive(Debug, serde::Serialize, Deserialize)]
@@ -61,7 +62,7 @@ pub enum Version {
 
 pub struct Revisions {
     pub latest: String,
-    pub completions: Vec<Completion>,
+    pub completions: Vec<Pair>,
     pub versions: FxHashMap<String, Version>,
 }
 

@@ -1,4 +1,5 @@
 use reqwest::Client;
+use rustyline::completion::Pair;
 use serde::Deserialize;
 
 use std::collections::BTreeSet;
@@ -6,7 +7,6 @@ use std::collections::BTreeSet;
 use crate::{
     fetcher::{json, PackageInfo, Revisions, Version},
     license::parse_spdx_expression,
-    prompt::Completion,
 };
 
 #[derive(Deserialize)]
@@ -61,7 +61,7 @@ pub async fn get_package_info(cl: &Client, pname: &str) -> PackageInfo {
 
     let (mut found_latest, mut latest, mut latest_license) =
         if let Some((version, license)) = crate_versions.next() {
-            completions.push(Completion {
+            completions.push(Pair {
                 display: version.clone(),
                 replacement: version.clone(),
             });
@@ -89,7 +89,7 @@ pub async fn get_package_info(cl: &Client, pname: &str) -> PackageInfo {
             latest_license = Some(license);
         }
 
-        completions.push(Completion {
+        completions.push(Pair {
             display: version.clone(),
             replacement: version.clone(),
         });

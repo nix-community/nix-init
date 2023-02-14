@@ -1,5 +1,6 @@
 use itertools::Itertools;
 use reqwest::Client;
+use rustyline::completion::Pair;
 use serde::Deserialize;
 use serde_with::{serde_as, DefaultOnNull, Map};
 use time::OffsetDateTime;
@@ -9,7 +10,6 @@ use std::collections::BTreeSet;
 use crate::{
     fetcher::{json, PackageInfo, Revisions, Version},
     license::parse_spdx_expression,
-    prompt::Completion,
     python::get_python_dependency,
 };
 
@@ -58,7 +58,7 @@ pub async fn get_package_info(cl: &Client, pname: &str) -> PackageInfo {
     };
 
     versions.insert(project.info.version.clone(), Version::Latest);
-    completions.push(Completion {
+    completions.push(Pair {
         display: format!("{} (latest release)", project.info.version),
         replacement: project.info.version.clone(),
     });
@@ -78,7 +78,7 @@ pub async fn get_package_info(cl: &Client, pname: &str) -> PackageInfo {
         if version == project.info.version {
             continue;
         }
-        completions.push(Completion {
+        completions.push(Pair {
             display: version.clone(),
             replacement: version.clone(),
         });

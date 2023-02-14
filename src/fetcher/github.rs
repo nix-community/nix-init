@@ -1,13 +1,11 @@
 use reqwest::Client;
 use rustc_hash::FxHashMap;
+use rustyline::completion::Pair;
 use serde::Deserialize;
 
 use std::collections::BTreeSet;
 
-use crate::{
-    fetcher::{json, PackageInfo, Revisions, Version},
-    prompt::Completion,
-};
+use crate::fetcher::{json, PackageInfo, Revisions, Version};
 
 #[derive(Deserialize)]
 struct Repo {
@@ -70,7 +68,7 @@ pub async fn get_package_info(
 
     let mut latest = if let Some(latest) = &latest_release {
         versions.insert(latest.clone(), Version::Latest);
-        completions.push(Completion {
+        completions.push(Pair {
             display: format!("{latest} (latest release)"),
             replacement: latest.clone(),
         });
@@ -91,7 +89,7 @@ pub async fn get_package_info(
         if latest.is_empty() {
             if let Some(tag) = tags.next() {
                 latest = tag.clone();
-                completions.push(Completion {
+                completions.push(Pair {
                     display: format!("{tag} (tag)"),
                     replacement: tag.clone(),
                 });
@@ -103,7 +101,7 @@ pub async fn get_package_info(
             if matches!(&latest_release, Some(latest) if latest == &tag) {
                 continue;
             }
-            completions.push(Completion {
+            completions.push(Pair {
                 display: format!("{tag} (tag)"),
                 replacement: tag.clone(),
             });
@@ -122,7 +120,7 @@ pub async fn get_package_info(
             let date = &commit.committer.date[0 .. 10];
             let msg = commit.message.lines().next().unwrap_or_default();
 
-            completions.push(Completion {
+            completions.push(Pair {
                 display: format!("{sha} ({date} - HEAD) {msg}"),
                 replacement: sha.clone(),
             });
@@ -138,7 +136,7 @@ pub async fn get_package_info(
         for Commit { sha, commit } in commits {
             let date = &commit.committer.date[0 .. 10];
             let msg = commit.message.lines().next().unwrap_or_default();
-            completions.push(Completion {
+            completions.push(Pair {
                 display: format!("{sha} ({date}) {msg}"),
                 replacement: sha.clone(),
             });
