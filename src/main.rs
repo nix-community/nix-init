@@ -1,6 +1,7 @@
 mod cfg;
 mod cli;
 mod fetcher;
+mod go;
 mod inputs;
 mod license;
 mod prompt;
@@ -39,6 +40,7 @@ use crate::{
     cfg::load_config,
     cli::Opts,
     fetcher::{Fetcher, PackageInfo, Revisions, Version},
+    go::write_ldflags,
     inputs::{write_all_lambda_inputs, write_inputs, AllInputs},
     license::{LICENSE_STORE, NIX_LICENSES},
     prompt::{ask_overwrite, prompt, Prompter},
@@ -726,29 +728,36 @@ async fn run() -> Result<()> {
         write_inputs(&mut out, &inputs.build_inputs, "buildInputs")?;
     }
 
-    if let BuildType::BuildPythonPackage { .. } = choice {
-        let (name, deps) = if let Some(mut pyproject) = pyproject {
-            (pyproject.get_name(), pyproject.get_dependencies())
-        } else {
-            (None, None)
-        };
-
-        let deps = deps
-            .or_else(|| parse_requirements_txt(&src_dir))
-            .unwrap_or(python_deps);
-        if !deps.is_empty() {
-            writeln!(out, "  propagatedBuildInputs = with python3.pkgs; [")?;
-            for dep in deps {
-                writeln!(out, "    {dep}")?;
-            }
-            writeln!(out, "  ];\n")?;
+    match choice {
+        BuildType::BuildGoModule => {
+            write_ldflags(&mut out, &src_dir)?;
         }
 
-        writeln!(
-            out,
-            "  pythonImportsCheck = [ {:?} ];\n",
-            name.unwrap_or(pname)
-        )?;
+        BuildType::BuildPythonPackage { .. } => {
+            let (name, deps) = if let Some(mut pyproject) = pyproject {
+                (pyproject.get_name(), pyproject.get_dependencies())
+            } else {
+                (None, None)
+            };
+
+            let deps = deps
+                .or_else(|| parse_requirements_txt(&src_dir))
+                .unwrap_or(python_deps);
+            if !deps.is_empty() {
+                writeln!(out, "  propagatedBuildInputs = with python3.pkgs; [")?;
+                for dep in deps {
+                    writeln!(out, "    {dep}")?;
+                }
+                writeln!(out, "  ];\n")?;
+            }
+
+            writeln!(
+                out,
+                "  pythonImportsCheck = [ {:?} ];\n",
+                name.unwrap_or(pname)
+            )?;
+        }
+        _ => {}
     }
 
     let desc = desc
