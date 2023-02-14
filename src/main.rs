@@ -570,7 +570,7 @@ async fn run() -> Result<()> {
                 format!(r#""{FAKE_HASH}""#)
             };
 
-            let res = write_all_lambda_inputs(&mut out, &inputs, ["rustPlatform"])?;
+            let res = write_all_lambda_inputs(&mut out, &inputs, [])?;
             writedoc!(
                 out,
                 r#"
