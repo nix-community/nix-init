@@ -118,21 +118,22 @@ pub fn parse_requirements_txt(src: &Path) -> Option<BTreeSet<String>> {
     })
 }
 
+// https://peps.python.org/pep-0508
 pub fn get_python_dependency(dep: impl AsRef<str>) -> Option<String> {
     let mut chars = dep.as_ref().chars().skip_while(|c| c.is_whitespace());
 
     let x = chars.next()?;
-    if !x.is_alphabetic() {
+    if !x.is_alphanumeric() {
         return None;
     }
     let mut name = String::from(x.to_ascii_lowercase());
 
     while let Some(c) = chars.next() {
-        if c.is_alphabetic() {
+        if c.is_alphanumeric() {
             name.push(c.to_ascii_lowercase());
         } else if matches!(c, '-' | '.' | '_') {
             match chars.next() {
-                Some(c) if c.is_alphabetic() => {
+                Some(c) if c.is_alphanumeric() => {
                     name.push('-');
                     name.push(c.to_ascii_lowercase());
                 }
@@ -153,6 +154,10 @@ mod tests {
     #[test]
     fn basic() {
         assert_eq!(get_python_dependency("requests"), Some("requests".into()));
+        assert_eq!(
+            get_python_dependency("beautifulsoup4"),
+            Some("beautifulsoup4".into()),
+        );
         assert_eq!(get_python_dependency("Click>=7.0"), Some("click".into()));
         assert_eq!(
             get_python_dependency("tomli;python_version<'3.11'"),
