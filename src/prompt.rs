@@ -41,17 +41,7 @@ impl Completer for Prompter {
                 });
                 Ok(completions)
             }
-            Prompter::Revision(revisions) => Ok((
-                0,
-                revisions
-                    .completions
-                    .iter()
-                    .map(|pair| Pair {
-                        display: pair.display.clone(),
-                        replacement: pair.replacement.clone(),
-                    })
-                    .collect(),
-            )),
+            Prompter::Revision(revisions) => Ok((0, revisions.completions.clone())),
             Prompter::NonEmpty => Ok((0, Vec::new())),
             Prompter::Build(choices) => Ok((
                 0,
