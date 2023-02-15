@@ -33,6 +33,7 @@ struct Info {
 
 #[derive(Deserialize)]
 struct Release {
+    packagetype: String,
     #[serde(rename = "upload_time_iso_8601", with = "time::serde::iso8601")]
     upload_time: OffsetDateTime,
     yanked: bool,
@@ -68,7 +69,8 @@ pub async fn get_package_info(cl: &Client, pname: &str) -> PackageInfo {
         .into_iter()
         .filter_map(|(version, releases)| {
             releases.into_iter().find_map(|release| {
-                (!release.yanked).then_some((version.clone(), release.upload_time))
+                (!release.yanked && release.packagetype == "sdist")
+                    .then_some((version.clone(), release.upload_time))
             })
         })
         .sorted_unstable_by_key(|(_, time)| *time)
