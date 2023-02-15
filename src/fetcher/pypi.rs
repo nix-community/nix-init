@@ -24,7 +24,7 @@ struct Project {
 #[serde_as]
 #[derive(Deserialize)]
 struct Info {
-    license: String,
+    license: Option<String>,
     #[serde_as(as = "DefaultOnNull")]
     requires_dist: Vec<String>,
     summary: String,
@@ -89,7 +89,10 @@ pub async fn get_package_info(cl: &Client, pname: &str) -> PackageInfo {
         pname: pname.into(),
         description: project.info.summary,
         file_url_prefix: None,
-        license: parse_spdx_expression(&project.info.license, "pypi"),
+        license: project
+            .info
+            .license
+            .map_or_else(Vec::new, |license| parse_spdx_expression(&license, "pypi")),
         python_dependencies: project
             .info
             .requires_dist
