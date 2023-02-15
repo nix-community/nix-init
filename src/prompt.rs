@@ -91,6 +91,9 @@ impl Hinter for Prompter {
                     SimpleHint(match version {
                         Version::Latest => "  (latest release)".style(style).to_string(),
                         Version::Tag => "  (tag)".style(style).to_string(),
+                        Version::Pypi { format } => {
+                            format_args!("  ({format})").style(style).to_string()
+                        }
                         Version::Head { date, msg } => format_args!("  ({date} - HEAD) {msg}")
                             .style(style)
                             .to_string(),

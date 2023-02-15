@@ -41,7 +41,7 @@
       packages = forEachSystem (system:
         let
           inherit (nixpkgs.legacyPackages.${system})
-            callPackage darwin installShellFiles makeWrapper nix nurl pkg-config rustPlatform spdx-license-list-data stdenv zstd;
+            bzip2 callPackage darwin installShellFiles makeWrapper nix nurl pkg-config rustPlatform spdx-license-list-data stdenv zstd;
         in
         {
           default = rustPlatform.buildRustPackage {
@@ -67,7 +67,10 @@
               pkg-config
             ];
 
-            buildInputs = [ zstd ] ++ optionals stdenv.isDarwin [
+            buildInputs = [
+              bzip2
+              zstd
+            ] ++ optionals stdenv.isDarwin [
               darwin.apple_sdk.frameworks.Security
             ];
 

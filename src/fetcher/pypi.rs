@@ -8,7 +8,7 @@ use time::OffsetDateTime;
 use std::collections::BTreeSet;
 
 use crate::{
-    fetcher::{json, PackageInfo, Revisions, Version},
+    fetcher::{json, PackageInfo, PypiFormat, Revisions, Version},
     license::parse_spdx_expression,
     python::get_python_dependency,
 };
@@ -28,11 +28,11 @@ struct Info {
     #[serde_as(as = "DefaultOnNull")]
     requires_dist: Vec<String>,
     summary: String,
-    version: String,
 }
 
 #[derive(Deserialize)]
 struct Release {
+    filename: String,
     packagetype: String,
     #[serde(rename = "upload_time_iso_8601", with = "time::serde::iso8601")]
     upload_time: OffsetDateTime,
@@ -58,33 +58,33 @@ pub async fn get_package_info(cl: &Client, pname: &str) -> PackageInfo {
         };
     };
 
-    versions.insert(project.info.version.clone(), Version::Latest);
-    completions.push(Pair {
-        display: format!("{} (latest release)", project.info.version),
-        replacement: project.info.version.clone(),
-    });
-
-    for version in project
+    for (version, format) in project
         .releases
         .into_iter()
         .filter_map(|(version, releases)| {
-            releases.into_iter().find_map(|release| {
-                (!release.yanked && release.packagetype == "sdist")
-                    .then_some((version.clone(), release.upload_time))
-            })
+            let mut zip = None;
+            for release in releases {
+                if release.yanked || release.packagetype != "sdist" {
+                    continue;
+                }
+                if release.filename.ends_with(".tar.gz") {
+                    return Some((version, release.upload_time, PypiFormat::TarGz));
+                }
+                if zip.is_none() && release.filename.ends_with(".zip") {
+                    zip = Some(release.upload_time);
+                }
+            }
+            zip.map(|time| (version, time, PypiFormat::Zip))
         })
-        .sorted_unstable_by_key(|(_, time)| *time)
-        .map(|(version, _)| version)
+        .sorted_unstable_by_key(|(_, time, _)| *time)
+        .map(|(version, _, format)| (version, format))
         .rev()
     {
-        if version == project.info.version {
-            continue;
-        }
         completions.push(Pair {
-            display: version.clone(),
+            display: format!("{version} ({format})"),
             replacement: version.clone(),
         });
-        versions.insert(version, Version::Tag);
+        versions.insert(version, Version::Pypi { format });
     }
 
     PackageInfo {
@@ -102,7 +102,9 @@ pub async fn get_package_info(cl: &Client, pname: &str) -> PackageInfo {
             .filter_map(get_python_dependency)
             .collect(),
         revisions: Revisions {
-            latest: project.info.version,
+            latest: completions
+                .first()
+                .map_or_else(String::new, |pair| pair.replacement.clone()),
             completions,
             versions,
         },

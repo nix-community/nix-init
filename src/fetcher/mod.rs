@@ -10,7 +10,10 @@ use rustc_hash::FxHashMap;
 use rustyline::completion::Pair;
 use serde::Deserialize;
 
-use std::collections::BTreeSet;
+use std::{
+    collections::BTreeSet,
+    fmt::{self, Display, Formatter},
+};
 
 use crate::{cfg::AccessTokens, utils::ResultExt};
 
@@ -56,8 +59,14 @@ fn default_gitlab_domain() -> String {
 pub enum Version {
     Latest,
     Tag,
+    Pypi { format: PypiFormat },
     Head { date: String, msg: String },
     Commit { date: String, msg: String },
+}
+
+pub enum PypiFormat {
+    TarGz,
+    Zip,
 }
 
 pub struct Revisions {
@@ -157,8 +166,17 @@ impl Fetcher {
                 owner,
                 repo,
             } => gitea::get_version(cl, domain, owner, repo, rev).await,
-            Fetcher::FetchPypi { .. } => Some(Version::Tag),
+            Fetcher::FetchPypi { .. } => None,
         }
+    }
+}
+
+impl Display for PypiFormat {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        f.write_str(match self {
+            PypiFormat::TarGz => "tar.gz",
+            PypiFormat::Zip => "zip",
+        })
     }
 }
 

@@ -21,11 +21,11 @@ use itertools::Itertools;
 use once_cell::sync::Lazy;
 use rustyline::{completion::FilenameCompleter, config::Configurer, CompletionType, Editor};
 use serde::Deserialize;
-use tar::Archive;
 use tempfile::tempdir;
 use tokio::process::Command;
 use tracing::debug;
 use tracing_subscriber::EnvFilter;
+use zip::ZipArchive;
 
 use std::{
     cmp::Ordering,
@@ -39,7 +39,7 @@ use std::{
 use crate::{
     cfg::load_config,
     cli::Opts,
-    fetcher::{Fetcher, PackageInfo, Revisions, Version},
+    fetcher::{Fetcher, PackageInfo, PypiFormat, Revisions, Version},
     go::write_ldflags,
     inputs::{write_all_lambda_inputs, write_inputs, AllInputs},
     license::{LICENSE_STORE, NIX_LICENSES},
@@ -176,6 +176,7 @@ async fn run() -> Result<()> {
     .context("failed to parse nurl output")?;
 
     let mut licenses = BTreeMap::new();
+    let mut pypi_format = PypiFormat::TarGz;
     let (pname, rev, version, desc, prefix, python_deps) =
         if let MaybeFetcher::Known(fetcher) = &fetcher {
             let cl = fetcher.create_client(cfg.access_tokens).await?;
@@ -216,6 +217,10 @@ async fn run() -> Result<()> {
             } {
                 Some(Version::Latest | Version::Tag) => {
                     rev[rev.find(char::is_numeric).unwrap_or_default() ..].into()
+                }
+                Some(Version::Pypi { format }) => {
+                    pypi_format = format;
+                    rev.clone()
                 }
                 Some(Version::Head { date, .. } | Version::Commit { date, .. }) => {
                     format!("unstable-{date}")
@@ -272,50 +277,75 @@ async fn run() -> Result<()> {
     cmd.arg(&url).arg(&rev).arg("-n").arg(&nixpkgs);
 
     let src_expr = {
-        if let MaybeFetcher::Known(
-            ref fetcher @ (Fetcher::FetchCrate { pname: ref name }
-            | Fetcher::FetchPypi { pname: ref name }),
-        ) = fetcher
-        {
-            let hash = String::from_utf8(cmd.arg("-H").get_stdout().await?)
-                .context("failed to parse nurl output")?;
-            let hash = hash.trim_end();
+        match fetcher {
+            MaybeFetcher::Known(Fetcher::FetchCrate { pname: ref name }) => {
+                let hash = String::from_utf8(cmd.arg("-H").get_stdout().await?)
+                    .context("failed to parse nurl output")?;
+                let hash = hash.trim_end();
 
-            let fetcher = if matches!(fetcher, Fetcher::FetchCrate { .. }) {
-                "fetchCrate"
-            } else {
-                "fetchPypi"
-            };
-
-            if &pname == name {
-                formatdoc!(
-                    r#"
-                        {fetcher} {{
+                if &pname == name {
+                    formatdoc!(
+                        r#"
+                        fetchCrate {{
                             inherit pname version;
                             hash = "{hash}";
                           }}"#,
-                )
-            } else {
-                formatdoc!(
-                    r#"
-                        {fetcher} {{
+                    )
+                } else {
+                    formatdoc!(
+                        r#"
+                        fetchCrate {{
                             pname = {name:?};
                             inherit version;
                             hash = "{hash}";
                           }}"#,
-                )
-            }
-        } else {
-            if rev == version {
-                cmd.arg("-o").arg("rev").arg("version");
-            } else if rev.contains(&version) {
-                cmd.arg("-O")
-                    .arg("rev")
-                    .arg(rev.replacen(&version, "${version}", 1));
+                    )
+                }
             }
 
-            String::from_utf8(cmd.arg("-i").arg("2").get_stdout().await?)
-                .context("failed to parse nurl output")?
+            MaybeFetcher::Known(Fetcher::FetchPypi { pname: ref name }) => {
+                let mut ext = String::new();
+                if !matches!(pypi_format, PypiFormat::TarGz) {
+                    write!(ext, "\n    extension = \"{pypi_format}\";")?;
+                    cmd.arg("-A").arg("extension").arg(pypi_format.to_string());
+                }
+
+                let hash = String::from_utf8(cmd.arg("-H").get_stdout().await?)
+                    .context("failed to parse nurl output")?;
+                let hash = hash.trim_end();
+
+                if &pname == name {
+                    formatdoc!(
+                        r#"
+                        fetchPypi {{
+                            inherit pname version;
+                            hash = "{hash}";{ext}
+                          }}"#,
+                    )
+                } else {
+                    formatdoc!(
+                        r#"
+                        fetchPypi {{
+                            pname = {name:?};
+                            inherit version;
+                            hash = "{hash}";{ext}
+                          }}"#,
+                    )
+                }
+            }
+
+            _ => {
+                if rev == version {
+                    cmd.arg("-o").arg("rev").arg("version");
+                } else if rev.contains(&version) {
+                    cmd.arg("-O")
+                        .arg("rev")
+                        .arg(rev.replacen(&version, "${version}", 1));
+                }
+
+                String::from_utf8(cmd.arg("-i").arg("2").get_stdout().await?)
+                    .context("failed to parse nurl output")?
+            }
         }
     };
 
@@ -347,14 +377,21 @@ async fn run() -> Result<()> {
 
     let tmp;
     let src_dir = if let MaybeFetcher::Known(Fetcher::FetchPypi { ref pname }) = fetcher {
-        let mut archive = Archive::new(GzDecoder::new(File::open(&src)?));
-
+        let file = File::open(&src)?;
         tmp = tempdir().context("failed to create temporary directory")?;
         let tmp = tmp.path();
         debug!("{}", tmp.display());
-        archive
-            .unpack(tmp)
-            .context("failed to unpack pypi package")?;
+
+        match pypi_format {
+            PypiFormat::TarGz => {
+                tar::Archive::new(GzDecoder::new(file))
+                    .unpack(tmp)
+                    .context("failed to unpack pypi package")?;
+            }
+            PypiFormat::Zip => {
+                ZipArchive::new(file)?.extract(tmp)?;
+            }
+        }
 
         tmp.join(format!("{pname}-{version}"))
     } else {
