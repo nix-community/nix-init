@@ -609,16 +609,17 @@ async fn run() -> Result<()> {
     let mut pyproject = None;
     let (native_build_inputs, build_inputs) = match choice {
         BuildType::BuildGoModule => {
-            let hash = if src_dir.join("vendor").is_dir() {
+            let hash = if src_dir.join("vendor").is_dir()
+                || src_dir
+                    .join("go.sum")
+                    .metadata()
+                    .map_or(true, |metadata| metadata.len() == 0)
+            {
                 "null".into()
             } else if let Some(hash) = fod_hash(format!(
                 r#"(import({nixpkgs}){{}}).buildGoModule{{pname={pname:?};version={version:?};src={src};vendorHash="{FAKE_HASH}";}}"#,
             )).await {
-                if hash == "sha256-pQpattmS9VmO3ZIQUFn66az8GSmB4IvYhTTCFn6SUmo=" {
-                    "null".into()
-                } else {
-                    format!(r#""{hash}""#)
-                }
+                format!(r#""{hash}""#)
             } else {
                 format!(r#""{FAKE_HASH}""#)
             };
