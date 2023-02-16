@@ -64,7 +64,7 @@ features = ["macros", "process", "rt-multi-thread"]
 askalono = "0.4.6"
 clap = { version = "4.1.4", features = ["derive"] }
 clap_complete = "4.1.2"
-clap_mangen = "0.2.7"
+clap_mangen = "0.2.8"
 
 [features]
 default = ["reqwest/rustls-tls"]
