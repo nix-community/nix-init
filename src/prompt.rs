@@ -33,12 +33,16 @@ impl Completer for Prompter {
     ) -> rustyline::Result<(usize, Vec<Self::Candidate>)> {
         match self {
             Prompter::Path(completer) => {
-                let mut completions = completer.complete_path(line, pos)?;
-                completions.1.sort_by(|x, y| {
-                    y.replacement
-                        .ends_with('/')
-                        .cmp(&x.replacement.ends_with('/'))
-                });
+                let mut completions = completer.complete_path_unsorted(line, pos)?;
+                completions.1.sort_by(
+                    |Pair { replacement: x, .. }, Pair { replacement: y, .. }| {
+                        y.ends_with('/')
+                            .cmp(&x.ends_with('/'))
+                            .then_with(|| x.starts_with('.').cmp(&y.starts_with('.')))
+                            .then_with(|| y.ends_with(".nix").cmp(&x.ends_with(".nix")))
+                            .then_with(|| x.cmp(y))
+                    },
+                );
                 Ok(completions)
             }
             Prompter::Revision(revisions) => Ok((0, revisions.completions.clone())),
