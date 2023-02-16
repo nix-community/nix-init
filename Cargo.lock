@@ -1172,7 +1172,7 @@ dependencies = [
  "spdx",
  "tar",
  "tempfile",
- "time 0.3.17",
+ "time 0.3.18",
  "tokio",
  "toml",
  "tracing",
@@ -1707,7 +1707,7 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_with_macros",
- "time 0.3.17",
+ "time 0.3.18",
 ]
 
 [[package]]
@@ -1799,7 +1799,7 @@ dependencies = [
  "nix 0.25.1",
  "rayon",
  "regex",
- "time 0.3.17",
+ "time 0.3.18",
  "timer",
  "tuikit",
  "unicode-width",
@@ -1978,9 +1978,9 @@ dependencies = [
 
 [[package]]
 name = "time"
-version = "0.3.17"
+version = "0.3.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a561bf4617eebd33bca6434b988f39ed798e527f51a1e797d0ee4f61c0a38376"
+checksum = "af0097eaf301d576d0b2aead7a59facab6d53cc636340f0291fab8446a2e8613"
 dependencies = [
  "itoa",
  "serde",
@@ -2592,7 +2592,7 @@ dependencies = [
  "hmac",
  "pbkdf2",
  "sha1",
- "time 0.3.17",
+ "time 0.3.18",
  "zstd",
 ]
 
