@@ -35,17 +35,18 @@ pub fn write_ldflags(out: &mut impl Write, src_dir: &Path) -> Result<()> {
     };
 
     let Some(re) = regex() else { return Ok(()); };
-    let mut first = true;
-    for ldflags in build.ldflags {
-        for flag in parse_ldflags(&re, &ldflags).split_whitespace() {
-            if first {
-                write!(out, r#"  ldflags = [ "#)?;
-                first = false;
-            }
+
+    let mut ldflags = build.ldflags.into_iter().flat_map(|ldflags| {
+        shlex::split(&parse_ldflags(&re, &ldflags))
+            .unwrap_or_default()
+            .into_iter()
+    });
+
+    if let Some(flag) = ldflags.next() {
+        write!(out, r#"  ldflags = [ "{flag}" "#)?;
+        for flag in ldflags {
             write!(out, r#""{flag}" "#)?;
         }
-    }
-    if !first {
         writeln!(out, "];\n")?;
     }
 
