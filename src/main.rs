@@ -15,7 +15,7 @@ use bstr::{ByteSlice, ByteVec};
 use clap::Parser;
 use expand::expand;
 use flate2::read::GzDecoder;
-use heck::AsKebabCase;
+use heck::{AsKebabCase, ToKebabCase};
 use indoc::{formatdoc, writedoc};
 use is_terminal::IsTerminal;
 use itertools::Itertools;
@@ -257,15 +257,7 @@ async fn run() -> Result<()> {
         };
 
     let pname = if let Some(pname) = pname {
-        editor.readline_with_initial(
-            &prompt("Enter pname"),
-            (
-                &pname
-                    .to_lowercase()
-                    .replace(|c: char| c.is_ascii_punctuation(), "-"),
-                "",
-            ),
-        )?
+        editor.readline_with_initial(&prompt("Enter pname"), (&pname.to_kebab_case(), ""))?
     } else {
         editor.readline(&prompt("Enter pname"))?
     };
