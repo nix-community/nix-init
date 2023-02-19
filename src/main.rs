@@ -15,6 +15,7 @@ use bstr::{ByteSlice, ByteVec};
 use clap::Parser;
 use expand::expand;
 use flate2::read::GzDecoder;
+use heck::AsKebabCase;
 use indoc::{formatdoc, writedoc};
 use is_terminal::IsTerminal;
 use itertools::Itertools;
@@ -29,7 +30,7 @@ use zip::ZipArchive;
 
 use std::{
     cmp::Ordering,
-    collections::{BTreeMap, BTreeSet},
+    collections::BTreeMap,
     fmt::Write as _,
     fs::{create_dir_all, metadata, read_dir, read_to_string, File},
     io::{stderr, Write as _},
@@ -251,7 +252,7 @@ async fn run() -> Result<()> {
                 editor.readline(&prompt("Enter version"))?,
                 "".into(),
                 None,
-                BTreeSet::new(),
+                Default::default(),
             )
         };
 
@@ -795,12 +796,38 @@ async fn run() -> Result<()> {
             let deps = deps
                 .or_else(|| parse_requirements_txt(&src_dir))
                 .unwrap_or(python_deps);
-            if !deps.is_empty() {
+            if !deps.always.is_empty() {
                 writeln!(out, "  propagatedBuildInputs = with python3.pkgs; [")?;
-                for dep in deps {
-                    writeln!(out, "    {dep}")?;
+                for name in deps.always {
+                    writeln!(out, "    {}", AsKebabCase(name))?;
                 }
                 writeln!(out, "  ];\n")?;
+            }
+
+            let mut optional = deps
+                .optional
+                .into_iter()
+                .filter(|(_, deps)| !deps.is_empty());
+
+            if let Some((extra, deps)) = optional.next() {
+                writeln!(
+                    out,
+                    "  passthru.optional-dependencies = with python3.pkgs; {{\n    {extra} = [",
+                )?;
+                for name in deps {
+                    writeln!(out, "      {}", AsKebabCase(name))?;
+                }
+                writeln!(out, "    ];")?;
+
+                for (extra, deps) in optional {
+                    writeln!(out, "    {extra} = [")?;
+                    for name in deps {
+                        writeln!(out, "      {}", AsKebabCase(name))?;
+                    }
+                    writeln!(out, "    ];")?;
+                }
+
+                writeln!(out, "  }};\n")?;
             }
 
             writeln!(
@@ -809,6 +836,7 @@ async fn run() -> Result<()> {
                 name.unwrap_or(pname)
             )?;
         }
+
         _ => {}
     }
 

@@ -3,8 +3,6 @@ use rustc_hash::FxHashMap;
 use rustyline::completion::Pair;
 use serde::Deserialize;
 
-use std::collections::BTreeSet;
-
 use crate::fetcher::{json, PackageInfo, Revisions, Version};
 
 #[derive(Deserialize)]
@@ -136,7 +134,7 @@ pub async fn get_package_info(cl: &Client, domain: &str, owner: &str, repo: &str
         description,
         file_url_prefix: None,
         license: Vec::new(),
-        python_dependencies: BTreeSet::new(),
+        python_dependencies: Default::default(),
         revisions: Revisions {
             latest,
             completions,

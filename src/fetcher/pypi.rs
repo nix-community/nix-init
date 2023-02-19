@@ -5,12 +5,10 @@ use serde::Deserialize;
 use serde_with::{serde_as, DefaultOnNull, Map};
 use time::OffsetDateTime;
 
-use std::collections::BTreeSet;
-
 use crate::{
     fetcher::{json, PackageInfo, PypiFormat, Revisions, Version},
     license::parse_spdx_expression,
-    python::get_python_dependency,
+    python::{self, get_python_dependencies},
 };
 
 #[serde_as]
@@ -49,7 +47,7 @@ pub async fn get_package_info(cl: &Client, pname: &str) -> PackageInfo {
             description: "".into(),
             file_url_prefix: None,
             license: Vec::new(),
-            python_dependencies: BTreeSet::new(),
+            python_dependencies: Default::default(),
             revisions: Revisions {
                 latest: "".into(),
                 completions,
@@ -95,12 +93,7 @@ pub async fn get_package_info(cl: &Client, pname: &str) -> PackageInfo {
             .info
             .license
             .map_or_else(Vec::new, |license| parse_spdx_expression(&license, "pypi")),
-        python_dependencies: project
-            .info
-            .requires_dist
-            .into_iter()
-            .filter_map(get_python_dependency)
-            .collect(),
+        python_dependencies: get_python_dependencies(python::parser(), project.info.requires_dist),
         revisions: Revisions {
             latest: completions
                 .first()

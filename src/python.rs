@@ -1,14 +1,23 @@
+use chumsky::{error::Cheap, primitive::end, Parser};
+use pep_508::{Comparator, Dependency, Marker, Operator, Variable};
 use serde::Deserialize;
-use serde_with::{serde_as, DefaultOnError, Map};
+use serde_with::{serde_as, DefaultOnError};
 
 use std::{
     collections::{BTreeMap, BTreeSet},
     fs::{self, File},
     io::{BufRead, BufReader},
+    mem,
     path::{Path, PathBuf},
 };
 
 use crate::{inputs::AllInputs, license::parse_spdx_expression, utils::ResultExt};
+
+#[derive(Default)]
+pub struct PythonDependencies {
+    pub always: BTreeSet<String>,
+    pub optional: BTreeMap<String, BTreeSet<String>>,
+}
 
 #[derive(Default, Deserialize)]
 #[serde(default, rename_all = "kebab-case")]
@@ -27,12 +36,13 @@ struct BuildSystem {
 
 #[serde_as]
 #[derive(Default, Deserialize)]
-#[serde(default)]
+#[serde(default, rename_all = "kebab-case")]
 struct Project {
     name: Option<String>,
     #[serde_as(as = "DefaultOnError")]
     license: Option<String>,
     dependencies: Option<Vec<String>>,
+    optional_dependencies: Option<BTreeMap<String, BTreeSet<String>>>,
 }
 
 #[derive(Default, Deserialize)]
@@ -48,8 +58,15 @@ struct Poetry {
     name: Option<String>,
     #[serde_as(as = "DefaultOnError")]
     license: Option<String>,
-    #[serde_as(as = "Option<Map<_, DefaultOnError>>")]
-    dependencies: Option<BTreeSet<(String, ())>>,
+    #[serde_as(as = "Option<BTreeMap<_, DefaultOnError>>")]
+    dependencies: Option<BTreeMap<String, PoetryDependency>>,
+    extras: BTreeMap<String, BTreeSet<String>>,
+}
+
+#[serde_as]
+#[derive(Default, Deserialize)]
+struct PoetryDependency {
+    optional: bool,
 }
 
 impl Pyproject {
@@ -78,93 +95,120 @@ impl Pyproject {
     }
 
     pub fn load_build_dependencies(&self, inputs: &mut AllInputs) {
+        let parser = parser();
         inputs.native_build_inputs.always.extend(
             self.build_system
                 .requires
                 .iter()
-                .filter_map(get_python_dependency)
-                .map(|dep| {
-                    if dep == "maturin" {
+                .filter_map(|dep| parser.parse(dep.as_str()).ok())
+                .map(|Dependency { name, .. }| {
+                    if name == "maturin" {
                         "rustPlatform.maturinBuildHook".into()
                     } else {
-                        format!("python3.pkgs.{dep}")
+                        format!("python3.pkgs.{name}")
                     }
                 }),
         );
     }
 
-    pub fn get_dependencies(&self) -> Option<BTreeSet<String>> {
-        if let Some(deps) = &self.project.dependencies {
-            Some(deps.iter().filter_map(get_python_dependency).collect())
-        } else if let Some(deps) = &self.tool.poetry.dependencies {
-            let mut deps: BTreeSet<_> = deps
-                .iter()
-                .map(|(dep, _)| dep.to_lowercase().replace(['_', '.'], "-"))
-                .collect();
+    pub fn get_dependencies(&mut self) -> Option<PythonDependencies> {
+        if let Some(mut deps) = self.tool.poetry.dependencies.take() {
             deps.remove("python");
-            Some(deps)
-        } else {
-            None
+            return Some(PythonDependencies {
+                always: deps
+                    .into_iter()
+                    .filter_map(|(name, PoetryDependency { optional })| (!optional).then_some(name))
+                    .collect(),
+                optional: mem::take(&mut self.tool.poetry.extras),
+            });
+        }
+
+        match (
+            self.project.dependencies.take(),
+            self.project.optional_dependencies.take(),
+        ) {
+            (Some(always), None) => Some(get_python_dependencies(parser(), always)),
+            (always, Some(optional)) => {
+                let parser = parser();
+                let mut all_deps = always.map_or_else(Default::default, |always| {
+                    get_python_dependencies(&parser, always)
+                });
+
+                for (extra, deps) in optional {
+                    let entry = all_deps.optional.entry(extra).or_insert_with(BTreeSet::new);
+                    for dep in deps {
+                        if let Ok(Dependency { name, .. }) = parser.parse(dep) {
+                            entry.insert(name);
+                        }
+                    }
+                }
+
+                Some(all_deps)
+            }
+            (None, None) => None,
         }
     }
 }
 
-pub fn parse_requirements_txt(src: &Path) -> Option<BTreeSet<String>> {
+pub fn parse_requirements_txt(src: &Path) -> Option<PythonDependencies> {
     File::open(src.join("requirements.txt")).ok().map(|file| {
-        BufReader::new(file)
-            .lines()
-            .filter_map(|line| line.ok_warn().and_then(get_python_dependency))
-            .collect()
+        get_python_dependencies(
+            parser(),
+            BufReader::new(file).lines().filter_map(ResultExt::ok_warn),
+        )
     })
 }
 
-// https://peps.python.org/pep-0508
-pub fn get_python_dependency(dep: impl AsRef<str>) -> Option<String> {
-    let mut chars = dep.as_ref().chars().skip_while(|c| c.is_whitespace());
+pub fn get_python_dependencies(
+    parser: impl Parser<char, Dependency, Error = Cheap<char>>,
+    xs: impl IntoIterator<Item = impl AsRef<str>>,
+) -> PythonDependencies {
+    let mut deps: PythonDependencies = Default::default();
+    for Dependency { name, marker, .. } in xs
+        .into_iter()
+        .filter_map(|dep| parser.parse(dep.as_ref()).ok())
+    {
+        let mut extras = Vec::new();
+        if let Some(marker) = marker {
+            load_extras(&mut extras, marker);
+        }
 
-    let x = chars.next()?;
-    if !x.is_alphanumeric() {
-        return None;
-    }
-    let mut name = String::from(x.to_ascii_lowercase());
-
-    while let Some(c) = chars.next() {
-        if c.is_alphanumeric() {
-            name.push(c.to_ascii_lowercase());
-        } else if matches!(c, '-' | '.' | '_') {
-            match chars.next() {
-                Some(c) if c.is_alphanumeric() => {
-                    name.push('-');
-                    name.push(c.to_ascii_lowercase());
-                }
-                _ => break,
-            }
+        if extras.is_empty() {
+            deps.always.insert(name);
         } else {
-            break;
+            for extra in extras {
+                deps.optional
+                    .entry(extra)
+                    .or_insert_with(BTreeSet::new)
+                    .insert(name.clone());
+            }
         }
     }
-
-    Some(name)
+    deps
 }
 
-#[cfg(test)]
-mod tests {
-    use super::get_python_dependency;
-
-    #[test]
-    fn basic() {
-        assert_eq!(get_python_dependency("requests"), Some("requests".into()));
-        assert_eq!(
-            get_python_dependency("beautifulsoup4"),
-            Some("beautifulsoup4".into()),
-        );
-        assert_eq!(get_python_dependency("Click>=7.0"), Some("click".into()));
-        assert_eq!(
-            get_python_dependency("tomli;python_version<'3.11'"),
-            Some("tomli".into()),
-        );
-
-        assert_eq!(get_python_dependency(""), None);
-        assert_eq!(get_python_dependency("# comment"), None);
+fn load_extras(extras: &mut Vec<String>, marker: Marker) {
+    match marker {
+        Marker::And(x, y) | Marker::Or(x, y) => {
+            load_extras(extras, *x);
+            load_extras(extras, *y);
+        }
+        Marker::Operator(
+            Variable::Extra,
+            Operator::Comparator(Comparator::Eq),
+            Variable::String(extra),
+        )
+        | Marker::Operator(
+            Variable::String(extra),
+            Operator::Comparator(Comparator::Eq),
+            Variable::Extra,
+        ) => {
+            extras.push(extra);
+        }
+        _ => {}
     }
+}
+
+pub fn parser() -> impl Parser<char, Dependency, Error = Cheap<char>> {
+    pep_508::parser().then_ignore(end())
 }

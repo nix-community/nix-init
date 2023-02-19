@@ -10,12 +10,9 @@ use rustc_hash::FxHashMap;
 use rustyline::completion::Pair;
 use serde::Deserialize;
 
-use std::{
-    collections::BTreeSet,
-    fmt::{self, Display, Formatter},
-};
+use std::fmt::{self, Display, Formatter};
 
-use crate::{cfg::AccessTokens, utils::ResultExt};
+use crate::{cfg::AccessTokens, python::PythonDependencies, utils::ResultExt};
 
 #[allow(clippy::enum_variant_names)]
 #[derive(Debug, serde::Serialize, Deserialize)]
@@ -80,7 +77,7 @@ pub struct PackageInfo {
     pub description: String,
     pub file_url_prefix: Option<String>,
     pub license: Vec<&'static str>,
-    pub python_dependencies: BTreeSet<String>,
+    pub python_dependencies: PythonDependencies,
     pub revisions: Revisions,
 }
 
