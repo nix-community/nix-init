@@ -496,7 +496,7 @@ async fn run() -> Result<()> {
 
     match fetcher {
         MaybeFetcher::Known(fetcher) => {
-            writeln!(out, ", {fetcher}",)?;
+            writeln!(out, ", {fetcher}")?;
         }
         MaybeFetcher::Unknown { fetcher } => {
             writeln!(out, ", {fetcher}")?;
@@ -767,7 +767,7 @@ async fn run() -> Result<()> {
                     name.to_ascii_lowercase().as_bytes(),
                     expand!([@b"changelog", ..] | [@b"changes", ..] | [@b"news"] | [@b"releases", ..]),
                 ) {
-                    writeln!(out, r#"    changelog = "{prefix}{name}";"#,)?;
+                    writeln!(out, r#"    changelog = "{prefix}{name}";"#)?;
                     break;
                 }
             }

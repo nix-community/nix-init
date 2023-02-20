@@ -95,7 +95,7 @@ mod tests {
         );
 
         assert_eq!(
-            parse_ldflags(&re, "-X main.Bad={{ func .Env.UNKNOWN_VAR }} -s -w",),
+            parse_ldflags(&re, "-X main.Bad={{ func .Env.UNKNOWN_VAR }} -s -w"),
             "-X main.Bad=${funcEnvUnknownVar} -s -w",
         );
     }
