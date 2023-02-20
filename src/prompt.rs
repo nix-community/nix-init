@@ -10,8 +10,8 @@ use rustyline::{
 };
 
 use crate::{
+    build::BuildType,
     fetcher::{Revisions, Version},
-    BuildType,
 };
 
 #[derive(Helper, Highlighter)]
@@ -19,7 +19,7 @@ pub enum Prompter {
     Path(FilenameCompleter),
     Revision(Revisions),
     NonEmpty,
-    Build(Vec<(BuildType, &'static str)>),
+    Build(Vec<BuildType>),
 }
 
 impl Completer for Prompter {
@@ -52,8 +52,8 @@ impl Completer for Prompter {
                 choices
                     .iter()
                     .enumerate()
-                    .map(|(i, &(_, msg))| Pair {
-                        display: format!("{i} - {msg}"),
+                    .map(|(i, choice)| Pair {
+                        display: format!("{i} - {choice}"),
                         replacement: i.to_string(),
                     })
                     .collect(),
@@ -111,12 +111,12 @@ impl Hinter for Prompter {
             Prompter::NonEmpty => None,
 
             Prompter::Build(choices) => Some(SimpleHint(if line.is_empty() {
-                format_args!("  ({})", choices[0].1)
+                format_args!("  ({})", choices[0])
                     .blue()
                     .italic()
                     .to_string()
-            } else if let Some((_, msg)) = line.parse().ok().and_then(|i: usize| choices.get(i)) {
-                format_args!("  ({msg})").blue().italic().to_string()
+            } else if let Some(choice) = line.parse().ok().and_then(|i: usize| choices.get(i)) {
+                format_args!("  ({choice})").blue().italic().to_string()
             } else {
                 "  press <tab> to see options".yellow().italic().to_string()
             })),
@@ -154,8 +154,8 @@ impl Validator for Prompter {
             Prompter::Build(choices) => {
                 let input = ctx.input();
                 if input.is_empty() {
-                    ValidationResult::Valid(Some(choices[0].1.into()))
-                } else if let Some(&(_, choice)) = input
+                    ValidationResult::Valid(Some(choices[0].to_string()))
+                } else if let Some(choice) = input
                     .parse::<usize>()
                     .ok()
                     .and_then(|choice| choices.get(choice))

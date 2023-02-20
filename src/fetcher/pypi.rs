@@ -7,8 +7,8 @@ use time::OffsetDateTime;
 
 use crate::{
     fetcher::{json, PackageInfo, PypiFormat, Revisions, Version},
+    lang::python::{self, get_python_dependencies},
     license::parse_spdx_expression,
-    python::{self, get_python_dependencies},
 };
 
 #[serde_as]

@@ -12,7 +12,7 @@ use serde::Deserialize;
 
 use std::fmt::{self, Display, Formatter};
 
-use crate::{cfg::AccessTokens, python::PythonDependencies, utils::ResultExt};
+use crate::{cfg::AccessTokens, lang::python::PythonDependencies, utils::ResultExt};
 
 #[allow(clippy::enum_variant_names)]
 #[derive(Debug, serde::Serialize, Deserialize)]

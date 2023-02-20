@@ -1,12 +1,11 @@
+mod build;
 mod cfg;
 mod cli;
 mod fetcher;
-mod go;
 mod inputs;
+mod lang;
 mod license;
 mod prompt;
-mod python;
-mod rust;
 mod utils;
 
 use anyhow::{Context, Result};
@@ -38,15 +37,18 @@ use std::{
 };
 
 use crate::{
+    build::{BuildType, PythonFormat, RustVendor},
     cfg::load_config,
     cli::Opts,
     fetcher::{Fetcher, PackageInfo, PypiFormat, Revisions, Version},
-    go::write_ldflags,
     inputs::{write_all_lambda_inputs, write_inputs, AllInputs},
+    lang::{
+        go::write_ldflags,
+        python::{parse_requirements_txt, Pyproject},
+        rust::cargo_deps_hash,
+    },
     license::{LICENSE_STORE, NIX_LICENSES},
     prompt::{ask_overwrite, prompt, Prompter},
-    python::{parse_requirements_txt, Pyproject},
-    rust::cargo_deps_hash,
     utils::{fod_hash, CommandExt, ResultExt, FAKE_HASH},
 };
 
@@ -66,24 +68,6 @@ struct BuildResult {
 struct Outputs {
     out: String,
 }
-
-pub enum BuildType {
-    BuildGoModule,
-    BuildPythonPackage {
-        application: bool,
-        format: PythonFormat,
-        cargo: bool,
-    },
-    BuildRustPackage,
-    MkDerivation,
-    MkDerivationCargo,
-}
-
-pub enum PythonFormat {
-    Pyproject,
-    Setuptools,
-}
-
 #[tokio::main]
 async fn main() -> Result<()> {
     run().await
@@ -401,119 +385,64 @@ async fn run() -> Result<()> {
     let has_setuptools = src_dir.join("setup.py").is_file();
 
     if has_go {
-        choices.push((BuildType::BuildGoModule, "buildGoModule"));
+        choices.push(BuildType::BuildGoModule);
     }
 
+    let mut python_formats = Vec::with_capacity(2);
     if has_pyproject {
-        if has_cargo {
-            choices.extend([
-                (
-                    BuildType::BuildPythonPackage {
-                        application: true,
-                        format: PythonFormat::Pyproject,
-                        cargo: true,
-                    },
-                    "buildPythonApplication - pyproject + cargoSetupHook",
-                ),
-                (
-                    BuildType::BuildPythonPackage {
-                        application: false,
-                        format: PythonFormat::Pyproject,
-                        cargo: true,
-                    },
-                    "buildPythonPackage - pyproject + cargoSetupHook",
-                ),
-            ]);
-        }
-        choices.extend([
-            (
-                BuildType::BuildPythonPackage {
-                    application: true,
-                    format: PythonFormat::Pyproject,
-                    cargo: false,
-                },
-                "buildPythonApplication - pyproject",
-            ),
-            (
-                BuildType::BuildPythonPackage {
-                    application: false,
-                    format: PythonFormat::Pyproject,
-                    cargo: false,
-                },
-                "buildPythonPackage - pyproject",
-            ),
-        ]);
+        python_formats.push(PythonFormat::Pyproject);
     }
-
     if has_setuptools {
-        if has_cargo {
-            choices.extend([
-                (
-                    BuildType::BuildPythonPackage {
-                        application: true,
-                        format: PythonFormat::Setuptools,
-                        cargo: true,
-                    },
-                    "buildPythonApplication - setuptools + cargoSetupHook",
-                ),
-                (
-                    BuildType::BuildPythonPackage {
-                        application: false,
-                        format: PythonFormat::Setuptools,
-                        cargo: true,
-                    },
-                    "buildPythonPackage - setuptools + cargoSetupHook",
-                ),
-            ]);
+        python_formats.push(PythonFormat::Setuptools);
+    }
+    if !python_formats.is_empty() {
+        for &rust in if has_cargo {
+            &[Some(RustVendor::FetchCargoTarball), None]
+        } else {
+            &[None] as &[_]
+        } {
+            for &format in &python_formats {
+                for application in [true, false] {
+                    choices.push(BuildType::BuildPythonPackage {
+                        application,
+                        format,
+                        rust,
+                    });
+                }
+            }
         }
-        choices.extend([
-            (
-                BuildType::BuildPythonPackage {
-                    application: true,
-                    format: PythonFormat::Setuptools,
-                    cargo: false,
-                },
-                "buildPythonApplication - setuptools",
-            ),
-            (
-                BuildType::BuildPythonPackage {
-                    application: false,
-                    format: PythonFormat::Setuptools,
-                    cargo: false,
-                },
-                "buildPythonPackage - setuptools",
-            ),
-        ]);
     }
 
     if has_cargo {
         choices.extend(if has_meson {
             [
-                (
-                    BuildType::MkDerivationCargo,
-                    "stdenv.mkDerivation + cargoSetupHook",
-                ),
-                (BuildType::BuildRustPackage, "buildRustPackage"),
+                BuildType::MkDerivation {
+                    rust: Some(RustVendor::FetchCargoTarball),
+                },
+                BuildType::BuildRustPackage {
+                    vendor: RustVendor::FetchCargoTarball,
+                },
             ]
         } else {
             [
-                (BuildType::BuildRustPackage, "buildRustPackage"),
-                (
-                    BuildType::MkDerivationCargo,
-                    "stdenv.mkDerivation + cargoSetupHook",
-                ),
+                BuildType::BuildRustPackage {
+                    vendor: RustVendor::FetchCargoTarball,
+                },
+                BuildType::MkDerivation {
+                    rust: Some(RustVendor::FetchCargoTarball),
+                },
             ]
         });
     }
 
-    choices.push((BuildType::MkDerivation, "stdenv.mkDerivation"));
+    choices.push(BuildType::MkDerivation { rust: None });
 
     editor.set_helper(Some(Prompter::Build(choices)));
     let choice = editor.readline(&prompt("How should this package be built?"))?;
     let Some(Prompter::Build(choices)) = editor.helper_mut() else {
         unreachable!();
     };
-    let (choice, _) = choice
+    let choice = choice
         .parse()
         .ok()
         .and_then(|i: usize| choices.get(i))
@@ -524,7 +453,7 @@ async fn run() -> Result<()> {
         BuildType::BuildGoModule => {
             writeln!(out, ", buildGoModule")?;
         }
-        BuildType::BuildPythonPackage { cargo, .. } => {
+        BuildType::BuildPythonPackage { rust, .. } => {
             writeln!(out, ", python3")?;
             if src_dir.join("poetry.lock").is_file() {
                 inputs
@@ -532,7 +461,7 @@ async fn run() -> Result<()> {
                     .always
                     .insert("python3.pkgs.poetry-core".into());
             }
-            if *cargo {
+            if rust.is_some() {
                 inputs.native_build_inputs.always.extend([
                     "rustPlatform.cargoSetupHook".into(),
                     "rustPlatform.rust.cargo".into(),
@@ -540,28 +469,10 @@ async fn run() -> Result<()> {
                 ]);
             }
         }
-        BuildType::BuildRustPackage => {
+        BuildType::BuildRustPackage { .. } => {
             writeln!(out, ", rustPlatform")?;
         }
-        BuildType::MkDerivation => {
-            writeln!(out, ", stdenv")?;
-            if has_cargo {
-                inputs
-                    .native_build_inputs
-                    .always
-                    .extend(["cargo".into(), "rustc".into()]);
-            }
-            if has_cmake {
-                inputs.native_build_inputs.always.insert("cmake".into());
-            }
-            if has_meson {
-                inputs
-                    .native_build_inputs
-                    .always
-                    .extend(["meson".into(), "ninja".into()]);
-            }
-        }
-        BuildType::MkDerivationCargo => {
+        BuildType::MkDerivation { rust } => {
             writeln!(out, ", stdenv")?;
             if has_cmake {
                 inputs.native_build_inputs.always.insert("cmake".into());
@@ -572,11 +483,13 @@ async fn run() -> Result<()> {
                     .always
                     .extend(["meson".into(), "ninja".into()]);
             }
-            inputs.native_build_inputs.always.extend([
-                "rustPlatform.cargoSetupHook".into(),
-                "rustPlatform.rust.cargo".into(),
-                "rustPlatform.rust.rustc".into(),
-            ]);
+            if rust.is_some() {
+                inputs.native_build_inputs.always.extend([
+                    "rustPlatform.cargoSetupHook".into(),
+                    "rustPlatform.rust.cargo".into(),
+                    "rustPlatform.rust.rustc".into(),
+                ]);
+            }
         }
     }
 
@@ -639,12 +552,13 @@ async fn run() -> Result<()> {
         BuildType::BuildPythonPackage {
             application,
             format,
-            cargo,
+            rust,
         } => {
-            let hash = if *cargo {
-                Some(cargo_deps_hash(&mut inputs, &pname, &version, &src, &src_dir, &nixpkgs).await)
-            } else {
-                None
+            let hash = match rust {
+                Some(RustVendor::FetchCargoTarball) => Some(
+                    cargo_deps_hash(&mut inputs, &pname, &version, &src, &src_dir, &nixpkgs).await,
+                ),
+                _ => None,
             };
 
             if matches!(format, PythonFormat::Pyproject) {
@@ -699,7 +613,9 @@ async fn run() -> Result<()> {
             res
         }
 
-        BuildType::BuildRustPackage => {
+        BuildType::BuildRustPackage {
+            vendor: RustVendor::FetchCargoTarball,
+        } => {
             let hash =
                 cargo_deps_hash(&mut inputs, &pname, &version, &src, &src_dir, &nixpkgs).await;
             let res = write_all_lambda_inputs(&mut out, &inputs, ["rustPlatform"])?;
@@ -721,7 +637,7 @@ async fn run() -> Result<()> {
             res
         }
 
-        BuildType::MkDerivation => {
+        BuildType::MkDerivation { rust: None } => {
             let res = write_all_lambda_inputs(&mut out, &inputs, ["stdenv"])?;
             writedoc!(
                 out,
@@ -739,7 +655,9 @@ async fn run() -> Result<()> {
             res
         }
 
-        BuildType::MkDerivationCargo => {
+        BuildType::MkDerivation {
+            rust: Some(RustVendor::FetchCargoTarball),
+        } => {
             let hash =
                 cargo_deps_hash(&mut inputs, &pname, &version, &src, &src_dir, &nixpkgs).await;
             let res = write_all_lambda_inputs(&mut out, &inputs, ["stdenv"])?;
