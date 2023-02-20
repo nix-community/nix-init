@@ -5,17 +5,17 @@ mod gitlab;
 mod pypi;
 
 use anyhow::Result;
+use parse_display::Display;
 use reqwest::{header::HeaderMap, Client, IntoUrl};
 use rustc_hash::FxHashMap;
 use rustyline::completion::Pair;
-use serde::Deserialize;
-
-use std::fmt::{self, Display, Formatter};
+use serde::{Deserialize, Serialize};
 
 use crate::{cfg::AccessTokens, lang::python::PythonDependencies, utils::ResultExt};
 
 #[allow(clippy::enum_variant_names)]
-#[derive(Debug, serde::Serialize, Deserialize)]
+#[derive(Debug, Deserialize, Display, Serialize)]
+#[display("{}", style = "camelCase")]
 #[serde(tag = "fetcher", content = "args", rename_all = "camelCase")]
 pub enum Fetcher {
     FetchCrate {
@@ -61,8 +61,11 @@ pub enum Version {
     Commit { date: String, msg: String },
 }
 
+#[derive(Display)]
 pub enum PypiFormat {
+    #[display("tar.gz")]
     TarGz,
+    #[display("zip")]
     Zip,
 }
 
@@ -165,15 +168,6 @@ impl Fetcher {
             } => gitea::get_version(cl, domain, owner, repo, rev).await,
             Fetcher::FetchPypi { .. } => None,
         }
-    }
-}
-
-impl Display for PypiFormat {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        f.write_str(match self {
-            PypiFormat::TarGz => "tar.gz",
-            PypiFormat::Zip => "zip",
-        })
     }
 }
 

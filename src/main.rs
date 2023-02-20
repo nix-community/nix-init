@@ -68,6 +68,7 @@ struct BuildResult {
 struct Outputs {
     out: String,
 }
+
 #[tokio::main]
 async fn main() -> Result<()> {
     run().await
@@ -495,17 +496,7 @@ async fn run() -> Result<()> {
 
     match fetcher {
         MaybeFetcher::Known(fetcher) => {
-            writeln!(
-                out,
-                ", {}",
-                match fetcher {
-                    Fetcher::FetchCrate { .. } => "fetchCrate",
-                    Fetcher::FetchFromGitHub { .. } => "fetchFromGitHub",
-                    Fetcher::FetchFromGitLab { .. } => "fetchFromGitLab",
-                    Fetcher::FetchFromGitea { .. } => "fetchFromGitea",
-                    Fetcher::FetchPypi { .. } => "fetchPypi",
-                },
-            )?;
+            writeln!(out, ", {fetcher}",)?;
         }
         MaybeFetcher::Unknown { fetcher } => {
             writeln!(out, ", {fetcher}")?;
@@ -579,7 +570,7 @@ async fn run() -> Result<()> {
                     python3.pkgs.buildPython{} rec {{
                       pname = {pname:?};
                       version = {version:?};
-                      format = "{}";
+                      format = "{format}";
 
                       src = {src_expr};
 
@@ -588,10 +579,6 @@ async fn run() -> Result<()> {
                     "Application"
                 } else {
                     "Package"
-                },
-                match format {
-                    PythonFormat::Pyproject => "pyproject",
-                    PythonFormat::Setuptools => "setuptools",
                 },
             )?;
 
