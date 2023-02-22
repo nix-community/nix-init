@@ -1,4 +1,5 @@
 use chumsky::{error::Cheap, primitive::end, Parser};
+use heck::{AsKebabCase, ToKebabCase};
 use pep_508::{Comparator, Dependency, Marker, Operator, Variable};
 use serde::Deserialize;
 use serde_with::{serde_as, DefaultOnError};
@@ -94,7 +95,7 @@ impl Pyproject {
         }
     }
 
-    pub fn load_build_dependencies(&self, inputs: &mut AllInputs) {
+    pub fn load_build_dependencies(&self, inputs: &mut AllInputs, application: bool) {
         let parser = parser();
         inputs.native_build_inputs.always.extend(
             self.build_system
@@ -104,8 +105,10 @@ impl Pyproject {
                 .map(|Dependency { name, .. }| {
                     if name == "maturin" {
                         "rustPlatform.maturinBuildHook".into()
+                    } else if application {
+                        format!("python3.pkgs.{}", AsKebabCase(name))
                     } else {
-                        format!("python3.pkgs.{name}")
+                        name.to_kebab_case()
                     }
                 }),
         );

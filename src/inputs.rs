@@ -75,12 +75,11 @@ pub async fn get_riff_registry() -> Option<RiffRegistry> {
         .ok_warn()
 }
 
-pub fn write_all_lambda_inputs<const N: usize>(
+pub fn write_all_lambda_inputs(
     out: &mut impl Write,
     inputs: &AllInputs,
-    written: [&'static str; N],
+    written: &mut BTreeSet<String>,
 ) -> Result<(bool, bool)> {
-    let written = &mut written.into_iter().map(Into::into).collect();
     Ok((
         write_lambda_inputs(out, written, &inputs.native_build_inputs)?,
         write_lambda_inputs(out, written, &inputs.build_inputs)?,
@@ -118,15 +117,22 @@ fn write_lambda_inputs(
     .filter_map(|input| input.split('.').next())
     {
         non_empty = true;
-        if written.insert("stdenv".into()) {
-            writeln!(out, ", stdenv")?;
-        }
-        if written.insert(input.into()) {
-            writeln!(out, ", {input}")?;
-        }
+        write_lambda_input(out, written, "stdenv")?;
+        write_lambda_input(out, written, input)?;
     }
 
     Ok(non_empty)
+}
+
+pub fn write_lambda_input(
+    out: &mut impl Write,
+    written: &mut BTreeSet<String>,
+    input: &str,
+) -> Result<()> {
+    if written.insert(input.into()) {
+        writeln!(out, ", {input}")?;
+    }
+    Ok(())
 }
 
 pub fn write_inputs(out: &mut impl Write, inputs: &Inputs, name: &'static str) -> Result<()> {

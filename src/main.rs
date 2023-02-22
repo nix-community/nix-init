@@ -29,7 +29,7 @@ use zip::ZipArchive;
 
 use std::{
     cmp::Ordering,
-    collections::BTreeMap,
+    collections::{BTreeMap, BTreeSet},
     fmt::Write as _,
     fs::{create_dir_all, metadata, read_dir, read_to_string, File},
     io::{stderr, Write as _},
@@ -41,7 +41,7 @@ use crate::{
     cfg::load_config,
     cli::Opts,
     fetcher::{Fetcher, PackageInfo, PypiFormat, Revisions, Version},
-    inputs::{write_all_lambda_inputs, write_inputs, AllInputs},
+    inputs::{write_all_lambda_inputs, write_inputs, write_lambda_input, AllInputs},
     lang::{
         go::write_ldflags,
         python::{parse_requirements_txt, Pyproject},
@@ -163,7 +163,7 @@ async fn run() -> Result<()> {
 
     let mut licenses = BTreeMap::new();
     let mut pypi_format = PypiFormat::TarGz;
-    let (pname, rev, version, desc, prefix, python_deps) =
+    let (pname, rev, version, desc, prefix, mut python_deps) =
         if let MaybeFetcher::Known(fetcher) = &fetcher {
             let cl = fetcher.create_client(cfg.access_tokens).await?;
 
@@ -454,14 +454,30 @@ async fn run() -> Result<()> {
         BuildType::BuildGoModule => {
             writeln!(out, ", buildGoModule")?;
         }
-        BuildType::BuildPythonPackage { rust, .. } => {
-            writeln!(out, ", python3")?;
+        BuildType::BuildPythonPackage {
+            application, rust, ..
+        } => {
+            writeln!(
+                out,
+                ", {}",
+                if *application {
+                    "python3"
+                } else {
+                    "buildPythonPackage"
+                }
+            )?;
+
             if src_dir.join("poetry.lock").is_file() {
-                inputs
-                    .native_build_inputs
-                    .always
-                    .insert("python3.pkgs.poetry-core".into());
+                inputs.native_build_inputs.always.insert(
+                    if *application {
+                        "python3.pkgs.poetry-core"
+                    } else {
+                        "poetry-core"
+                    }
+                    .into(),
+                );
             }
+
             if rust.is_some() {
                 inputs.native_build_inputs.always.extend([
                     "rustPlatform.cargoSetupHook".into(),
@@ -521,7 +537,7 @@ async fn run() -> Result<()> {
                 format!(r#""{FAKE_HASH}""#)
             };
 
-            let res = write_all_lambda_inputs(&mut out, &inputs, [])?;
+            let res = write_all_lambda_inputs(&mut out, &inputs, &mut BTreeSet::new())?;
             writedoc!(
                 out,
                 r#"
@@ -553,21 +569,42 @@ async fn run() -> Result<()> {
             };
 
             if matches!(format, PythonFormat::Pyproject) {
-                if let Some(pyproject_found) = Pyproject::from_path(pyproject_toml) {
+                if let Some(mut pyproject_found) = Pyproject::from_path(pyproject_toml) {
                     pyproject_found.load_license(&mut licenses);
-                    pyproject_found.load_build_dependencies(&mut inputs);
+                    pyproject_found.load_build_dependencies(&mut inputs, *application);
+
+                    if let Some(deps) = pyproject_found
+                        .get_dependencies()
+                        .or_else(|| parse_requirements_txt(&src_dir))
+                    {
+                        python_deps = deps;
+                    }
+
                     pyproject = Some(pyproject_found)
                 }
             }
 
-            let res = write_all_lambda_inputs(&mut out, &inputs, ["python3"])?;
+            let mut written = BTreeSet::new();
+            if *application {
+                written.insert("python3".into());
+            }
+            let res = write_all_lambda_inputs(&mut out, &inputs, &mut written)?;
+            if !application {
+                for name in python_deps
+                    .always
+                    .iter()
+                    .chain(python_deps.optional.values().flatten())
+                {
+                    write_lambda_input(&mut out, &mut written, &name.to_kebab_case())?;
+                }
+            }
 
             writedoc!(
                 out,
                 r#"
                     }}:
 
-                    python3.pkgs.buildPython{} rec {{
+                    {} rec {{
                       pname = {pname:?};
                       version = {version:?};
                       format = "{format}";
@@ -576,9 +613,9 @@ async fn run() -> Result<()> {
 
                 "#,
                 if *application {
-                    "Application"
+                    "python3.pkgs.buildPythonApplication"
                 } else {
-                    "Package"
+                    "buildPythonPackage"
                 },
             )?;
 
@@ -605,7 +642,8 @@ async fn run() -> Result<()> {
         } => {
             let hash =
                 cargo_deps_hash(&mut inputs, &pname, &version, &src, &src_dir, &nixpkgs).await;
-            let res = write_all_lambda_inputs(&mut out, &inputs, ["rustPlatform"])?;
+            let res =
+                write_all_lambda_inputs(&mut out, &inputs, &mut ["rustPlatform".into()].into())?;
             writedoc!(
                 out,
                 r#"
@@ -625,7 +663,7 @@ async fn run() -> Result<()> {
         }
 
         BuildType::MkDerivation { rust: None } => {
-            let res = write_all_lambda_inputs(&mut out, &inputs, ["stdenv"])?;
+            let res = write_all_lambda_inputs(&mut out, &inputs, &mut ["stdenv".into()].into())?;
             writedoc!(
                 out,
                 r#"
@@ -647,7 +685,7 @@ async fn run() -> Result<()> {
         } => {
             let hash =
                 cargo_deps_hash(&mut inputs, &pname, &version, &src, &src_dir, &nixpkgs).await;
-            let res = write_all_lambda_inputs(&mut out, &inputs, ["stdenv"])?;
+            let res = write_all_lambda_inputs(&mut out, &inputs, &mut ["stdenv".into()].into())?;
             writedoc!(
                 out,
                 r#"
@@ -683,34 +721,31 @@ async fn run() -> Result<()> {
             write_ldflags(&mut out, &src_dir)?;
         }
 
-        BuildType::BuildPythonPackage { .. } => {
-            let (name, deps) = if let Some(mut pyproject) = pyproject {
-                (pyproject.get_name(), pyproject.get_dependencies())
-            } else {
-                (None, None)
-            };
+        BuildType::BuildPythonPackage { application, .. } => {
+            if !python_deps.always.is_empty() {
+                write!(out, "  propagatedBuildInputs = ")?;
+                if *application {
+                    write!(out, "with python3.pkgs; ")?;
+                }
+                writeln!(out, "[")?;
 
-            let deps = deps
-                .or_else(|| parse_requirements_txt(&src_dir))
-                .unwrap_or(python_deps);
-            if !deps.always.is_empty() {
-                writeln!(out, "  propagatedBuildInputs = with python3.pkgs; [")?;
-                for name in deps.always {
+                for name in python_deps.always {
                     writeln!(out, "    {}", AsKebabCase(name))?;
                 }
                 writeln!(out, "  ];\n")?;
             }
 
-            let mut optional = deps
+            let mut optional = python_deps
                 .optional
                 .into_iter()
                 .filter(|(_, deps)| !deps.is_empty());
 
             if let Some((extra, deps)) = optional.next() {
-                writeln!(
-                    out,
-                    "  passthru.optional-dependencies = with python3.pkgs; {{\n    {extra} = [",
-                )?;
+                write!(out, "  passthru.optional-dependencies = ")?;
+                if *application {
+                    write!(out, "with python3.pkgs; ")?;
+                }
+                writeln!(out, "{{\n    {extra} = [",)?;
                 for name in deps {
                     writeln!(out, "      {}", AsKebabCase(name))?;
                 }
@@ -730,7 +765,10 @@ async fn run() -> Result<()> {
             writeln!(
                 out,
                 "  pythonImportsCheck = [ {:?} ];\n",
-                name.unwrap_or(pname)
+                pyproject
+                    .as_mut()
+                    .and_then(Pyproject::get_name)
+                    .unwrap_or(pname),
             )?;
         }
 
