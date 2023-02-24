@@ -93,6 +93,8 @@
               zstd
             ] ++ optionals stdenv.isDarwin [
               darwin.apple_sdk.frameworks.Security
+            ] ++ optionals (stdenv.isDarwin && stdenv.isx86_64) [
+              darwin.apple_sdk.frameworks.CoreFoundation
             ];
 
             doCheck = false;
