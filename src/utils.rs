@@ -1,9 +1,8 @@
 use anyhow::{bail, Result};
-use async_trait::async_trait;
 use tokio::process::Command;
 use tracing::{info, warn};
 
-use std::{fmt::Display, io::BufRead, process::Output};
+use std::{fmt::Display, future::Future, io::BufRead, pin::Pin, process::Output};
 
 pub const FAKE_HASH: &str = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
 
@@ -21,25 +20,29 @@ impl<T, E: Display> ResultExt for Result<T, E> {
     }
 }
 
-#[async_trait]
-pub trait AsyncCommandExt {
-    async fn get_stdout(&mut self) -> Result<Vec<u8>>;
+pub trait CommandExt {
+    type Output<'a, T: 'a>
+    where
+        Self: 'a;
+
+    fn get_stdout(&mut self) -> Self::Output<'_, Result<Vec<u8>>>;
 }
 
-#[async_trait]
-impl AsyncCommandExt for Command {
-    async fn get_stdout(&mut self) -> Result<Vec<u8>> {
-        info!("{:?}", &self);
-        into_stdout(self.output().await?)
+impl CommandExt for Command {
+    type Output<'a, T: 'a> = Pin<Box<dyn Future<Output = T> + 'a>>;
+
+    fn get_stdout(&mut self) -> Self::Output<'_, Result<Vec<u8>>> {
+        Box::pin(async move {
+            info!("{:?}", &self);
+            into_stdout(self.output().await?)
+        })
     }
 }
 
-pub trait CommandExt {
-    fn get_stdout(&mut self) -> Result<Vec<u8>>;
-}
-
 impl CommandExt for std::process::Command {
-    fn get_stdout(&mut self) -> Result<Vec<u8>> {
+    type Output<'a, T: 'a> = T;
+
+    fn get_stdout(&mut self) -> Self::Output<'_, Result<Vec<u8>>> {
         info!("{:?}", &self);
         into_stdout(self.output()?)
     }

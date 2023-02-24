@@ -49,7 +49,7 @@ use crate::{
     },
     license::{LICENSE_STORE, NIX_LICENSES},
     prompt::{ask_overwrite, prompt, Prompter},
-    utils::{fod_hash, AsyncCommandExt, ResultExt, FAKE_HASH},
+    utils::{fod_hash, CommandExt, ResultExt, FAKE_HASH},
 };
 
 #[derive(Debug, Deserialize)]

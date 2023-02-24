@@ -8,7 +8,7 @@ use xdg::BaseDirectories;
 
 use std::{fs, path::PathBuf};
 
-use crate::utils::{AsyncCommandExt, ResultExt};
+use crate::utils::{CommandExt, ResultExt};
 
 #[derive(Default, Deserialize)]
 #[serde(default, rename_all = "kebab-case")]
