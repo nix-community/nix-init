@@ -41,7 +41,23 @@
       packages = forEachSystem (system:
         let
           inherit (nixpkgs.legacyPackages.${system})
-            bzip2 callPackage darwin installShellFiles makeWrapper nix nurl pkg-config rustPlatform spdx-license-list-data stdenv zstd;
+            bzip2
+            callPackage
+            curl
+            darwin
+            installShellFiles
+            libgit2
+            makeWrapper
+            nix
+            nurl
+            openssl
+            pkg-config
+            rustPlatform
+            spdx-license-list-data
+            stdenv
+            zlib
+            zstd
+            ;
         in
         {
           default = rustPlatform.buildRustPackage {
@@ -62,6 +78,7 @@
             };
 
             nativeBuildInputs = [
+              curl
               installShellFiles
               makeWrapper
               pkg-config
@@ -69,10 +86,16 @@
 
             buildInputs = [
               bzip2
+              curl
+              libgit2
+              openssl
+              zlib
               zstd
             ] ++ optionals stdenv.isDarwin [
               darwin.apple_sdk.frameworks.Security
             ];
+
+            doCheck = false;
 
             postInstall = ''
               wrapProgram $out/bin/nix-init \
@@ -80,6 +103,9 @@
               installManPage artifacts/nix-init.1
               installShellCompletion artifacts/nix-init.{bash,fish} --zsh artifacts/_nix-init
             '';
+
+            buildNoDefaultFeatures = true;
+            buildFeatures = [ "reqwest/rustls-tls" ];
 
             GEN_ARTIFACTS = "artifacts";
             NIX_LICENSES = callPackage ./src/license.nix { };

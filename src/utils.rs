@@ -22,31 +22,40 @@ impl<T, E: Display> ResultExt for Result<T, E> {
 }
 
 #[async_trait]
-pub trait CommandExt {
+pub trait AsyncCommandExt {
     async fn get_stdout(&mut self) -> Result<Vec<u8>>;
 }
 
 #[async_trait]
-impl CommandExt for Command {
+impl AsyncCommandExt for Command {
     async fn get_stdout(&mut self) -> Result<Vec<u8>> {
         info!("{:?}", &self);
-
-        let Output {
-            status,
-            stdout,
-            stderr,
-        } = self.output().await?;
-
-        if !status.success() {
-            bail!(
-                "command exited with {status}\nstdout:\n{}\nstderr:\n{}",
-                String::from_utf8_lossy(&stdout),
-                String::from_utf8_lossy(&stderr),
-            );
-        }
-
-        Ok(stdout)
+        into_stdout(self.output().await?)
     }
+}
+
+pub trait CommandExt {
+    fn get_stdout(&mut self) -> Result<Vec<u8>>;
+}
+
+impl CommandExt for std::process::Command {
+    fn get_stdout(&mut self) -> Result<Vec<u8>> {
+        info!("{:?}", &self);
+        into_stdout(self.output()?)
+    }
+}
+
+fn into_stdout(output: Output) -> Result<Vec<u8>> {
+    if !output.status.success() {
+        bail!(
+            "command exited with {}\nstdout:\n{}\nstderr:\n{}",
+            output.status,
+            String::from_utf8_lossy(&output.stdout),
+            String::from_utf8_lossy(&output.stderr),
+        );
+    }
+
+    Ok(output.stdout)
 }
 
 pub async fn fod_hash(expr: String) -> Option<String> {
