@@ -30,6 +30,11 @@ jobs:
       - name: Install nix
         uses: cachix/install-nix-action@v18
 
+      - name: Install dependencies
+        run: |
+          sudo apt update
+          sudo apt install libz-dev
+
       - name: "Cargo: clippy, fmt"
         run: |
           rustup toolchain install stable --profile minimal -c clippy
