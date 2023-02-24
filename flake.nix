@@ -60,7 +60,7 @@
       NIX_LICENSES = callPackage ./src/license.nix { };
       SPDX_LICENSE_LIST_DATA = "${spdx-license-list-data.json}/json/details";
 
-      args' = {
+      args = {
         src = sourceByRegex self [
           "src(/.*)?"
           "Cargo\\.(toml|lock)"
@@ -88,6 +88,7 @@
           darwin.apple_sdk.frameworks.CoreFoundation
         ];
 
+        cargoArtifacts = buildDepsOnly args;
         cargoExtraArgs = "--no-default-features --features=reqwest/rustls-tls";
 
         inherit NIX_LICENSES SPDX_LICENSE_LIST_DATA;
@@ -98,10 +99,6 @@
           license = licenses.mpl20;
           maintainers = with maintainers; [ figsoda ];
         };
-      };
-
-      args = args' // {
-        cargoArtifacts = buildDepsOnly args';
       };
     in
     {
