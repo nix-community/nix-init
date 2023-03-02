@@ -50,7 +50,7 @@ xdg = "2.4.1"
 zip = "0.6.4"
 
 [dependencies.clap]
-version = "4.1.7"
+version = "4.1.8"
 features = ["cargo", "derive", "unicode", "wrap_help"]
 
 [dependencies.rustyline]
@@ -64,7 +64,7 @@ features = ["macros", "process", "rt-multi-thread"]
 
 [build-dependencies]
 askalono = "0.4.6"
-clap = { version = "4.1.7", features = ["derive"] }
+clap = { version = "4.1.8", features = ["derive"] }
 clap_complete = "4.1.4"
 clap_mangen = "0.2.9"
 
