@@ -15,7 +15,7 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Install nix
-        uses: cachix/install-nix-action@v19
+        uses: cachix/install-nix-action@v20
 
       - name: Nix build
         run: nix build
@@ -28,7 +28,7 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Install nix
-        uses: cachix/install-nix-action@v19
+        uses: cachix/install-nix-action@v20
 
       - name: "Cargo: clippy, fmt"
         run: |
