@@ -15,6 +15,7 @@ categories = ["command-line-utilities"]
 anyhow = "1.0.69"
 askalono = "0.4.6"
 bstr = "1.2.0"
+cargo = "0.68.0"
 chumsky = "0.9.2"
 expand = "0.2.1"
 flate2 = "1.0.25"
