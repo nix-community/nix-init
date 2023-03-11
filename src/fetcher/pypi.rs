@@ -7,7 +7,7 @@ use time::OffsetDateTime;
 
 use crate::{
     fetcher::{json, PackageInfo, PypiFormat, Revisions, Version},
-    lang::python::{self, get_python_dependencies},
+    lang::python::get_python_dependencies,
     license::parse_spdx_expression,
 };
 
@@ -93,7 +93,7 @@ pub async fn get_package_info(cl: &Client, pname: &str) -> PackageInfo {
             .info
             .license
             .map_or_else(Vec::new, |license| parse_spdx_expression(&license, "pypi")),
-        python_dependencies: get_python_dependencies(python::parser(), project.info.requires_dist),
+        python_dependencies: get_python_dependencies(project.info.requires_dist),
         revisions: Revisions {
             latest: completions
                 .first()

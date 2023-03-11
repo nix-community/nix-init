@@ -1,4 +1,4 @@
-use chumsky::{error::Cheap, primitive::end, Parser};
+use chumsky::{error::EmptyErr, extra::Err, primitive::end, Parser};
 use heck::{AsKebabCase, ToKebabCase};
 use pep_508::{Comparator, Dependency, Marker, Operator, Variable};
 use serde::Deserialize;
@@ -101,7 +101,7 @@ impl Pyproject {
             self.build_system
                 .requires
                 .iter()
-                .filter_map(|dep| parser.parse(dep.as_str()).ok())
+                .filter_map(|dep| parser.parse(dep.as_str()).into_output())
                 .map(|Dependency { name, .. }| {
                     if name == "maturin" {
                         "rustPlatform.maturinBuildHook".into()
@@ -130,18 +130,16 @@ impl Pyproject {
             self.project.dependencies.take(),
             self.project.optional_dependencies.take(),
         ) {
-            (Some(always), None) => Some(get_python_dependencies(parser(), always)),
+            (Some(always), None) => Some(get_python_dependencies(always)),
             (always, Some(optional)) => {
-                let parser = parser();
-                let mut all_deps = always.map_or_else(Default::default, |always| {
-                    get_python_dependencies(&parser, always)
-                });
+                let mut all_deps = always.map_or_else(Default::default, get_python_dependencies);
 
                 for (extra, deps) in optional {
                     let entry = all_deps.optional.entry(extra).or_insert_with(BTreeSet::new);
-                    for dep in deps {
-                        if let Ok(Dependency { name, .. }) = parser.parse(dep) {
-                            entry.insert(name);
+                    let parser = parser();
+                    for dep in &deps {
+                        if let Some(Dependency { name, .. }) = parser.parse(dep).into_output() {
+                            entry.insert(name.into());
                         }
                     }
                 }
@@ -155,35 +153,31 @@ impl Pyproject {
 
 pub fn parse_requirements_txt(src: &Path) -> Option<PythonDependencies> {
     File::open(src.join("requirements.txt")).ok().map(|file| {
-        get_python_dependencies(
-            parser(),
-            BufReader::new(file).lines().filter_map(ResultExt::ok_warn),
-        )
+        get_python_dependencies(BufReader::new(file).lines().filter_map(ResultExt::ok_warn))
     })
 }
 
 pub fn get_python_dependencies(
-    parser: impl Parser<char, Dependency, Error = Cheap<char>>,
     xs: impl IntoIterator<Item = impl AsRef<str>>,
 ) -> PythonDependencies {
     let mut deps: PythonDependencies = Default::default();
-    for Dependency { name, marker, .. } in xs
-        .into_iter()
-        .filter_map(|dep| parser.parse(dep.as_ref()).ok())
-    {
+    for dep in xs {
+        let Some(dep) = parser().parse(dep.as_ref()).into_output() else {
+            continue;
+        };
         let mut extras = Vec::new();
-        if let Some(marker) = marker {
+        if let Some(marker) = dep.marker {
             load_extras(&mut extras, marker);
         }
 
         if extras.is_empty() {
-            deps.always.insert(name);
+            deps.always.insert(dep.name.into());
         } else {
             for extra in extras {
                 deps.optional
                     .entry(extra)
                     .or_insert_with(BTreeSet::new)
-                    .insert(name.clone());
+                    .insert(dep.name.into());
             }
         }
     }
@@ -206,12 +200,12 @@ fn load_extras(extras: &mut Vec<String>, marker: Marker) {
             Operator::Comparator(Comparator::Eq),
             Variable::Extra,
         ) => {
-            extras.push(extra);
+            extras.push(extra.into());
         }
         _ => {}
     }
 }
 
-pub fn parser() -> impl Parser<char, Dependency, Error = Cheap<char>> {
+pub fn parser<'a>() -> impl Parser<'a, &'a str, Dependency<'a>, Err<EmptyErr>> {
     pep_508::parser().then_ignore(end())
 }
