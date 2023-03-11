@@ -15,32 +15,18 @@ struct GoReleaser {
 
 #[derive(Deserialize)]
 struct Build {
-    #[serde(default)]
-    ldflags: Vec<String>,
+    ldflags: Option<Vec<String>>,
 }
 
 pub fn write_ldflags(out: &mut impl Write, src_dir: &Path) -> Result<()> {
-    let names = [
-        ".goreleaser.yml",
-        ".goreleaser.yaml",
-        "goreleaser.yml",
-        "goreleaser.yaml",
-    ];
-    let Some(build) = names
-        .into_iter()
-        .find_map(|name| File::open(src_dir.join(name)).ok())
-        .and_then(|file| serde_yaml::from_reader(file).ok_warn())
-        .and_then(|GoReleaser { builds }| builds.into_iter().next()) else {
-        return Ok(());
+    let (Some(ldflags), Some(re)) = (get_ldflags(src_dir), regex()) else {
+        writeln!(out, "  ldflags = [ \"-s\" \"-w\" ];\n")?;
+        return Ok(())
     };
 
-    let Some(re) = regex() else { return Ok(()); };
-
-    let mut ldflags = build.ldflags.into_iter().flat_map(|ldflags| {
-        shlex::split(&parse_ldflags(&re, &ldflags))
-            .unwrap_or_default()
-            .into_iter()
-    });
+    let mut ldflags = ldflags
+        .into_iter()
+        .flat_map(|ldflags| shlex::split(&parse_ldflags(&re, &ldflags)).unwrap_or_default());
 
     if let Some(flag) = ldflags.next() {
         write!(out, r#"  ldflags = [ "{flag}" "#)?;
@@ -51,6 +37,26 @@ pub fn write_ldflags(out: &mut impl Write, src_dir: &Path) -> Result<()> {
     }
 
     Ok(())
+}
+
+fn get_ldflags(src_dir: &Path) -> Option<Vec<String>> {
+    let names = [
+        ".goreleaser.yml",
+        ".goreleaser.yaml",
+        "goreleaser.yml",
+        "goreleaser.yaml",
+    ];
+
+    let file = names
+        .into_iter()
+        .find_map(|name| File::open(src_dir.join(name)).ok())?;
+
+    serde_yaml::from_reader::<_, GoReleaser>(file)
+        .ok_warn()?
+        .builds
+        .into_iter()
+        .next()?
+        .ldflags
 }
 
 fn regex() -> Option<Regex> {
