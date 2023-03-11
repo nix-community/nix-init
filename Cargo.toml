@@ -14,8 +14,8 @@ categories = ["command-line-utilities"]
 [dependencies]
 anyhow = "1.0.69"
 askalono = "0.4.6"
-async-trait = "0.1.66"
 bstr = "1.2.0"
+cargo = "0.68.0"
 chumsky = "1.0.0-alpha.3"
 expand = "0.2.1"
 flate2 = "1.0.25"
@@ -28,6 +28,7 @@ owo-colors = "3.5.0"
 parse-display = "0.8.0"
 paste = "1.0.12"
 pep-508 = "0.3.0"
+rayon = "1.6.1"
 regex = "1.7.1"
 reqwest = { version = "0.11.14", default-features = false, features = ["json"] }
 rustc-hash = "1.1.0"
@@ -69,7 +70,8 @@ clap_complete = "4.1.4"
 clap_mangen = "0.2.9"
 
 [features]
-default = ["reqwest/rustls-tls"]
+default = ["vendored", "reqwest/rustls-tls"]
+vendored = ["cargo/vendored-libgit2", "cargo/vendored-openssl"]
 
 [profile.release]
 lto = true

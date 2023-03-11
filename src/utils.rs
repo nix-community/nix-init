@@ -1,9 +1,8 @@
 use anyhow::{bail, Result};
-use async_trait::async_trait;
 use tokio::process::Command;
 use tracing::{info, warn};
 
-use std::{fmt::Display, io::BufRead, process::Output};
+use std::{fmt::Display, future::Future, io::BufRead, pin::Pin, process::Output};
 
 pub const FAKE_HASH: &str = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
 
@@ -21,32 +20,45 @@ impl<T, E: Display> ResultExt for Result<T, E> {
     }
 }
 
-#[async_trait]
 pub trait CommandExt {
-    async fn get_stdout(&mut self) -> Result<Vec<u8>>;
+    type Output<'a, T: 'a>
+    where
+        Self: 'a;
+
+    fn get_stdout(&mut self) -> Self::Output<'_, Result<Vec<u8>>>;
 }
 
-#[async_trait]
 impl CommandExt for Command {
-    async fn get_stdout(&mut self) -> Result<Vec<u8>> {
-        info!("{:?}", &self);
+    type Output<'a, T: 'a> = Pin<Box<dyn Future<Output = T> + 'a>>;
 
-        let Output {
-            status,
-            stdout,
-            stderr,
-        } = self.output().await?;
-
-        if !status.success() {
-            bail!(
-                "command exited with {status}\nstdout:\n{}\nstderr:\n{}",
-                String::from_utf8_lossy(&stdout),
-                String::from_utf8_lossy(&stderr),
-            );
-        }
-
-        Ok(stdout)
+    fn get_stdout(&mut self) -> Self::Output<'_, Result<Vec<u8>>> {
+        Box::pin(async move {
+            info!("{:?}", &self);
+            into_stdout(self.output().await?)
+        })
     }
+}
+
+impl CommandExt for std::process::Command {
+    type Output<'a, T: 'a> = T;
+
+    fn get_stdout(&mut self) -> Self::Output<'_, Result<Vec<u8>>> {
+        info!("{:?}", &self);
+        into_stdout(self.output()?)
+    }
+}
+
+fn into_stdout(output: Output) -> Result<Vec<u8>> {
+    if !output.status.success() {
+        bail!(
+            "command exited with {}\nstdout:\n{}\nstderr:\n{}",
+            output.status,
+            String::from_utf8_lossy(&output.stdout),
+            String::from_utf8_lossy(&output.stderr),
+        );
+    }
+
+    Ok(output.stdout)
 }
 
 pub async fn fod_hash(expr: String) -> Option<String> {

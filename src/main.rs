@@ -45,7 +45,7 @@ use crate::{
     lang::{
         go::write_ldflags,
         python::{parse_requirements_txt, Pyproject},
-        rust::cargo_deps_hash,
+        rust::{cargo_deps_hash, load_cargo_lock, write_cargo_lock, CargoLock},
     },
     license::{LICENSE_STORE, NIX_LICENSES},
     prompt::{ask_overwrite, prompt, Prompter},
@@ -110,7 +110,7 @@ async fn run() -> Result<()> {
         }
     };
 
-    let (_, out_path) = if let Ok(metadata) = metadata(&output) {
+    let (out_dir, out_path) = if let Ok(metadata) = metadata(&output) {
         if metadata.is_dir() {
             let out_path = output.join("default.nix");
             if out_path.exists() && ask_overwrite(&mut editor, &out_path)? {
@@ -398,7 +398,11 @@ async fn run() -> Result<()> {
     }
     if !python_formats.is_empty() {
         for &rust in if has_cargo {
-            &[Some(RustVendor::FetchCargoTarball), None]
+            &[
+                Some(RustVendor::FetchCargoTarball),
+                Some(RustVendor::ImportCargoLock),
+                None,
+            ]
         } else {
             &[None] as &[_]
         } {
@@ -415,25 +419,11 @@ async fn run() -> Result<()> {
     }
 
     if has_cargo {
-        choices.extend(if has_meson {
-            [
-                BuildType::MkDerivation {
-                    rust: Some(RustVendor::FetchCargoTarball),
-                },
-                BuildType::BuildRustPackage {
-                    vendor: RustVendor::FetchCargoTarball,
-                },
-            ]
-        } else {
-            [
-                BuildType::BuildRustPackage {
-                    vendor: RustVendor::FetchCargoTarball,
-                },
-                BuildType::MkDerivation {
-                    rust: Some(RustVendor::FetchCargoTarball),
-                },
-            ]
-        });
+        for vendor in [RustVendor::FetchCargoTarball, RustVendor::ImportCargoLock] {
+            let drv = BuildType::MkDerivation { rust: Some(vendor) };
+            let rust = BuildType::BuildRustPackage { vendor };
+            choices.extend(if has_meson { [drv, rust] } else { [rust, drv] });
+        }
     }
 
     choices.push(BuildType::MkDerivation { rust: None });
@@ -443,7 +433,7 @@ async fn run() -> Result<()> {
     let Some(Prompter::Build(choices)) = editor.helper_mut() else {
         unreachable!();
     };
-    let choice = choice
+    let choice = *choice
         .parse()
         .ok()
         .and_then(|i: usize| choices.get(i))
@@ -460,7 +450,7 @@ async fn run() -> Result<()> {
             writeln!(
                 out,
                 ", {}",
-                if *application {
+                if application {
                     "python3"
                 } else {
                     "buildPythonPackage"
@@ -469,7 +459,7 @@ async fn run() -> Result<()> {
 
             if src_dir.join("poetry.lock").is_file() {
                 inputs.native_build_inputs.always.insert(
-                    if *application {
+                    if application {
                         "python3.pkgs.poetry-core"
                     } else {
                         "poetry-core"
@@ -561,17 +551,32 @@ async fn run() -> Result<()> {
             format,
             rust,
         } => {
-            let hash = match rust {
-                Some(RustVendor::FetchCargoTarball) => Some(
+            enum RustVendorData {
+                Hash(String),
+                Lock(bool, Option<CargoLock>),
+                None,
+            }
+            let rust = match rust {
+                Some(RustVendor::FetchCargoTarball) => RustVendorData::Hash(
                     cargo_deps_hash(&mut inputs, &pname, &version, &src, &src_dir, &nixpkgs).await,
                 ),
-                _ => None,
+                Some(RustVendor::ImportCargoLock) => {
+                    if let Some(out_dir) = out_dir {
+                        editor.set_helper(None);
+                        let (missing, lock) =
+                            load_cargo_lock(&mut editor, out_dir, &mut inputs, &src_dir).await?;
+                        RustVendorData::Lock(missing, lock)
+                    } else {
+                        RustVendorData::Lock(false, None)
+                    }
+                }
+                None => RustVendorData::None,
             };
 
             if matches!(format, PythonFormat::Pyproject) {
                 if let Some(mut pyproject_found) = Pyproject::from_path(pyproject_toml) {
                     pyproject_found.load_license(&mut licenses);
-                    pyproject_found.load_build_dependencies(&mut inputs, *application);
+                    pyproject_found.load_build_dependencies(&mut inputs, application);
 
                     if let Some(deps) = pyproject_found
                         .get_dependencies()
@@ -585,7 +590,7 @@ async fn run() -> Result<()> {
             }
 
             let mut written = BTreeSet::new();
-            if *application {
+            if application {
                 written.insert("python3".into());
             }
             let res = write_all_lambda_inputs(&mut out, &inputs, &mut written)?;
@@ -612,26 +617,33 @@ async fn run() -> Result<()> {
                       src = {src_expr};
 
                 "#,
-                if *application {
+                if application {
                     "python3.pkgs.buildPythonApplication"
                 } else {
                     "buildPythonPackage"
                 },
             )?;
 
-            if let Some(hash) = hash {
-                write!(out, "  ")?;
-                writedoc!(
-                    out,
-                    r#"
-                        cargoDeps = rustPlatform.fetchCargoTarball {{
-                            inherit src;
-                            name = "${{pname}}-${{version}}";
-                            hash = "{hash}";
-                          }};
+            match rust {
+                RustVendorData::Hash(hash) => {
+                    write!(out, "  ")?;
+                    writedoc!(
+                        out,
+                        r#"
+                            cargoDeps = rustPlatform.fetchCargoTarball {{
+                                inherit src;
+                                name = "${{pname}}-${{version}}";
+                                hash = "{hash}";
+                              }};
 
-                    "#
-                )?;
+                        "#,
+                    )?;
+                }
+                RustVendorData::Lock(missing, lock) => {
+                    write!(out, "  cargoDeps = rustPlatform.importCargoLock ")?;
+                    write_cargo_lock(&mut out, missing, lock).await?;
+                }
+                RustVendorData::None => {}
             }
 
             res
@@ -659,6 +671,35 @@ async fn run() -> Result<()> {
 
                 "#,
             )?;
+            res
+        }
+
+        BuildType::BuildRustPackage {
+            vendor: RustVendor::ImportCargoLock,
+        } => {
+            let (missing, lock) = if let Some(out_dir) = out_dir {
+                editor.set_helper(None);
+                load_cargo_lock(&mut editor, out_dir, &mut inputs, &src_dir).await?
+            } else {
+                (false, None)
+            };
+
+            let res =
+                write_all_lambda_inputs(&mut out, &inputs, &mut ["rustPlatform".into()].into())?;
+            writedoc!(
+                out,
+                r#"
+                    }}:
+
+                    rustPlatform.buildRustPackage rec {{
+                      pname = "{pname}";
+                      version = "{version}";
+
+                      src = {src_expr};
+
+                      cargoLock = "#,
+            )?;
+            write_cargo_lock(&mut out, missing, lock).await?;
             res
         }
 
@@ -707,6 +748,34 @@ async fn run() -> Result<()> {
             )?;
             res
         }
+
+        BuildType::MkDerivation {
+            rust: Some(RustVendor::ImportCargoLock),
+        } => {
+            let (missing, lock) = if let Some(out_dir) = out_dir {
+                editor.set_helper(None);
+                load_cargo_lock(&mut editor, out_dir, &mut inputs, &src_dir).await?
+            } else {
+                (false, None)
+            };
+
+            let res = write_all_lambda_inputs(&mut out, &inputs, &mut ["stdenv".into()].into())?;
+            writedoc!(
+                out,
+                r#"
+                    }}:
+
+                    stdenv.mkDerivation rec {{
+                      pname = "{pname}";
+                      version = "{version}";
+
+                      src = {src_expr};
+
+                      cargoDeps = rustPlatform.importCargoLock "#,
+            )?;
+            write_cargo_lock(&mut out, missing, lock).await?;
+            res
+        }
     };
 
     if native_build_inputs {
@@ -724,7 +793,7 @@ async fn run() -> Result<()> {
         BuildType::BuildPythonPackage { application, .. } => {
             if !python_deps.always.is_empty() {
                 write!(out, "  propagatedBuildInputs = ")?;
-                if *application {
+                if application {
                     write!(out, "with python3.pkgs; ")?;
                 }
                 writeln!(out, "[")?;
@@ -742,7 +811,7 @@ async fn run() -> Result<()> {
 
             if let Some((extra, deps)) = optional.next() {
                 write!(out, "  passthru.optional-dependencies = ")?;
-                if *application {
+                if application {
                     write!(out, "with python3.pkgs; ")?;
                 }
                 writeln!(out, "{{\n    {extra} = [",)?;

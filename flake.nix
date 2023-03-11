@@ -1,97 +1,132 @@
 {
   inputs = {
+    crane = {
+      url = "github:ipetkov/crane";
+      inputs.flake-utils.follows = "flake-utils";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.flake-compat.follows = "";
+      inputs.rust-overlay.follows = "";
+    };
+    fenix = {
+      url = "github:nix-community/fenix";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.rust-analyzer-src.follows = "";
+    };
+    flake-utils.url = "github:numtide/flake-utils";
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
   };
 
-  outputs = { self, nixpkgs }:
+  outputs = { self, crane, fenix, flake-utils, nixpkgs }: {
+    herculesCI.ciSystems = [
+      "x86_64-linux"
+      "aarch64-linux"
+    ];
+  } // flake-utils.lib.eachDefaultSystem (system:
     let
-      inherit (builtins) path;
-      inherit (nixpkgs.lib) genAttrs importTOML licenses maintainers makeBinPath optionals sourceByRegex;
-      inherit (importTOML (self + "/Cargo.toml")) package;
+      inherit (crane.lib.${system}.overrideToolchain fenix.packages.${system}.default.toolchain)
+        buildDepsOnly
+        buildPackage
+        cargoClippy
+        cargoFmt
+        cargoNextest
+        ;
+      inherit (nixpkgs.legacyPackages.${system})
+        bzip2
+        callPackage
+        curl
+        darwin
+        installShellFiles
+        libgit2
+        makeWrapper
+        mkShell
+        nix
+        nixpkgs-fmt
+        nurl
+        openssl
+        pkg-config
+        spdx-license-list-data
+        stdenv
+        zlib
+        zstd
+        ;
+      inherit (nixpkgs.lib)
+        licenses
+        maintainers
+        makeBinPath
+        optionals
+        sourceByRegex
+        ;
 
-      forEachSystem = genAttrs [
-        "aarch64-darwin"
-        "aarch64-linux"
-        "x86_64-darwin"
-        "x86_64-linux"
-      ];
+      NIX_LICENSES = callPackage ./src/license.nix { };
+      SPDX_LICENSE_LIST_DATA = "${spdx-license-list-data.json}/json/details";
+
+      args = {
+        src = sourceByRegex self [
+          "src(/.*)?"
+          "Cargo\\.(toml|lock)"
+          "build.rs"
+          "rustfmt.toml"
+        ];
+
+        nativeBuildInputs = [
+          curl
+          installShellFiles
+          makeWrapper
+          pkg-config
+        ];
+
+        buildInputs = [
+          bzip2
+          curl
+          libgit2
+          openssl
+          zlib
+          zstd
+        ] ++ optionals stdenv.isDarwin [
+          darwin.apple_sdk.frameworks.Security
+        ] ++ optionals (stdenv.isDarwin && stdenv.isx86_64) [
+          darwin.apple_sdk.frameworks.CoreFoundation
+        ];
+
+        cargoArtifacts = buildDepsOnly args;
+        cargoExtraArgs = "--no-default-features --features=reqwest/rustls-tls";
+
+        inherit NIX_LICENSES SPDX_LICENSE_LIST_DATA;
+        GEN_ARTIFACTS = "artifacts";
+        ZSTD_SYS_USE_PKG_CONFIG = true;
+
+        meta = {
+          license = licenses.mpl20;
+          maintainers = with maintainers; [ figsoda ];
+        };
+      };
     in
     {
-      devShells = forEachSystem (system:
-        let
-          inherit (nixpkgs.legacyPackages.${system}) callPackage mkShell spdx-license-list-data;
-        in
-        {
-          default = mkShell {
-            NIX_INIT_LOG = "nix_init=trace";
-            NIX_LICENSES = callPackage ./src/license.nix { };
-            RUST_BACKTRACE = true;
-            SPDX_LICENSE_LIST_DATA = "${spdx-license-list-data.json}/json/details";
-          };
+      checks = {
+        build = self.packages.${system}.default;
+        clippy = cargoClippy (args // {
+          cargoClippyExtraArgs = "-- -D warnings";
         });
+        fmt = cargoFmt (removeAttrs args [ "cargoExtraArgs" ]);
+        test = cargoNextest args;
+      };
 
-      formatter = forEachSystem
-        (system: nixpkgs.legacyPackages.${system}.nixpkgs-fmt);
+      devShells.default = mkShell {
+        inherit NIX_LICENSES SPDX_LICENSE_LIST_DATA;
+        NIX_INIT_LOG = "nix_init=trace";
+        RUST_BACKTRACE = true;
+      };
 
-      herculesCI.ciSystems = [
-        "x86_64-linux"
-        "aarch64-linux"
-      ];
+      formatter = nixpkgs-fmt;
 
-      packages = forEachSystem (system:
-        let
-          inherit (nixpkgs.legacyPackages.${system})
-            bzip2 callPackage darwin installShellFiles makeWrapper nix nurl pkg-config rustPlatform spdx-license-list-data stdenv zstd;
-        in
-        {
-          default = rustPlatform.buildRustPackage {
-            pname = "nix-init";
-            inherit (package) version;
-
-            src = sourceByRegex self [
-              "src(/.*)?"
-              "Cargo\\.(toml|lock)"
-              "build.rs"
-            ];
-
-            cargoLock = {
-              allowBuiltinFetchGit = true;
-              lockFile = path {
-                path = self + "/Cargo.lock";
-              };
-            };
-
-            nativeBuildInputs = [
-              installShellFiles
-              makeWrapper
-              pkg-config
-            ];
-
-            buildInputs = [
-              bzip2
-              zstd
-            ] ++ optionals stdenv.isDarwin [
-              darwin.apple_sdk.frameworks.Security
-            ];
-
-            postInstall = ''
-              wrapProgram $out/bin/nix-init \
-                --prefix PATH : ${makeBinPath [ nix nurl ]}
-              installManPage artifacts/nix-init.1
-              installShellCompletion artifacts/nix-init.{bash,fish} --zsh artifacts/_nix-init
-            '';
-
-            GEN_ARTIFACTS = "artifacts";
-            NIX_LICENSES = callPackage ./src/license.nix { };
-            SPDX_LICENSE_LIST_DATA = "${spdx-license-list-data.json}/json/details";
-            ZSTD_SYS_USE_PKG_CONFIG = true;
-
-            meta = {
-              inherit (package) description;
-              license = licenses.mpl20;
-              maintainers = with maintainers; [ figsoda ];
-            };
-          };
-        });
-    };
+      packages.default = buildPackage (args // {
+        doCheck = false;
+        postInstall = ''
+          wrapProgram $out/bin/nix-init \
+            --prefix PATH : ${makeBinPath [ nix nurl ]}
+          installManPage artifacts/nix-init.1
+          installShellCompletion artifacts/nix-init.{bash,fish} --zsh artifacts/_nix-init
+        '';
+      });
+    });
 }
