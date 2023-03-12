@@ -51,8 +51,8 @@ pub async fn get_package_info(
                 .await
                 .map(|latest_release: LatestRelease| latest_release.tag_name)
         },
-        async { json::<Vec<_>>(cl, format!("{root}/repository/tags?per_page=12")).await },
-        async { json::<Vec<_>>(cl, format!("{root}/repository/commits?per_page=12")).await },
+        json::<Vec<_>>(cl, format!("{root}/repository/tags?per_page=12")),
+        json::<Vec<_>>(cl, format!("{root}/repository/commits?per_page=12")),
     );
 
     let mut completions = vec![];
