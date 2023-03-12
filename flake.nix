@@ -57,7 +57,7 @@
         sourceByRegex
         ;
 
-      NIX_LICENSES = callPackage ./src/license.nix { };
+      GET_NIX_LICENSE = callPackage ./src/get_nix_license.nix { };
       SPDX_LICENSE_LIST_DATA = "${spdx-license-list-data.json}/json/details";
 
       args = {
@@ -91,7 +91,7 @@
         cargoArtifacts = buildDepsOnly args;
         cargoExtraArgs = "--no-default-features --features=reqwest/rustls-tls";
 
-        inherit NIX_LICENSES SPDX_LICENSE_LIST_DATA;
+        inherit GET_NIX_LICENSE SPDX_LICENSE_LIST_DATA;
         GEN_ARTIFACTS = "artifacts";
         ZSTD_SYS_USE_PKG_CONFIG = true;
 
@@ -112,7 +112,7 @@
       };
 
       devShells.default = mkShell {
-        inherit NIX_LICENSES SPDX_LICENSE_LIST_DATA;
+        inherit GET_NIX_LICENSE SPDX_LICENSE_LIST_DATA;
         NIX_INIT_LOG = "nix_init=trace";
         RUST_BACKTRACE = true;
       };

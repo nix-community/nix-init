@@ -2,7 +2,9 @@
 
 let
   inherit (lib)
+    attrNames
     concatMapAttrs
+    concatStringsSep
     filterAttrs
     flip
     id
@@ -12,9 +14,6 @@ let
     optionalAttrs
     pipe
     warn
-    attrNames
-    concatStringsSep
-    length
     ;
 
   licenseMap = flip concatMapAttrs licenses
@@ -58,18 +57,17 @@ let
       else
         warn "${k}: ${concatStringsSep ", " v}"));
 
-  inserts = lint (mapAttrsToList
-    (k: v: ''  xs.insert("${k}", "${v}");'')
-    (deprecatedAliases // licenseMap));
+  arms = lint (concatStringsSep "\n        "
+    (mapAttrsToList
+      (k: v: ''"${k}" => Some("${v}"),'')
+      (deprecatedAliases // licenseMap)));
 in
 
-writeText "license.rs" ''
-  fn get_nix_licenses() -> rustc_hash::FxHashMap<&'static str, &'static str> {
-      let mut xs = std::collections::HashMap::with_capacity_and_hasher(
-          ${toString (length inserts)},
-          Default::default(),
-      );
-      ${concatStringsSep "\n    " inserts}
-      xs
+writeText "get_nix_license.rs" ''
+  pub fn get_nix_license(license: &str) -> Option<&'static str> {
+      match license {
+          ${arms}
+          _ => None,
+      }
   }
 ''

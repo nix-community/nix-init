@@ -47,7 +47,7 @@ use crate::{
         python::{parse_requirements_txt, Pyproject},
         rust::{cargo_deps_hash, load_cargo_lock, write_cargo_lock, CargoLock},
     },
-    license::{LICENSE_STORE, NIX_LICENSES},
+    license::{get_nix_license, LICENSE_STORE},
     prompt::{ask_overwrite, prompt, Prompter},
     utils::{fod_hash, CommandExt, ResultExt, FAKE_HASH},
 };
@@ -85,9 +85,6 @@ async fn run() -> Result<()> {
 
     tokio::spawn(async {
         Lazy::force(&LICENSE_STORE);
-    });
-    tokio::spawn(async {
-        Lazy::force(&NIX_LICENSES);
     });
 
     let cfg = load_config(opts.config)?;
@@ -883,7 +880,6 @@ async fn run() -> Result<()> {
 
     if let (Some(store), Some(walk)) = (&*LICENSE_STORE, read_dir(src_dir).ok_warn()) {
         let strategy = ScanStrategy::new(store).confidence_threshold(0.8);
-        let nix_licenses = &*NIX_LICENSES;
 
         for entry in walk {
             let Ok(entry) = entry else { continue; };
@@ -911,7 +907,7 @@ async fn run() -> Result<()> {
                 continue;
             };
 
-            if let Some(&license) = nix_licenses.get(name) {
+            if let Some(license) = get_nix_license(name) {
                 debug!(
                     "license found in {}: {license}",
                     file_name.to_string_lossy(),
