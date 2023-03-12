@@ -65,6 +65,8 @@
         "rustfmt.toml"
       ];
 
+      get-nix-license = callPackage ./src/get-nix-license.nix { };
+
       license-store-cache = buildPackage {
         pname = "license-store-cache";
 
@@ -89,8 +91,6 @@
           mv $cache $out
         '';
       };
-
-      GET_NIX_LICENSE = callPackage ./src/get_nix_license.nix { };
 
       args = {
         inherit src;
@@ -120,10 +120,10 @@
 
         postPatch = ''
           mkdir -p data
+          ln -s ${get-nix-license} data/get-nix-license.rs
           ln -s ${license-store-cache} data/license-store-cache.zstd
         '';
 
-        inherit GET_NIX_LICENSE;
         GEN_ARTIFACTS = "artifacts";
         ZSTD_SYS_USE_PKG_CONFIG = true;
 
@@ -144,12 +144,12 @@
       };
 
       devShells.default = mkShell {
-        inherit GET_NIX_LICENSE;
         NIX_INIT_LOG = "nix_init=trace";
         RUST_BACKTRACE = true;
 
         shellHook = ''
           mkdir -p data
+          ln -sf ${get-nix-license} data/get-nix-license.rs
           ln -sf ${license-store-cache} data/license-store-cache.zstd
         '';
       };
