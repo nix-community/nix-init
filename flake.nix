@@ -39,6 +39,7 @@
         libgit2
         makeWrapper
         mkShell
+        libiconv
         nix
         nixpkgs-fmt
         nurl
@@ -69,7 +70,12 @@
 
         inherit src;
 
+        buildInputs = optionals stdenv.isDarwin [
+          libiconv
+        ];
+
         doCheck = false;
+        doNotRemoveReferencesToVendorDir = true;
 
         cargoArtifacts = null;
         cargoExtraArgs = "-p license-store-cache";
