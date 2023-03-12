@@ -80,6 +80,8 @@
         cargoArtifacts = null;
         cargoExtraArgs = "-p license-store-cache";
 
+        CARGO_PROFILE = "";
+
         postInstall = ''
           cache=$(mktemp)
           $out/bin/license-store-cache $cache ${spdx-license-list-data.json}/json/details
