@@ -57,16 +57,35 @@
         sourceByRegex
         ;
 
+      src = sourceByRegex self [
+        "(license-store-cache|src)(/.*)?"
+        "Cargo\\.(toml|lock)"
+        "build.rs"
+        "rustfmt.toml"
+      ];
+
+      license-store-cache = buildPackage {
+        pname = "license-store-cache";
+
+        inherit src;
+
+        doCheck = false;
+
+        cargoArtifacts = null;
+        cargoExtraArgs = "-p license-store-cache";
+
+        postInstall = ''
+          cache=$(mktemp)
+          $out/bin/license-store-cache $cache ${spdx-license-list-data.json}/json/details
+          rm -rf $out
+          mv $cache $out
+        '';
+      };
+
       GET_NIX_LICENSE = callPackage ./src/get_nix_license.nix { };
-      SPDX_LICENSE_LIST_DATA = "${spdx-license-list-data.json}/json/details";
 
       args = {
-        src = sourceByRegex self [
-          "src(/.*)?"
-          "Cargo\\.(toml|lock)"
-          "build.rs"
-          "rustfmt.toml"
-        ];
+        inherit src;
 
         nativeBuildInputs = [
           curl
@@ -91,7 +110,12 @@
         cargoArtifacts = buildDepsOnly args;
         cargoExtraArgs = "--no-default-features --features=reqwest/rustls-tls";
 
-        inherit GET_NIX_LICENSE SPDX_LICENSE_LIST_DATA;
+        postPatch = ''
+          mkdir -p data
+          ln -s ${license-store-cache} data/license-store-cache.zstd
+        '';
+
+        inherit GET_NIX_LICENSE;
         GEN_ARTIFACTS = "artifacts";
         ZSTD_SYS_USE_PKG_CONFIG = true;
 
@@ -112,9 +136,14 @@
       };
 
       devShells.default = mkShell {
-        inherit GET_NIX_LICENSE SPDX_LICENSE_LIST_DATA;
+        inherit GET_NIX_LICENSE;
         NIX_INIT_LOG = "nix_init=trace";
         RUST_BACKTRACE = true;
+
+        shellHook = ''
+          mkdir -p data
+          ln -sf ${license-store-cache} data/license-store-cache.zstd
+        '';
       };
 
       formatter = nixpkgs-fmt;

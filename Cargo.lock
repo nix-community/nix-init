@@ -1460,6 +1460,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "license-store-cache"
+version = "0.1.1"
+dependencies = [
+ "askalono",
+]
+
+[[package]]
 name = "link-cplusplus"
 version = "1.0.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"

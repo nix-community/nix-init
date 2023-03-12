@@ -6,7 +6,7 @@ use tracing::debug;
 use crate::utils::ResultExt;
 
 pub static LICENSE_STORE: Lazy<Option<Store>> = Lazy::new(|| {
-    Store::from_cache(include_bytes!("../cache/askalono-cache.zstd") as &[_]).ok_warn()
+    Store::from_cache(include_bytes!("../data/license-store-cache.zstd") as &[_]).ok_warn()
 });
 
 include!(env!("GET_NIX_LICENSE"));

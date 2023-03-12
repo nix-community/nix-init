@@ -1,0 +1,9 @@
+[package]
+name = "license-store-cache"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+askalono.workspace = true

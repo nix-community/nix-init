@@ -1,19 +1,32 @@
-[package]
-name = "nix-init"
+[workspace]
+members = ["license-store-cache"]
+
+[workspace.package]
 version = "0.1.1"
 authors = ["figsoda <figsoda@pm.me>"]
 edition = "2021"
+license = "MPL-2.0"
+
+[workspace.dependencies]
+askalono = "0.4.6"
+
+[package]
+name = "nix-init"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
 description = "Generate Nix packages from URLs with hash prefetching, dependency inference, license detection, and more"
 readme = "README.md"
 homepage = "https://github.com/nix-community/nix-init"
 repository = "https://github.com/nix-community/nix-init"
-license = "MPL-2.0"
+license.workspace = true
 keywords = ["cli", "interactive", "generate", "nix", "package"]
 categories = ["command-line-utilities"]
+include = ["data", "src", "Cargo.lock", "Cargo.toml", "build.rs"]
 
 [dependencies]
 anyhow = "1.0.69"
-askalono = "0.4.6"
+askalono.workspace = true
 bstr = "1.2.0"
 cargo = "0.68.0"
 chumsky = "1.0.0-alpha.3"
@@ -64,7 +77,6 @@ version = "1.26.0"
 features = ["macros", "process", "rt-multi-thread"]
 
 [build-dependencies]
-askalono = "0.4.6"
 clap = { version = "4.1.8", features = ["derive"] }
 clap_complete = "4.1.4"
 clap_mangen = "0.2.9"
