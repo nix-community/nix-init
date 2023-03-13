@@ -1,3 +1,5 @@
+mod deps;
+
 use anyhow::{anyhow, Context, Result};
 use cargo::{
     core::{
@@ -10,7 +12,6 @@ use cargo::{
     Config,
 };
 use indoc::writedoc;
-use paste::paste;
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use regex::Regex;
 use rustyline::{history::History, Editor, Helper};
@@ -27,7 +28,8 @@ use std::{
 };
 
 use crate::{
-    inputs::{get_riff_registry, AllInputs, RiffRegistry},
+    inputs::AllInputs,
+    lang::rust::deps::load_rust_depenendency,
     prompt::ask_overwrite,
     utils::{fod_hash, CommandExt, ResultExt, FAKE_HASH},
 };
@@ -53,16 +55,16 @@ pub async fn cargo_deps_hash(
     nixpkgs: &str,
 ) -> String {
     if let Ok(lock) = File::open(src_dir.join("Cargo.lock")) {
-        let (hash, lock, registry) = tokio::join!(
+        let (hash, ()) = tokio::join!(
             fod_hash(format!(
                 r#"(import({nixpkgs}){{}}).rustPlatform.fetchCargoTarball{{name="{pname}-{version}";src={src};hash="{FAKE_HASH}";}}"#,
             )),
-            parse_cargo_lock(lock),
-            get_riff_registry(),
+            async {
+                if let Some(lock) = parse_cargo_lock(lock).await {
+                    load_rust_dependencies(inputs, &lock);
+                }
+            }
         );
-        if let (Some(lock), Some(registry)) = (lock, registry) {
-            load_riff_dependencies(inputs, &lock, registry);
-        }
         hash.unwrap_or_else(|| FAKE_HASH.into())
     } else {
         FAKE_HASH.into()
@@ -138,9 +140,7 @@ pub async fn load_cargo_lock(
     };
 
     if let Some(lock) = &lock {
-        if let Some(registry) = get_riff_registry().await {
-            load_riff_dependencies(inputs, lock, registry);
-        }
+        load_rust_dependencies(inputs, lock);
     }
 
     Ok((missing, lock))
@@ -208,50 +208,8 @@ async fn parse_cargo_lock(mut file: impl Read) -> Option<CargoLock> {
     toml::from_str(&buf).ok_warn()
 }
 
-fn load_riff_dependencies(inputs: &mut AllInputs, lock: &CargoLock, mut registry: RiffRegistry) {
-    for dep in &lock.package {
-        let Some(dep) = registry.language.rust.dependencies.remove(&dep.name) else {
-            continue;
-        };
-
-        for input in dep.inputs.native_build_inputs {
-            inputs.native_build_inputs.always.insert(input);
-        }
-        for input in dep.inputs.build_inputs {
-            inputs.build_inputs.always.insert(input);
-        }
-
-        macro_rules! load {
-            ($inputs:ident, $sys:ident) => {
-                paste! {
-                    for input in dep.targets.[<aarch64_ $sys>].$inputs {
-                        if inputs.$inputs.always.contains(&input)
-                            || inputs.$inputs.$sys.contains(&input) {
-                            continue;
-                        } else if inputs.$inputs.[<x86_64_ $sys>].remove(&input) {
-                            inputs.$inputs.$sys.insert(input);
-                        } else {
-                            inputs.$inputs.[<aarch64_ $sys>].insert(input);
-                        }
-                    }
-
-                    for input in dep.targets.[<x86_64_ $sys>].$inputs {
-                        if inputs.$inputs.always.contains(&input)
-                            || inputs.$inputs.$sys.contains(&input) {
-                            continue;
-                        } else if inputs.$inputs.[<aarch64_ $sys>].remove(&input) {
-                            inputs.$inputs.$sys.insert(input);
-                        } else {
-                            inputs.$inputs.[<x86_64_ $sys>].insert(input);
-                        }
-                    }
-                }
-            };
-        }
-
-        load!(native_build_inputs, darwin);
-        load!(native_build_inputs, linux);
-        load!(build_inputs, darwin);
-        load!(build_inputs, linux);
+fn load_rust_dependencies(inputs: &mut AllInputs, lock: &CargoLock) {
+    for pkg in &lock.package {
+        load_rust_depenendency(inputs, pkg);
     }
 }

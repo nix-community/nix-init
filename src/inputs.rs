@@ -1,10 +1,6 @@
 use anyhow::Result;
-use rustc_hash::FxHashMap;
-use serde::Deserialize;
 
 use std::{collections::BTreeSet, fmt::Write};
-
-use crate::utils::ResultExt;
 
 #[derive(Default)]
 pub struct AllInputs {
@@ -21,58 +17,6 @@ pub struct Inputs {
     pub linux: BTreeSet<String>,
     pub aarch64_linux: BTreeSet<String>,
     pub x86_64_linux: BTreeSet<String>,
-}
-
-#[derive(Deserialize)]
-pub struct RiffRegistry {
-    pub language: RiffLanguages,
-}
-
-#[derive(Deserialize)]
-pub struct RiffLanguages {
-    pub rust: RiffLanguage,
-}
-
-#[derive(Deserialize)]
-pub struct RiffLanguage {
-    pub dependencies: FxHashMap<String, RiffDependency>,
-}
-
-#[derive(Default, Deserialize)]
-#[serde(default)]
-pub struct RiffDependency {
-    #[serde(flatten)]
-    pub inputs: RiffInputs,
-    pub targets: RiffTargets,
-}
-
-#[derive(Default, Deserialize)]
-#[serde(default)]
-pub struct RiffTargets {
-    #[serde(rename = "aarch64-apple-darwin")]
-    pub aarch64_darwin: RiffInputs,
-    #[serde(rename = "aarch64-unknown-linux-gnu")]
-    pub aarch64_linux: RiffInputs,
-    #[serde(rename = "x86_64-apple-darwin")]
-    pub x86_64_darwin: RiffInputs,
-    #[serde(rename = "x86_64-unknown-linux-gnu")]
-    pub x86_64_linux: RiffInputs,
-}
-
-#[derive(Default, Deserialize)]
-#[serde(default, rename_all = "kebab-case")]
-pub struct RiffInputs {
-    pub native_build_inputs: Vec<String>,
-    pub build_inputs: Vec<String>,
-}
-
-pub async fn get_riff_registry() -> Option<RiffRegistry> {
-    reqwest::get("https://registry.riff.determinate.systems/riff-registry.json")
-        .await
-        .ok_warn()?
-        .json()
-        .await
-        .ok_warn()
 }
 
 pub fn write_all_lambda_inputs(

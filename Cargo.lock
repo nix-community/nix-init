@@ -1741,7 +1741,6 @@ dependencies = [
  "once_cell",
  "owo-colors",
  "parse-display",
- "paste",
  "pep-508",
  "rayon",
  "regex",
