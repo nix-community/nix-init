@@ -42,6 +42,7 @@ pub(super) fn load_rust_depenendency(inputs: &mut AllInputs, pkg: &CargoPackage)
 
     match pkg.name.as_str() {
         "alsa-sys" => build!("alsa-lib"),
+        "arboard" => framework!("AppKit"),
         "ash" => build!("vulkan-loader"),
         "atk-sys" => build!("atk"),
         "bindgen" => native_build!("rustPlatform.bindgenHook"),
