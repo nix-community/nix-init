@@ -96,6 +96,10 @@ pub(super) fn load_rust_depenendency(inputs: &mut AllInputs, pkg: &CargoPackage)
         "libadwaita-sys" => build!("libadwaita"),
         "libdbus-sys" => build!("dbus"),
         "libgit2-sys" => build!("libgit2"),
+        "libgpg-error-sys" => {
+            native_build!("libgpg-error");
+            build!("libgpg-error")
+        }
         "libpulse-sys" => build!("libpulseaudio"),
         "libshumate-sys" => build!("libshumate"),
         "libsodium-sys" => build!("libsodium"),
