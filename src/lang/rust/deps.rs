@@ -62,6 +62,10 @@ pub(super) fn load_rust_depenendency(inputs: &mut AllInputs, pkg: &CargoPackage)
         "gdk-sys" => build!("gtk3"),
         "gdk4-sys" => build!("gtk4"),
         "glib-sys" => build!("glib"),
+        "gpgme-sys" => {
+            native_build!("gpgme");
+            build!("gpgme")
+        }
         "gsk4-sys" => build!("gtk4"),
         "gstreamer-allocators-sys" => gst!("gst-plugins-base"),
         "gstreamer-app-sys" => gst!("gst-plugins-base"),
