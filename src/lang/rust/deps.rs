@@ -49,6 +49,7 @@ pub(super) fn load_rust_depenendency(inputs: &mut AllInputs, pkg: &CargoPackage)
         "cairo-sys-rs" => build!("cairo"),
         "cocoa" => framework!("AppKit"),
         "cocoa-foundation" => framework!("Foundation"),
+        "copypasta" => framework!("AppKit"),
         "core-foundation-sys" => framework!("CoreFoundation"),
         "core-graphics-types" => framework!("CoreGraphics"),
         "core-text" => framework!("CoreText"),
