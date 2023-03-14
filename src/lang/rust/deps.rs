@@ -47,6 +47,7 @@ pub(super) fn load_rust_depenendency(inputs: &mut AllInputs, pkg: &CargoPackage)
         "bindgen" => native_build!("rustPlatform.bindgenHook"),
         "bzip2-sys" => build!("bzip2"),
         "cairo-sys-rs" => build!("cairo"),
+        "clipboard" => framework!("AppKit"),
         "cocoa" => framework!("AppKit"),
         "cocoa-foundation" => framework!("Foundation"),
         "copypasta" => framework!("AppKit"),
