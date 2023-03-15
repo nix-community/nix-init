@@ -104,9 +104,11 @@ pub(super) fn load_rust_depenendency(inputs: &mut AllInputs, pkg: &CargoPackage)
             build!("libgpg-error")
         }
         "libpulse-sys" => build!("libpulseaudio"),
+        "libsecret-sys" => build!("libsecret"),
         "libshumate-sys" => build!("libshumate"),
         "libsodium-sys" => build!("libsodium"),
         "libsodium-sys-stable" => build!("libsodium"),
+        "libspa-sys" => build!("pipewire"),
         "libsqlite3-sys" => build!("sqlite"),
         "libudev-sys" => build!("udev"),
         "libusb1-sys" => build!("libusb"),
@@ -123,6 +125,7 @@ pub(super) fn load_rust_depenendency(inputs: &mut AllInputs, pkg: &CargoPackage)
         }
         "pam-sys" => build!("pam"),
         "pango-sys" => build!("pango"),
+        "pipewire-sys" => build!("pipewire"),
         "pkg-config" => native_build!("pkg-config"),
         "pq-sys" => build!("postgresql"),
         "prost-build" => native_build!("protobuf"),
@@ -132,6 +135,7 @@ pub(super) fn load_rust_depenendency(inputs: &mut AllInputs, pkg: &CargoPackage)
         "servo-fontconfig-sys" => build!("fontconfig"),
         "smithay-client-toolkit" => build!("libxkbcommon"),
         "soup3-sys" => build!("libsoup"),
+        "sourceview5-sys" => build!("gtksourceview5"),
         "spirv-tools-sys" => build!("spirv-tools"),
         "sys-locale" => framework!("CoreFoundation"),
         "sysinfo" => framework!("IOKit"),
