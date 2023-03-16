@@ -56,7 +56,7 @@ pub async fn get_package_info(cl: &Client, pname: &str) -> PackageInfo {
         };
     };
 
-    for (version, format) in project
+    for (pname, version, format) in project
         .releases
         .into_iter()
         .filter_map(|(version, releases)| {
@@ -65,24 +65,31 @@ pub async fn get_package_info(cl: &Client, pname: &str) -> PackageInfo {
                 if release.yanked || release.packagetype != "sdist" {
                     continue;
                 }
-                if release.filename.ends_with(".tar.gz") {
-                    return Some((version, release.upload_time, PypiFormat::TarGz));
+                if let Some(pname) = get_pname(&release, &version, ".tar.gz") {
+                    return Some((
+                        pname.into(),
+                        version,
+                        release.upload_time,
+                        PypiFormat::TarGz,
+                    ));
                 }
-                if zip.is_none() && release.filename.ends_with(".zip") {
-                    zip = Some(release.upload_time);
+                if zip.is_none() {
+                    if let Some(pname) = get_pname(&release, &version, ".zip") {
+                        zip = Some((pname.into(), release.upload_time));
+                    }
                 }
             }
-            zip.map(|time| (version, time, PypiFormat::Zip))
+            zip.map(|(pname, time)| (pname, version, time, PypiFormat::Zip))
         })
-        .sorted_unstable_by_key(|(_, time, _)| *time)
-        .map(|(version, _, format)| (version, format))
+        .sorted_unstable_by_key(|(_, _, time, _)| *time)
+        .map(|(pname, version, _, format)| (pname, version, format))
         .rev()
     {
         completions.push(Pair {
             display: format!("{version} ({format})"),
             replacement: version.clone(),
         });
-        versions.insert(version, Version::Pypi { format });
+        versions.insert(version, Version::Pypi { pname, format });
     }
 
     PackageInfo {
@@ -102,4 +109,12 @@ pub async fn get_package_info(cl: &Client, pname: &str) -> PackageInfo {
             versions,
         },
     }
+}
+
+fn get_pname<'a>(release: &'a Release, version: &str, ext: &'static str) -> Option<&'a str> {
+    release
+        .filename
+        .strip_suffix(ext)?
+        .strip_suffix(version)?
+        .strip_suffix('-')
 }

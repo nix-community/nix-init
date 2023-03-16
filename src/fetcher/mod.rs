@@ -56,7 +56,7 @@ fn default_gitlab_domain() -> String {
 pub enum Version {
     Latest,
     Tag,
-    Pypi { format: PypiFormat },
+    Pypi { pname: String, format: PypiFormat },
     Head { date: String, msg: String },
     Commit { date: String, msg: String },
 }
@@ -124,7 +124,7 @@ impl Fetcher {
         }
     }
 
-    pub async fn get_package_info(&self, cl: &Client) -> PackageInfo {
+    pub async fn get_package_info(&mut self, cl: &Client) -> PackageInfo {
         match self {
             Fetcher::FetchCrate { pname } => crates_io::get_package_info(cl, pname).await,
             Fetcher::FetchFromGitHub {
@@ -143,7 +143,7 @@ impl Fetcher {
                 owner,
                 repo,
             } => gitea::get_package_info(cl, domain, owner, repo).await,
-            Fetcher::FetchPypi { pname } => pypi::get_package_info(cl, pname).await,
+            Fetcher::FetchPypi { ref mut pname } => pypi::get_package_info(cl, pname).await,
         }
     }
 

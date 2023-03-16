@@ -149,7 +149,7 @@ async fn run() -> Result<()> {
         }
     };
 
-    let fetcher = serde_json::from_slice(
+    let mut fetcher = serde_json::from_slice(
         &Command::new("nurl")
             .arg(&url)
             .arg("-p")
@@ -161,7 +161,7 @@ async fn run() -> Result<()> {
     let mut licenses = BTreeMap::new();
     let mut pypi_format = PypiFormat::TarGz;
     let (pname, rev, version, desc, prefix, mut python_deps) =
-        if let MaybeFetcher::Known(fetcher) = &fetcher {
+        if let MaybeFetcher::Known(ref mut fetcher) = &mut fetcher {
             let cl = fetcher.create_client(cfg.access_tokens).await?;
 
             let PackageInfo {
@@ -201,7 +201,13 @@ async fn run() -> Result<()> {
                 Some(Version::Latest | Version::Tag) => {
                     rev[rev.find(char::is_numeric).unwrap_or_default() ..].into()
                 }
-                Some(Version::Pypi { format }) => {
+                Some(Version::Pypi {
+                    pname: pypi_pname,
+                    format,
+                }) => {
+                    if let Fetcher::FetchPypi { ref mut pname } = fetcher {
+                        *pname = pypi_pname;
+                    }
                     pypi_format = format;
                     rev.clone()
                 }
@@ -249,14 +255,13 @@ async fn run() -> Result<()> {
         .or(cfg.nixpkgs)
         .unwrap_or_else(|| "<nixpkgs>".into());
     let mut cmd = Command::new("nurl");
-    cmd.arg(&url).arg(&rev).arg("-n").arg(&nixpkgs);
+    cmd.arg("-n").arg(&nixpkgs);
 
     let src_expr = {
         match fetcher {
             MaybeFetcher::Known(Fetcher::FetchCrate { pname: ref name }) => {
-                let hash = String::from_utf8(cmd.arg("-H").get_stdout().await?)
+                let hash = String::from_utf8(cmd.arg(&url).arg(&rev).arg("-H").get_stdout().await?)
                     .context("failed to parse nurl output")?;
-                let hash = hash.trim_end();
 
                 if &pname == name {
                     formatdoc!(
@@ -279,17 +284,21 @@ async fn run() -> Result<()> {
             }
 
             MaybeFetcher::Known(Fetcher::FetchPypi { pname: ref name }) => {
+                cmd.arg("-H");
                 let mut ext = String::new();
                 if !matches!(pypi_format, PypiFormat::TarGz) {
                     write!(ext, "\n    extension = \"{pypi_format}\";")?;
                     cmd.arg("-A").arg("extension").arg(pypi_format.to_string());
                 }
 
-                let hash = String::from_utf8(cmd.arg("-H").get_stdout().await?)
-                    .context("failed to parse nurl output")?;
-                let hash = hash.trim_end();
-
                 if &pname == name {
+                    let hash = String::from_utf8(
+                        cmd.arg(format!("https://pypi.org/project/{name}"))
+                            .arg(&rev)
+                            .get_stdout()
+                            .await?,
+                    )
+                    .context("failed to parse nurl output")?;
                     formatdoc!(
                         r#"
                         fetchPypi {{
@@ -298,6 +307,13 @@ async fn run() -> Result<()> {
                           }}"#,
                     )
                 } else {
+                    let hash = String::from_utf8(
+                        cmd.arg(format!("https://pypi.org/project/{name}"))
+                            .arg(&rev)
+                            .get_stdout()
+                            .await?,
+                    )
+                    .context("failed to parse nurl output")?;
                     formatdoc!(
                         r#"
                         fetchPypi {{
@@ -318,8 +334,15 @@ async fn run() -> Result<()> {
                         .arg(rev.replacen(&version, "${version}", 1));
                 }
 
-                String::from_utf8(cmd.arg("-i").arg("2").get_stdout().await?)
-                    .context("failed to parse nurl output")?
+                String::from_utf8(
+                    cmd.arg(&url)
+                        .arg(&rev)
+                        .arg("-i")
+                        .arg("2")
+                        .get_stdout()
+                        .await?,
+                )
+                .context("failed to parse nurl output")?
             }
         }
     };
