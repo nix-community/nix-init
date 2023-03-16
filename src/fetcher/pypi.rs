@@ -118,3 +118,24 @@ fn get_pname<'a>(release: &'a Release, version: &str, ext: &'static str) -> Opti
         .strip_suffix(version)?
         .strip_suffix('-')
 }
+
+#[cfg(test)]
+mod tests {
+    use time::OffsetDateTime;
+
+    use super::{get_pname, Release};
+
+    #[test]
+    fn basic() {
+        let release = Release {
+            filename: "foo-bar-0.1.0.tar.gz".into(),
+            packagetype: "sdist".into(),
+            upload_time: OffsetDateTime::from_unix_timestamp(0).unwrap(),
+            yanked: false,
+        };
+
+        assert_eq!(get_pname(&release, "0.1.0", ".tar.gz"), Some("foo-bar"));
+        assert_eq!(get_pname(&release, "0.1.0", ".zip"), None);
+        assert_eq!(get_pname(&release, "0.2.0", ".tar.gz"), None);
+    }
+}
