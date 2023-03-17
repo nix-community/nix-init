@@ -1,6 +1,8 @@
-use crate::{inputs::AllInputs, lang::rust::CargoPackage};
+use cargo::core::{PackageId, Resolve};
 
-pub(super) fn load_rust_depenendency(inputs: &mut AllInputs, pkg: &CargoPackage) {
+use crate::inputs::AllInputs;
+
+pub(super) fn load_rust_depenendency(inputs: &mut AllInputs, _: &Resolve, pkg: PackageId) {
     macro_rules! input {
         ($key:ident: $($input:expr),+) => {
             input!($key: $($input),+; always)
@@ -40,7 +42,7 @@ pub(super) fn load_rust_depenendency(inputs: &mut AllInputs, pkg: &CargoPackage)
         };
     }
 
-    match pkg.name.as_str() {
+    match &*pkg.name() {
         "alsa-sys" => build!("alsa-lib"),
         "arboard" => framework!("AppKit"),
         "ash" => build!("vulkan-loader"),

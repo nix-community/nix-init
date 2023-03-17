@@ -5,17 +5,16 @@ use cargo::{
     core::{
         registry::PackageRegistry,
         resolver::{CliFeatures, HasDevUnits},
-        Shell, Workspace,
+        Resolve, Shell, Workspace,
     },
-    ops::{resolve_to_string, resolve_with_previous},
+    ops::{load_pkg_lockfile, resolve_to_string, resolve_with_previous},
     util::homedir,
     Config,
 };
 use indoc::writedoc;
+use itertools::Itertools;
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
-use regex::Regex;
 use rustyline::{history::History, Editor, Helper};
-use serde::Deserialize;
 use std::process::Command;
 use tracing::error;
 
@@ -23,7 +22,7 @@ use std::{
     collections::BTreeMap,
     fmt::{Display, Write},
     fs::File,
-    io::{self, Read, Seek, Write as _},
+    io::{self, Write as _},
     path::Path,
 };
 
@@ -34,18 +33,6 @@ use crate::{
     utils::{fod_hash, CommandExt, ResultExt, FAKE_HASH},
 };
 
-#[derive(Deserialize)]
-pub struct CargoLock {
-    package: Vec<CargoPackage>,
-}
-
-#[derive(Deserialize)]
-struct CargoPackage {
-    name: String,
-    version: String,
-    source: Option<String>,
-}
-
 pub async fn cargo_deps_hash(
     inputs: &mut AllInputs,
     pname: impl Display,
@@ -54,13 +41,13 @@ pub async fn cargo_deps_hash(
     src_dir: &Path,
     nixpkgs: &str,
 ) -> String {
-    if let Ok(lock) = File::open(src_dir.join("Cargo.lock")) {
-        let (hash, ()) = tokio::join!(
+    if src_dir.join("Cargo.lock").exists() {
+        let (hash, _) = tokio::join!(
             fod_hash(format!(
                 r#"(import({nixpkgs}){{}}).rustPlatform.fetchCargoTarball{{name="{pname}-{version}";src={src};hash="{FAKE_HASH}";}}"#,
             )),
             async {
-                if let Some(lock) = parse_cargo_lock(lock).await {
+                if let Some(lock) = resolve_workspace(src_dir) {
                     load_rust_dependencies(inputs, &lock);
                 }
             }
@@ -76,53 +63,44 @@ pub async fn load_cargo_lock(
     out_dir: &Path,
     inputs: &mut AllInputs,
     src_dir: &Path,
-) -> Result<(bool, Option<CargoLock>)> {
+) -> Result<(bool, Option<Resolve>)> {
     let target = &out_dir.join("Cargo.lock");
-    let (missing, lock) = match File::open(target) {
-        Ok(file) if ask_overwrite(editor, target)? => (
+    let (missing, resolve) = match File::open(target) {
+        Ok(_) if ask_overwrite(editor, target)? => (
             !src_dir.join("Cargo.lock").exists(),
-            parse_cargo_lock(file).await,
+            resolve_workspace(src_dir),
         ),
         _ => {
             if let Ok(mut lock) = File::open(src_dir.join("Cargo.lock")) {
-                if let Err(e) = File::create(target).and_then(|mut target| {
-                    let res = io::copy(&mut lock, &mut target);
-                    lock.rewind()?;
-                    res
-                }) {
+                if let Err(e) =
+                    File::create(target).and_then(|mut target| io::copy(&mut lock, &mut target))
+                {
                     error!(
                         "{}",
                         anyhow!(e)
                             .context(format!("Failed to copy lock file to {}", target.display())),
                     );
                 }
-                (false, parse_cargo_lock(lock).await)
+
+                (false, resolve_workspace(src_dir))
             } else {
-                let lock = File::create(target)
+                let resolve = File::create(target)
                     .map_err(anyhow::Error::from)
                     .and_then(|mut target| {
-                        let cfg = Config::new(
-                            Shell::new(),
-                            src_dir.into(),
-                            homedir(src_dir).context("a")?,
-                        );
+                        let cfg = cargo_config(src_dir)?;
                         let ws = Workspace::new(&src_dir.join("Cargo.toml"), &cfg)?;
-                        let lock = resolve_to_string(
+                        let mut resolve = resolve_with_previous(
+                            &mut PackageRegistry::new(&cfg)?,
                             &ws,
-                            &mut resolve_with_previous(
-                                &mut PackageRegistry::new(&cfg)?,
-                                &ws,
-                                &CliFeatures::new_all(true),
-                                HasDevUnits::Yes,
-                                None,
-                                None,
-                                &[],
-                                true,
-                            )?,
+                            &CliFeatures::new_all(true),
+                            HasDevUnits::Yes,
+                            None,
+                            None,
+                            &[],
+                            true,
                         )?;
-
-                        write!(target, "{lock}")?;
-                        toml::from_str(&lock).map_err(Into::into)
+                        write!(target, "{}", resolve_to_string(&ws, &mut resolve)?)?;
+                        Ok(resolve)
                     })
                     .map_err(|e| {
                         error!(
@@ -134,44 +112,46 @@ pub async fn load_cargo_lock(
                         );
                     })
                     .ok();
-                (true, lock)
+                (true, resolve)
             }
         }
     };
 
-    if let Some(lock) = &lock {
+    if let Some(lock) = &resolve {
         load_rust_dependencies(inputs, lock);
     }
 
-    Ok((missing, lock))
+    Ok((missing, resolve))
 }
 
 pub async fn write_cargo_lock(
     out: &mut impl Write,
     missing: bool,
-    lock: Option<CargoLock>,
+    resolve: Option<Resolve>,
 ) -> Result<()> {
     writeln!(out, "{{\n    lockFile = ./Cargo.lock;")?;
 
-    if let (Some(lock), Some(re)) = (
-        lock,
-        Regex::new(r"^git\+([^?]+)(\?(rev|tag|branch)=(.*))?#(.*)$").ok_warn(),
-    ) {
-        let hashes: BTreeMap<_, _> = lock
-            .package
+    if let Some(resolve) = resolve {
+        let hashes: BTreeMap<_, _> = resolve
+            .iter()
+            .collect_vec()
             .into_par_iter()
             .filter_map(|pkg| {
-                let source = pkg.source?;
-                let m = re.captures(&source)?;
+                let src = pkg.source_id();
+                let rev = src.precise()?;
+                if !src.is_git() {
+                    return None;
+                }
+
                 let hash = Command::new("nurl")
-                    .arg(m.get(1)?.as_str())
-                    .arg(m.get(5)?.as_str())
+                    .arg(src.as_url().to_string())
+                    .arg(rev)
                     .arg("-Hf")
                     .arg("fetchgit")
                     .get_stdout()
                     .ok_warn()?;
                 let hash = String::from_utf8(hash).ok_warn()?;
-                Some((format!("{}-{}", pkg.name, pkg.version), hash))
+                Some((format!("{}-{}", pkg.name(), pkg.version()), hash))
             })
             .collect();
 
@@ -202,14 +182,38 @@ pub async fn write_cargo_lock(
     Ok(())
 }
 
-async fn parse_cargo_lock(mut file: impl Read) -> Option<CargoLock> {
-    let mut buf = String::new();
-    file.read_to_string(&mut buf).ok_warn()?;
-    toml::from_str(&buf).ok_warn()
+fn resolve_workspace(src_dir: &Path) -> Option<Resolve> {
+    let mut cfg = cargo_config(src_dir).ok_error()?;
+    cfg.configure(0, false, None, false, true, false, &None, &[], &[])
+        .ok_error()?;
+
+    let ws = Workspace::new(&src_dir.join("Cargo.toml"), &cfg).ok_error()?;
+    let lock = load_pkg_lockfile(&ws).ok_error()?;
+    let mut registry = PackageRegistry::new(&cfg).ok_error()?;
+
+    resolve_with_previous(
+        &mut registry,
+        &ws,
+        &CliFeatures::new_all(true),
+        HasDevUnits::Yes,
+        Some(&lock?),
+        None,
+        &[],
+        true,
+    )
+    .ok_error()
 }
 
-fn load_rust_dependencies(inputs: &mut AllInputs, lock: &CargoLock) {
-    for pkg in &lock.package {
-        load_rust_depenendency(inputs, pkg);
+fn cargo_config(src_dir: &Path) -> Result<Config> {
+    Ok(Config::new(
+        Shell::new(),
+        src_dir.into(),
+        homedir(src_dir).context("failed to find cargo home")?,
+    ))
+}
+
+fn load_rust_dependencies(inputs: &mut AllInputs, resolve: &Resolve) {
+    for pkg in resolve.iter() {
+        load_rust_depenendency(inputs, resolve, pkg);
     }
 }

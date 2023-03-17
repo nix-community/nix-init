@@ -1,6 +1,6 @@
 use anyhow::{bail, Result};
 use tokio::process::Command;
-use tracing::{info, warn};
+use tracing::{error, info, warn};
 
 use std::{fmt::Display, future::Future, io::BufRead, pin::Pin, process::Output};
 
@@ -10,6 +10,7 @@ pub trait ResultExt {
     type Output;
 
     fn ok_warn(self) -> Option<Self::Output>;
+    fn ok_error(self) -> Option<Self::Output>;
 }
 
 impl<T, E: Display> ResultExt for Result<T, E> {
@@ -17,6 +18,10 @@ impl<T, E: Display> ResultExt for Result<T, E> {
 
     fn ok_warn(self) -> Option<Self::Output> {
         self.map_err(|e| warn!("{e}")).ok()
+    }
+
+    fn ok_error(self) -> Option<Self::Output> {
+        self.map_err(|e| error!("{e}")).ok()
     }
 }
 

@@ -11,6 +11,7 @@ mod utils;
 use anyhow::{Context, Result};
 use askalono::{IdentifiedLicense, ScanResult, ScanStrategy, TextData};
 use bstr::{ByteSlice, ByteVec};
+use cargo::core::Resolve;
 use clap::Parser;
 use expand::expand;
 use flate2::read::GzDecoder;
@@ -45,7 +46,7 @@ use crate::{
     lang::{
         go::write_ldflags,
         python::{parse_requirements_txt, Pyproject},
-        rust::{cargo_deps_hash, load_cargo_lock, write_cargo_lock, CargoLock},
+        rust::{cargo_deps_hash, load_cargo_lock, write_cargo_lock},
     },
     license::{get_nix_license, LICENSE_STORE},
     prompt::{ask_overwrite, prompt, Prompter},
@@ -573,7 +574,7 @@ async fn run() -> Result<()> {
         } => {
             enum RustVendorData {
                 Hash(String),
-                Lock(bool, Option<CargoLock>),
+                Lock(bool, Option<Resolve>),
                 None,
             }
             let rust = match rust {
@@ -583,9 +584,9 @@ async fn run() -> Result<()> {
                 Some(RustVendor::ImportCargoLock) => {
                     if let Some(out_dir) = out_dir {
                         editor.set_helper(None);
-                        let (missing, lock) =
+                        let (missing, resolve) =
                             load_cargo_lock(&mut editor, out_dir, &mut inputs, &src_dir).await?;
-                        RustVendorData::Lock(missing, lock)
+                        RustVendorData::Lock(missing, resolve)
                     } else {
                         RustVendorData::Lock(false, None)
                     }
