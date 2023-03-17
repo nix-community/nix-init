@@ -78,7 +78,7 @@ features = ["macros", "process", "rt-multi-thread"]
 [build-dependencies]
 clap = { version = "4.1.9", features = ["derive"] }
 clap_complete = "4.1.4"
-clap_mangen = "0.2.9"
+clap_mangen = "0.2.10"
 
 [features]
 default = ["vendored", "reqwest/rustls-tls"]
