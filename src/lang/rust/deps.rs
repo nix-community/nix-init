@@ -116,7 +116,21 @@ pub(super) fn load_rust_depenendency(inputs: &mut AllInputs, resolve: &Resolve, 
         "libudev-sys" => build!("udev"),
         "libusb1-sys" => build!("libusb"),
         "libxml" => build!("libxml2"),
-        "libz-sys" => build!("zlib"),
+        "libz-sys" => {
+            let mut ng = false;
+            let mut stock = false;
+            for feat in resolve.features(pkg) {
+                match &**feat {
+                    "static" => return,
+                    "stock-zlib" => stock = true,
+                    "zlib-ng" => ng = true,
+                    _ => {}
+                }
+            }
+            if stock || !ng {
+                build!("zlib");
+            }
+        }
         "lzma-sys" => build!("xz"),
         "metal" => framework!("Metal"),
         "ncurses" => build!("ncurses"),
