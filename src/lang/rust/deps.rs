@@ -1,8 +1,9 @@
 use cargo::core::{PackageId, Resolve};
+use semver::Version;
 
 use crate::inputs::AllInputs;
 
-pub(super) fn load_rust_depenendency(inputs: &mut AllInputs, _: &Resolve, pkg: PackageId) {
+pub(super) fn load_rust_depenendency(inputs: &mut AllInputs, resolve: &Resolve, pkg: PackageId) {
     macro_rules! input {
         ($key:ident: $($input:expr),+) => {
             input!($key: $($input),+; always)
@@ -153,7 +154,18 @@ pub(super) fn load_rust_depenendency(inputs: &mut AllInputs, _: &Resolve, pkg: P
         "xkbcommon-sys" => build!("libxkbcommon"),
         "yeslogic-fontconfig-sys" => build!("fontconfig"),
         "zmq-sys" => build!("zeromq"),
-        "zstd-sys" => build!("zstd"),
+        "zstd-sys" => {
+            if resolve
+                .features(pkg)
+                .iter()
+                .any(|feat| feat == "pkg-config")
+            {
+                build!("zstd");
+            } else if pkg.version() >= &Version::new(2, 0, 5) {
+                build!("zstd");
+                inputs.env.insert("ZSTD_SYS_USE_PKG_CONFIG", "true");
+            }
+        }
         _ => {}
     }
 }

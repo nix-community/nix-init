@@ -865,6 +865,13 @@ async fn run() -> Result<()> {
         _ => {}
     }
 
+    if !inputs.env.is_empty() {
+        for (k, v) in inputs.env {
+            writeln!(out, "  {k} = {v};")?;
+        }
+        writeln!(out)?;
+    }
+
     let desc = desc
         .trim_start_matches(|c: char| !c.is_alphanumeric())
         .trim_end();

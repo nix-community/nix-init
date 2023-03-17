@@ -1,11 +1,15 @@
 use anyhow::Result;
 
-use std::{collections::BTreeSet, fmt::Write};
+use std::{
+    collections::{BTreeMap, BTreeSet},
+    fmt::Write,
+};
 
 #[derive(Default)]
 pub struct AllInputs {
     pub native_build_inputs: Inputs,
     pub build_inputs: Inputs,
+    pub env: BTreeMap<&'static str, &'static str>,
 }
 
 #[derive(Default, Debug)]
