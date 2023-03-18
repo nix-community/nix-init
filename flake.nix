@@ -1,7 +1,7 @@
 {
   inputs = {
     crane = {
-      url = "github:ipetkov/crane";
+      url = "github:figsoda/crane/parsed";
       inputs.flake-utils.follows = "flake-utils";
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.flake-compat.follows = "";
@@ -41,7 +41,6 @@
         callPackage
         curl
         darwin
-        formats
         installShellFiles
         libgit2
         libiconv
@@ -167,14 +166,13 @@
             ];
           in
           cargoNextest (args // {
-            cargoLock = (formats.toml { }).generate "Cargo.lock"
-              (importTOML lock // {
-                package = attrValues (concatMapAttrs
-                  (name: _: optionalAttrs
-                    (hasSuffix "-lock.toml" name)
-                    (getPackages (fixtures + "/${name}")))
-                  (readDir fixtures) // getPackages lock);
-              });
+            cargoLockParsed = importTOML lock // {
+              package = attrValues (getPackages lock // concatMapAttrs
+                (name: _: optionalAttrs
+                  (hasSuffix "-lock.toml" name)
+                  (getPackages (fixtures + "/${name}")))
+                (readDir fixtures));
+            };
           });
       };
 
