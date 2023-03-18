@@ -135,7 +135,10 @@ pub(super) fn load_rust_depenendency(inputs: &mut AllInputs, resolve: &Resolve, 
         "metal" => framework!("Metal"),
         "ncurses" => build!("ncurses"),
         "nettle-sys" => build!("nettle"),
-        "onig_sys" => build!("oniguruma"),
+        "onig_sys" => {
+            build!("oniguruma");
+            inputs.env.insert("RUSTONIG_SYSTEM_LIBONIG", "true");
+        }
         "openssl-sys" => {
             build!("openssl");
             framework!("Security");
