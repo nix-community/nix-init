@@ -872,18 +872,16 @@ async fn run() -> Result<()> {
         writeln!(out)?;
     }
 
-    let desc = desc
-        .trim_start_matches(|c: char| !c.is_alphanumeric())
-        .trim_end();
+    let mut desc = desc.trim_matches(|c: char| !c.is_alphanumeric()).to_owned();
+    desc.get_mut(0 .. 1).map(str::make_ascii_uppercase);
     write!(out, "  ")?;
     writedoc!(
         out,
         r"
             meta = with lib; {{
-                description = {:?};
+                description = {desc:?};
                 homepage = {url:?};
         ",
-        desc.strip_suffix('.').unwrap_or(desc),
     )?;
 
     if let Some(prefix) = prefix {
