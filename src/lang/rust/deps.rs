@@ -142,6 +142,9 @@ pub(super) fn load_rust_depenendency(inputs: &mut AllInputs, resolve: &Resolve, 
         "openssl-sys" => {
             build!("openssl");
             framework!("Security");
+            if resolve.features(pkg).iter().any(|feat| feat == "vendored") {
+                inputs.env.insert("OPENSSL_NO_VENDOR", "true");
+            }
         }
         "pam-sys" => build!("pam"),
         "pango-sys" => build!("pango"),
