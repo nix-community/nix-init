@@ -1,0 +1,9 @@
+[package]
+name = "zstd-pkg-config"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+zstd = { version = "0.12.3", features = ["pkg-config"] }
+zstd-sys = "=2.0.4"

@@ -80,6 +80,11 @@ clap = { version = "4.1.9", features = ["derive"] }
 clap_complete = "4.1.5"
 clap_mangen = "0.2.10"
 
+[dev-dependencies]
+heck = "0.4.1"
+insta = "1.28.0"
+tempfile = "3.4.0"
+
 [features]
 default = ["vendored", "reqwest/rustls-tls"]
 vendored = ["cargo/vendored-libgit2", "cargo/vendored-openssl"]

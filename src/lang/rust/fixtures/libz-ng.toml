@@ -1,0 +1,8 @@
+[package]
+name = "libz-ng"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+libz-sys = { version = "1.1.8", default-features = false, features = ["zlib-ng"] }

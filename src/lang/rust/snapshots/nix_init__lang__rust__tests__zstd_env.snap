@@ -1,0 +1,31 @@
+---
+source: src/lang/rust/tests.rs
+expression: run(stringify!(zstd_env))
+---
+AllInputs {
+    native_build_inputs: Inputs {
+        always: {
+            "pkg-config",
+        },
+        darwin: {},
+        aarch64_darwin: {},
+        x86_64_darwin: {},
+        linux: {},
+        aarch64_linux: {},
+        x86_64_linux: {},
+    },
+    build_inputs: Inputs {
+        always: {
+            "zstd",
+        },
+        darwin: {},
+        aarch64_darwin: {},
+        x86_64_darwin: {},
+        linux: {},
+        aarch64_linux: {},
+        x86_64_linux: {},
+    },
+    env: {
+        "ZSTD_SYS_USE_PKG_CONFIG": "true",
+    },
+}

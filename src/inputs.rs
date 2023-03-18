@@ -5,7 +5,7 @@ use std::{
     fmt::Write,
 };
 
-#[derive(Default)]
+#[derive(Debug, Default)]
 pub struct AllInputs {
     pub native_build_inputs: Inputs,
     pub build_inputs: Inputs,

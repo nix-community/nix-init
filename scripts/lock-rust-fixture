@@ -1,0 +1,11 @@
+#!/bin/sh
+
+set -eu
+
+dir=$(mktemp -d)
+cp "src/lang/rust/fixtures/$1.toml" "$dir/Cargo.toml"
+mkdir "$dir/src"
+touch "$dir/src/lib.rs"
+cargo generate-lockfile --manifest-path "$dir/Cargo.toml"
+cp "$dir/Cargo.lock" "src/lang/rust/fixtures/$1-lock.toml"
+rm -r "$dir"

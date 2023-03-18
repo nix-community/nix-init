@@ -1,4 +1,6 @@
 mod deps;
+#[cfg(test)]
+mod tests;
 
 use anyhow::{anyhow, Context, Result};
 use cargo::{

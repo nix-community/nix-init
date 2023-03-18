@@ -1,0 +1,9 @@
+[package]
+name = "zstd-old"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+zstd = "0.12.3"
+zstd-sys = "=2.0.4"
