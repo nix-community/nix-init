@@ -109,8 +109,16 @@ pub(super) fn load_rust_depenendency(inputs: &mut AllInputs, resolve: &Resolve, 
         "libpulse-sys" => build!("libpulseaudio"),
         "libsecret-sys" => build!("libsecret"),
         "libshumate-sys" => build!("libshumate"),
-        "libsodium-sys" => build!("libsodium"),
-        "libsodium-sys-stable" => build!("libsodium"),
+        "libsodium-sys" | "libsodium-sys-stable" => {
+            build!("libsodium");
+            if resolve
+                .features(pkg)
+                .iter()
+                .all(|feat| feat != "use-pkg-config")
+            {
+                inputs.env.insert("SODIUM_USE_PKG_CONFIG", "true");
+            }
+        }
         "libspa-sys" => build!("pipewire"),
         "libsqlite3-sys" => build!("sqlite"),
         "libudev-sys" => build!("udev"),
