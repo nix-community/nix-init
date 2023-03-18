@@ -23,6 +23,12 @@
     ];
   } // flake-utils.lib.eachDefaultSystem (system:
     let
+      inherit (builtins)
+        attrValues
+        getAttr
+        listToAttrs
+        readDir
+        ;
       inherit (crane.lib.${system}.overrideToolchain fenix.packages.${system}.default.toolchain)
         buildDepsOnly
         buildPackage
@@ -35,11 +41,12 @@
         callPackage
         curl
         darwin
+        formats
         installShellFiles
         libgit2
+        libiconv
         makeWrapper
         mkShell
-        libiconv
         nix
         nixpkgs-fmt
         nurl
@@ -51,10 +58,17 @@
         zstd
         ;
       inherit (nixpkgs.lib)
+        concatMapAttrs
+        flip
+        hasSuffix
+        importTOML
         licenses
         maintainers
         makeBinPath
+        nameValuePair
+        optionalAttrs
         optionals
+        pipe
         sourceByRegex
         ;
 
@@ -140,7 +154,28 @@
           cargoClippyExtraArgs = "-- -D warnings";
         });
         fmt = cargoFmt (removeAttrs args [ "cargoExtraArgs" ]);
-        test = cargoNextest args;
+        test =
+          let
+            fixtures = src + "/src/lang/rust/fixtures";
+            lock = src + "/Cargo.lock";
+            getPackages = flip pipe [
+              importTOML
+              (getAttr "package")
+              (map ({ name, version, ... }@pkg:
+                nameValuePair "${name}-${version}" pkg))
+              listToAttrs
+            ];
+          in
+          cargoNextest (args // {
+            cargoLock = (formats.toml { }).generate "Cargo.lock"
+              (importTOML lock // {
+                package = attrValues (concatMapAttrs
+                  (name: _: optionalAttrs
+                    (hasSuffix "-lock.toml" name)
+                    (getPackages (fixtures + "/${name}")))
+                  (readDir fixtures) // getPackages lock);
+              });
+          });
       };
 
       devShells.default = mkShell {
