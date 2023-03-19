@@ -151,6 +151,15 @@ pub(super) fn load_rust_depenendency(inputs: &mut AllInputs, resolve: &Resolve, 
                 build!("zlib");
             }
         }
+        "llvm-sys" => {
+            let major = pkg.version().major;
+            let llvm_pkgs = format!("llvmPackages_{}", major / 10);
+            environ!(
+                format!("LLVM_SYS_{major}_PREFIX"),
+                format!("{llvm_pkgs}.llvm.dev");
+                llvm_pkgs,
+            );
+        }
         "lzma-sys" => build!("xz"),
         "metal" => framework!("Metal"),
         "ncurses" => build!("ncurses"),

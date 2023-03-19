@@ -1,0 +1,32 @@
+---
+source: src/lang/rust/tests.rs
+expression: run(stringify!(llvm))
+---
+AllInputs {
+    native_build_inputs: Inputs {
+        always: {},
+        darwin: {},
+        aarch64_darwin: {},
+        x86_64_darwin: {},
+        linux: {},
+        aarch64_linux: {},
+        x86_64_linux: {},
+    },
+    build_inputs: Inputs {
+        always: {},
+        darwin: {},
+        aarch64_darwin: {},
+        x86_64_darwin: {},
+        linux: {},
+        aarch64_linux: {},
+        x86_64_linux: {},
+    },
+    env: {
+        "LLVM_SYS_150_PREFIX": (
+            "llvmPackages_15.llvm.dev",
+            [
+                "llvmPackages_15",
+            ],
+        ),
+    },
+}

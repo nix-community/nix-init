@@ -22,6 +22,7 @@ tests! {
     libz_ng
     libz_static
     libz_stock
+    llvm
     zstd_env
     zstd_old
     zstd_pkg_config
