@@ -15,7 +15,7 @@ Generate Nix packages from URLs
 - Interactive prompts with fuzzy tab completions
 - License detection
 
-![](https://user-images.githubusercontent.com/40620903/215294082-81f7c171-c39a-47c3-8a28-0956fd7b9fa9.gif)
+![](https://user-images.githubusercontent.com/40620903/226211877-2d583d09-4fbc-4869-8248-6166edde21cc.gif)
 
 ## Installation
 
@@ -39,10 +39,10 @@ nix run --extra-experimental-features "flakes nix-command" github:nix-community/
 ## Usage
 
 ```
-Usage: nix-init [OPTIONS] <OUTPUT>
+Usage: nix-init [OPTIONS] [OUTPUT]
 
 Arguments:
-  <OUTPUT>  The path to output the generated file to
+  [OUTPUT]  The path or directory to output the generated file to
 
 Options:
   -u, --url <URL>          Specify the URL
