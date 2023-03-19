@@ -15,6 +15,18 @@ pub(super) fn load_rust_depenendency(inputs: &mut AllInputs, resolve: &Resolve, 
         }};
     }
 
+    macro_rules! environ {
+        ($name:expr, $value:expr) => {
+            environ!($name, $value;);
+        };
+        ($name:expr, $value:expr; $($tt:tt)*) => {
+            inputs.env.insert(
+                $name.into(),
+                ($value.into(), vec![$($tt)*]),
+            );
+        };
+    }
+
     // native build inputs
     macro_rules! native_build {
         ($($tt:tt)+) => {
@@ -116,7 +128,7 @@ pub(super) fn load_rust_depenendency(inputs: &mut AllInputs, resolve: &Resolve, 
                 .iter()
                 .all(|feat| feat != "use-pkg-config")
             {
-                inputs.env.insert("SODIUM_USE_PKG_CONFIG", "true");
+                environ!("SODIUM_USE_PKG_CONFIG", "true");
             }
         }
         "libspa-sys" => build!("pipewire"),
@@ -145,13 +157,13 @@ pub(super) fn load_rust_depenendency(inputs: &mut AllInputs, resolve: &Resolve, 
         "nettle-sys" => build!("nettle"),
         "onig_sys" => {
             build!("oniguruma");
-            inputs.env.insert("RUSTONIG_SYSTEM_LIBONIG", "true");
+            environ!("RUSTONIG_SYSTEM_LIBONIG", "true");
         }
         "openssl-sys" => {
             build!("openssl");
             framework!("Security");
             if resolve.features(pkg).iter().any(|feat| feat == "vendored") {
-                inputs.env.insert("OPENSSL_NO_VENDOR", "true");
+                environ!("OPENSSL_NO_VENDOR", "true");
             }
         }
         "pam-sys" => build!("pam"),
@@ -191,7 +203,7 @@ pub(super) fn load_rust_depenendency(inputs: &mut AllInputs, resolve: &Resolve, 
                 build!("zstd");
             } else if pkg.version() >= &Version::new(2, 0, 5) {
                 build!("zstd");
-                inputs.env.insert("ZSTD_SYS_USE_PKG_CONFIG", "true");
+                environ!("ZSTD_SYS_USE_PKG_CONFIG", "true");
             }
         }
         _ => {}

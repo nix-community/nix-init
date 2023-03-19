@@ -866,7 +866,7 @@ async fn run() -> Result<()> {
     }
 
     if !inputs.env.is_empty() {
-        for (k, v) in inputs.env {
+        for (k, (v, _)) in inputs.env {
             writeln!(out, "  {k} = {v};")?;
         }
         writeln!(out)?;

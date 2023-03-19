@@ -26,6 +26,9 @@ AllInputs {
         x86_64_linux: {},
     },
     env: {
-        "ZSTD_SYS_USE_PKG_CONFIG": "true",
+        "ZSTD_SYS_USE_PKG_CONFIG": (
+            "true",
+            [],
+        ),
     },
 }

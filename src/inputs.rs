@@ -1,6 +1,7 @@
 use anyhow::Result;
 
 use std::{
+    borrow::Cow,
     collections::{BTreeMap, BTreeSet},
     fmt::Write,
 };
@@ -9,7 +10,7 @@ use std::{
 pub struct AllInputs {
     pub native_build_inputs: Inputs,
     pub build_inputs: Inputs,
-    pub env: BTreeMap<&'static str, &'static str>,
+    pub env: BTreeMap<Cow<'static, str>, (Cow<'static, str>, Vec<String>)>,
 }
 
 #[derive(Default, Debug)]
@@ -28,10 +29,14 @@ pub fn write_all_lambda_inputs(
     inputs: &AllInputs,
     written: &mut BTreeSet<String>,
 ) -> Result<(bool, bool)> {
-    Ok((
-        write_lambda_inputs(out, written, &inputs.native_build_inputs)?,
-        write_lambda_inputs(out, written, &inputs.build_inputs)?,
-    ))
+    let native_build_inputs = write_lambda_inputs(out, written, &inputs.native_build_inputs)?;
+    let build_inputs = write_lambda_inputs(out, written, &inputs.build_inputs)?;
+    for input in inputs.env.values().flat_map(|(_, inputs)| inputs) {
+        if written.insert(input.clone()) {
+            writeln!(out, ", {input}")?;
+        }
+    }
+    Ok((native_build_inputs, build_inputs))
 }
 
 fn write_lambda_inputs(
