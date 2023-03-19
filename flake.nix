@@ -42,7 +42,7 @@
         curl
         darwin
         installShellFiles
-        libgit2
+        libgit2_1_5
         libiconv
         makeWrapper
         mkShell
@@ -118,7 +118,7 @@
         buildInputs = [
           bzip2
           curl
-          libgit2
+          libgit2_1_5
           openssl
           zlib
           zstd
