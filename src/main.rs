@@ -199,9 +199,7 @@ async fn run() -> Result<()> {
                 Some(version) => Some(version),
                 None => fetcher.get_version(&cl, &rev).await,
             } {
-                Some(Version::Latest | Version::Tag) => {
-                    rev[rev.find(char::is_numeric).unwrap_or_default() ..].into()
-                }
+                Some(Version::Latest | Version::Tag) => get_version_number(&rev).into(),
                 Some(Version::Pypi {
                     pname: pypi_pname,
                     format,
@@ -215,7 +213,7 @@ async fn run() -> Result<()> {
                 Some(Version::Head { date, .. } | Version::Commit { date, .. }) => {
                     format!("unstable-{date}")
                 }
-                None => "".into(),
+                None => get_version(&rev).into(),
             };
 
             editor.set_helper(Some(Prompter::NonEmpty));
@@ -235,14 +233,10 @@ async fn run() -> Result<()> {
             });
 
             editor.set_helper(Some(Prompter::NonEmpty));
-            (
-                pname,
-                editor.readline(&prompt("Enter tag or revision"))?,
-                editor.readline(&prompt("Enter version"))?,
-                "".into(),
-                None,
-                Default::default(),
-            )
+            let rev = editor.readline(&prompt("Enter tag or revision"))?;
+            let version = get_version(&rev);
+            let version = editor.readline_with_initial(&prompt("Enter version"), (version, ""))?;
+            (pname, rev, version, "".into(), None, Default::default())
         };
 
     let pname = if let Some(pname) = pname {
@@ -976,4 +970,16 @@ async fn run() -> Result<()> {
     write!(out_file, "{out}")?;
 
     Ok(())
+}
+
+fn get_version(rev: &str) -> &str {
+    if rev.len() == 40 {
+        "unstable"
+    } else {
+        get_version_number(rev)
+    }
+}
+
+fn get_version_number(rev: &str) -> &str {
+    &rev[rev.find(char::is_numeric).unwrap_or_default() ..]
 }
