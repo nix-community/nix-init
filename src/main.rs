@@ -393,12 +393,23 @@ async fn run() -> Result<()> {
 
     let mut choices = Vec::new();
     let has_cargo = src_dir.join("Cargo.toml").is_file();
+    let has_cargo_lock = src_dir.join("Cargo.lock").is_file();
     let has_cmake = src_dir.join("CMakeLists.txt").is_file();
     let has_go = src_dir.join("go.mod").is_file();
     let has_meson = src_dir.join("meson.build").is_file();
     let pyproject_toml = src_dir.join("pyproject.toml");
     let has_pyproject = pyproject_toml.is_file();
     let has_setuptools = src_dir.join("setup.py").is_file();
+
+    let rust_vendors = if has_cargo {
+        if has_cargo_lock {
+            &[RustVendor::FetchCargoTarball, RustVendor::ImportCargoLock]
+        } else {
+            &[RustVendor::ImportCargoLock, RustVendor::FetchCargoTarball]
+        }
+    } else {
+        &[] as &[_]
+    };
 
     if has_go {
         choices.push(BuildType::BuildGoModule);
@@ -412,21 +423,13 @@ async fn run() -> Result<()> {
         python_formats.push(PythonFormat::Setuptools);
     }
     if !python_formats.is_empty() {
-        for &rust in if has_cargo {
-            &[
-                Some(RustVendor::FetchCargoTarball),
-                Some(RustVendor::ImportCargoLock),
-                None,
-            ]
-        } else {
-            &[None] as &[_]
-        } {
+        for rust in rust_vendors.iter().map(Some).chain(Some(None)) {
             for &format in &python_formats {
                 for application in [true, false] {
                     choices.push(BuildType::BuildPythonPackage {
                         application,
                         format,
-                        rust,
+                        rust: rust.copied(),
                     });
                 }
             }
@@ -434,7 +437,7 @@ async fn run() -> Result<()> {
     }
 
     if has_cargo {
-        for vendor in [RustVendor::FetchCargoTarball, RustVendor::ImportCargoLock] {
+        for &vendor in rust_vendors {
             let drv = BuildType::MkDerivation { rust: Some(vendor) };
             let rust = BuildType::BuildRustPackage { vendor };
             choices.extend(if has_meson { [drv, rust] } else { [rust, drv] });
@@ -568,21 +571,30 @@ async fn run() -> Result<()> {
         } => {
             enum RustVendorData {
                 Hash(String),
-                Lock(bool, Option<Resolve>),
+                Lock(Option<Resolve>),
                 None,
             }
             let rust = match rust {
                 Some(RustVendor::FetchCargoTarball) => RustVendorData::Hash(
-                    cargo_deps_hash(&mut inputs, &pname, &version, &src, &src_dir, &nixpkgs).await,
+                    cargo_deps_hash(
+                        &mut inputs,
+                        &pname,
+                        &version,
+                        &src,
+                        &src_dir,
+                        has_cargo_lock,
+                        &nixpkgs,
+                    )
+                    .await,
                 ),
                 Some(RustVendor::ImportCargoLock) => {
                     if let Some(out_dir) = out_dir {
                         editor.set_helper(None);
-                        let (missing, resolve) =
+                        let resolve =
                             load_cargo_lock(&mut editor, out_dir, &mut inputs, &src_dir).await?;
-                        RustVendorData::Lock(missing, resolve)
+                        RustVendorData::Lock(resolve)
                     } else {
-                        RustVendorData::Lock(false, None)
+                        RustVendorData::Lock(None)
                     }
                 }
                 None => RustVendorData::None,
@@ -654,9 +666,9 @@ async fn run() -> Result<()> {
                         "#,
                     )?;
                 }
-                RustVendorData::Lock(missing, lock) => {
+                RustVendorData::Lock(resolve) => {
                     write!(out, "  cargoDeps = rustPlatform.importCargoLock ")?;
-                    write_cargo_lock(&mut out, missing, lock).await?;
+                    write_cargo_lock(&mut out, has_cargo_lock, resolve).await?;
                 }
                 RustVendorData::None => {}
             }
@@ -667,8 +679,16 @@ async fn run() -> Result<()> {
         BuildType::BuildRustPackage {
             vendor: RustVendor::FetchCargoTarball,
         } => {
-            let hash =
-                cargo_deps_hash(&mut inputs, &pname, &version, &src, &src_dir, &nixpkgs).await;
+            let hash = cargo_deps_hash(
+                &mut inputs,
+                &pname,
+                &version,
+                &src,
+                &src_dir,
+                has_cargo_lock,
+                &nixpkgs,
+            )
+            .await;
             let res =
                 write_all_lambda_inputs(&mut out, &inputs, &mut ["rustPlatform".into()].into())?;
             writedoc!(
@@ -692,11 +712,11 @@ async fn run() -> Result<()> {
         BuildType::BuildRustPackage {
             vendor: RustVendor::ImportCargoLock,
         } => {
-            let (missing, lock) = if let Some(out_dir) = out_dir {
+            let resolve = if let Some(out_dir) = out_dir {
                 editor.set_helper(None);
                 load_cargo_lock(&mut editor, out_dir, &mut inputs, &src_dir).await?
             } else {
-                (false, None)
+                None
             };
 
             let res =
@@ -714,7 +734,7 @@ async fn run() -> Result<()> {
 
                       cargoLock = "#,
             )?;
-            write_cargo_lock(&mut out, missing, lock).await?;
+            write_cargo_lock(&mut out, has_cargo_lock, resolve).await?;
             res
         }
 
@@ -739,8 +759,16 @@ async fn run() -> Result<()> {
         BuildType::MkDerivation {
             rust: Some(RustVendor::FetchCargoTarball),
         } => {
-            let hash =
-                cargo_deps_hash(&mut inputs, &pname, &version, &src, &src_dir, &nixpkgs).await;
+            let hash = cargo_deps_hash(
+                &mut inputs,
+                &pname,
+                &version,
+                &src,
+                &src_dir,
+                has_cargo_lock,
+                &nixpkgs,
+            )
+            .await;
             let res = write_all_lambda_inputs(&mut out, &inputs, &mut ["stdenv".into()].into())?;
             writedoc!(
                 out,
@@ -767,11 +795,11 @@ async fn run() -> Result<()> {
         BuildType::MkDerivation {
             rust: Some(RustVendor::ImportCargoLock),
         } => {
-            let (missing, lock) = if let Some(out_dir) = out_dir {
+            let resolve = if let Some(out_dir) = out_dir {
                 editor.set_helper(None);
                 load_cargo_lock(&mut editor, out_dir, &mut inputs, &src_dir).await?
             } else {
-                (false, None)
+                None
             };
 
             let res = write_all_lambda_inputs(&mut out, &inputs, &mut ["stdenv".into()].into())?;
@@ -788,7 +816,7 @@ async fn run() -> Result<()> {
 
                       cargoDeps = rustPlatform.importCargoLock "#,
             )?;
-            write_cargo_lock(&mut out, missing, lock).await?;
+            write_cargo_lock(&mut out, has_cargo_lock, resolve).await?;
             res
         }
     };

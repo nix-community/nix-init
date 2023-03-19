@@ -41,9 +41,10 @@ pub async fn cargo_deps_hash(
     version: impl Display,
     src: impl Display,
     src_dir: &Path,
+    has_cargo_lock: bool,
     nixpkgs: &str,
 ) -> String {
-    if src_dir.join("Cargo.lock").exists() {
+    if has_cargo_lock {
         let (hash, _) = tokio::join!(
             fod_hash(format!(
                 r#"(import({nixpkgs}){{}}).rustPlatform.fetchCargoTarball{{name="{pname}-{version}";src={src};hash="{FAKE_HASH}";}}"#,
@@ -65,13 +66,10 @@ pub async fn load_cargo_lock(
     out_dir: &Path,
     inputs: &mut AllInputs,
     src_dir: &Path,
-) -> Result<(bool, Option<Resolve>)> {
+) -> Result<Option<Resolve>> {
     let target = &out_dir.join("Cargo.lock");
-    let (missing, resolve) = match File::open(target) {
-        Ok(_) if ask_overwrite(editor, target)? => (
-            !src_dir.join("Cargo.lock").exists(),
-            resolve_workspace(src_dir),
-        ),
+    let resolve = match File::open(target) {
+        Ok(_) if ask_overwrite(editor, target)? => resolve_workspace(src_dir),
         _ => {
             if let Ok(mut lock) = File::open(src_dir.join("Cargo.lock")) {
                 if let Err(e) =
@@ -84,9 +82,9 @@ pub async fn load_cargo_lock(
                     );
                 }
 
-                (false, resolve_workspace(src_dir))
+                resolve_workspace(src_dir)
             } else {
-                let resolve = File::create(target)
+                File::create(target)
                     .map_err(anyhow::Error::from)
                     .and_then(|mut target| {
                         let cfg = cargo_config(src_dir)?;
@@ -113,8 +111,7 @@ pub async fn load_cargo_lock(
                             ))
                         );
                     })
-                    .ok();
-                (true, resolve)
+                    .ok()
             }
         }
     };
@@ -123,12 +120,12 @@ pub async fn load_cargo_lock(
         load_rust_dependencies(inputs, lock);
     }
 
-    Ok((missing, resolve))
+    Ok(resolve)
 }
 
 pub async fn write_cargo_lock(
     out: &mut impl Write,
-    missing: bool,
+    has_cargo_lock: bool,
     resolve: Option<Resolve>,
 ) -> Result<()> {
     writeln!(out, "{{\n    lockFile = ./Cargo.lock;")?;
@@ -168,7 +165,7 @@ pub async fn write_cargo_lock(
 
     writeln!(out, "  }};\n")?;
 
-    if missing {
+    if !has_cargo_lock {
         write!(out, "  ")?;
         writedoc!(
             out,
