@@ -12,16 +12,15 @@
         "rust-overlay": []
       },
       "locked": {
-        "lastModified": 1679166787,
-        "narHash": "sha256-M9UV3pjOVQyY8Wf99+rDbpNDdFOC9GSzEDUJUf+4jmI=",
-        "owner": "figsoda",
+        "lastModified": 1679272397,
+        "narHash": "sha256-4CeB4weE6bedPAjuszAftURWmtgR3aCds70YFk0bQ50=",
+        "owner": "ipetkov",
         "repo": "crane",
-        "rev": "94dc6d3c552428c41996bcff4312fc89e21392b6",
+        "rev": "77435dad14835fa2ac86490978e10618dc952593",
         "type": "github"
       },
       "original": {
-        "owner": "figsoda",
-        "ref": "parsed",
+        "owner": "ipetkov",
         "repo": "crane",
         "type": "github"
       }

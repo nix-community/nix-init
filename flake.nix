@@ -1,7 +1,7 @@
 {
   inputs = {
     crane = {
-      url = "github:figsoda/crane/parsed";
+      url = "github:ipetkov/crane";
       inputs.flake-utils.follows = "flake-utils";
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.flake-compat.follows = "";
