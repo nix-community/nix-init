@@ -33,7 +33,7 @@ use std::{
     collections::{BTreeMap, BTreeSet},
     fmt::Write as _,
     fs::{create_dir_all, metadata, read_dir, read_to_string, File},
-    io::{stderr, Write as _},
+    io::{stderr, BufRead, BufReader, Write as _},
     path::PathBuf,
 };
 
@@ -393,7 +393,8 @@ async fn run() -> Result<()> {
 
     let mut choices = Vec::new();
     let has_cargo = src_dir.join("Cargo.toml").is_file();
-    let has_cargo_lock = src_dir.join("Cargo.lock").is_file();
+    let cargo_lock = File::open(src_dir.join("Cargo.lock"));
+    let has_cargo_lock = cargo_lock.is_ok();
     let has_cmake = src_dir.join("CMakeLists.txt").is_file();
     let has_go = src_dir.join("go.mod").is_file();
     let has_meson = src_dir.join("meson.build").is_file();
@@ -402,10 +403,15 @@ async fn run() -> Result<()> {
     let has_setuptools = src_dir.join("setup.py").is_file();
 
     let rust_vendors = if has_cargo {
-        if has_cargo_lock {
-            &[RustVendor::FetchCargoTarball, RustVendor::ImportCargoLock]
-        } else {
+        if cargo_lock.map_or(true, |file| {
+            BufReader::new(file)
+                .lines()
+                .flatten()
+                .any(|line| line.starts_with(r#"source = "git+"#))
+        }) {
             &[RustVendor::ImportCargoLock, RustVendor::FetchCargoTarball]
+        } else {
+            &[RustVendor::FetchCargoTarball, RustVendor::ImportCargoLock]
         }
     } else {
         &[] as &[_]
