@@ -129,7 +129,7 @@
         ];
 
         cargoArtifacts = buildDepsOnly args;
-        cargoExtraArgs = "--no-default-features --features=reqwest/rustls-tls";
+        cargoExtraArgs = "--no-default-features";
 
         postPatch = ''
           mkdir -p data
