@@ -14,8 +14,8 @@ use cargo::{
     Config,
 };
 use indoc::writedoc;
-use itertools::Itertools;
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
+use rustc_hash::FxHashMap;
 use rustyline::{history::History, Editor, Helper};
 use std::process::Command;
 use tracing::error;
@@ -133,22 +133,20 @@ pub async fn write_cargo_lock(
     if let Some(resolve) = resolve {
         let hashes: BTreeMap<_, _> = resolve
             .iter()
-            .collect_vec()
-            .into_par_iter()
             .filter_map(|pkg| {
                 let src = pkg.source_id();
-                let rev = src.precise()?;
-                if !src.is_git() {
-                    return None;
-                }
-
+                src.is_git().then_some((src.precise()?, pkg))
+            })
+            .collect::<FxHashMap<_, _>>()
+            .into_par_iter()
+            .filter_map(|(rev, pkg)| {
                 let hash = Command::new("nurl")
-                    .arg(src.as_url().to_string())
+                    .arg(pkg.source_id().as_url().to_string())
                     .arg(rev)
                     .arg("-Hf")
                     .arg("fetchgit")
                     .get_stdout()
-                    .ok_warn()?;
+                    .ok_error()?;
                 let hash = String::from_utf8(hash).ok_warn()?;
                 Some((format!("{}-{}", pkg.name(), pkg.version()), hash))
             })
