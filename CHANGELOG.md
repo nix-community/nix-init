@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.2.1 - 2023-03-22
+
+### Features
+
+- Rust: default to importCargoLock if git sources were found
+- Rust: deduplicate outputHashes based on git revisions
+
 ## v0.2.0 - 2023-03-19
 
 ### Features
