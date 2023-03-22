@@ -11,9 +11,7 @@ use std::{
 include!("src/cli.rs");
 
 fn main() {
-    println!("cargo:rerun-if-changed=data/license-store-cache.zstd");
     println!("cargo:rerun-if-env-changed=GEN_ARTIFACTS");
-    println!("cargo:rerun-if-env-changed=SPDX_LICENSE_LIST_DATA");
 
     if let Some(dir) = env::var_os("GEN_ARTIFACTS") {
         let out = &Path::new(&dir);
