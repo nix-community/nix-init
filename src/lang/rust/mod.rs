@@ -131,13 +131,15 @@ pub async fn write_cargo_lock(
     writeln!(out, "{{\n    lockFile = ./Cargo.lock;")?;
 
     if let Some(resolve) = resolve {
-        let hashes: BTreeMap<_, _> = resolve
-            .iter()
-            .filter_map(|pkg| {
-                let src = pkg.source_id();
-                src.is_git().then_some((src.precise()?, pkg))
-            })
-            .collect::<FxHashMap<_, _>>()
+        let mut revs = FxHashMap::default();
+        for (k, v) in resolve.iter().filter_map(|pkg| {
+            let src = pkg.source_id();
+            src.is_git().then_some((src.precise()?, pkg))
+        }) {
+            revs.entry(k).or_insert(v);
+        }
+
+        let hashes: BTreeMap<_, _> = revs
             .into_par_iter()
             .filter_map(|(rev, pkg)| {
                 let hash = Command::new("nurl")
