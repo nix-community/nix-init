@@ -894,10 +894,11 @@ async fn run() -> Result<()> {
     }
 
     if !inputs.env.is_empty() {
+        writeln!(out, "  env = {{")?;
         for (k, (v, _)) in inputs.env {
-            writeln!(out, "  {k} = {v};")?;
+            writeln!(out, "    {k} = {v};")?;
         }
-        writeln!(out)?;
+        writeln!(out, "  }};\n")?;
     }
 
     let mut desc = desc.trim_matches(|c: char| !c.is_alphanumeric()).to_owned();
