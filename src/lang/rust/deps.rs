@@ -3,7 +3,7 @@ use semver::Version;
 
 use crate::inputs::AllInputs;
 
-pub(super) fn load_rust_depenendency(inputs: &mut AllInputs, resolve: &Resolve, pkg: PackageId) {
+pub(super) fn load_rust_dependency(inputs: &mut AllInputs, resolve: &Resolve, pkg: PackageId) {
     macro_rules! input {
         ($key:ident: $($input:expr),+) => {
             input!($key: $($input),+; always)

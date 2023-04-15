@@ -30,7 +30,7 @@ use std::{
 
 use crate::{
     inputs::AllInputs,
-    lang::rust::deps::load_rust_depenendency,
+    lang::rust::deps::load_rust_dependency,
     prompt::ask_overwrite,
     utils::{fod_hash, CommandExt, ResultExt, FAKE_HASH},
 };
@@ -213,6 +213,6 @@ fn cargo_config(src_dir: &Path) -> Result<Config> {
 
 fn load_rust_dependencies(inputs: &mut AllInputs, resolve: &Resolve) {
     for pkg in resolve.iter() {
-        load_rust_depenendency(inputs, resolve, pkg);
+        load_rust_dependency(inputs, resolve, pkg);
     }
 }
