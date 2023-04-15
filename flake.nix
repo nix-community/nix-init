@@ -137,8 +137,10 @@
           ln -s ${license-store-cache} data/license-store-cache.zstd
         '';
 
-        GEN_ARTIFACTS = "artifacts";
-        ZSTD_SYS_USE_PKG_CONFIG = true;
+        env = {
+          GEN_ARTIFACTS = "artifacts";
+          ZSTD_SYS_USE_PKG_CONFIG = true;
+        };
 
         meta = {
           license = licenses.mpl20;
