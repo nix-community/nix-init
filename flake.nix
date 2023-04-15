@@ -44,7 +44,7 @@
         installShellFiles
         libgit2_1_5
         libiconv
-        makeWrapper
+        makeBinaryWrapper
         mkShell
         nix
         nixpkgs-fmt
@@ -111,7 +111,7 @@
         nativeBuildInputs = [
           curl
           installShellFiles
-          makeWrapper
+          makeBinaryWrapper
           pkg-config
         ];
 
