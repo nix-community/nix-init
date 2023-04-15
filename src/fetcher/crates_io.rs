@@ -1,6 +1,7 @@
 use reqwest::Client;
 use rustyline::completion::Pair;
 use serde::Deserialize;
+use tracing::error;
 
 use crate::{
     fetcher::{json, PackageInfo, Revisions, Version},
@@ -92,6 +93,10 @@ pub async fn get_package_info(cl: &Client, pname: &str) -> PackageInfo {
             replacement: version.clone(),
         });
         versions.insert(version, Version::Tag);
+    }
+
+    if !found_latest {
+        error!("crate '{pname}' has no releases available");
     }
 
     PackageInfo {

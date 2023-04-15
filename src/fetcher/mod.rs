@@ -172,5 +172,5 @@ impl Fetcher {
 }
 
 pub async fn json<T: for<'a> Deserialize<'a>>(cl: &Client, url: impl IntoUrl) -> Option<T> {
-    cl.get(url).send().await.ok_warn()?.json().await.ok_warn()
+    cl.get(url).send().await.ok_error()?.json().await.ok_warn()
 }

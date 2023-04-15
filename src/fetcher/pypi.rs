@@ -4,6 +4,7 @@ use rustyline::completion::Pair;
 use serde::Deserialize;
 use serde_with::{serde_as, DefaultOnNull, Map};
 use time::OffsetDateTime;
+use tracing::error;
 
 use crate::{
     fetcher::{json, PackageInfo, PypiFormat, Revisions, Version},
@@ -90,6 +91,10 @@ pub async fn get_package_info(cl: &Client, pname: &str) -> PackageInfo {
             replacement: version.clone(),
         });
         versions.insert(version, Version::Pypi { pname, format });
+    }
+
+    if completions.is_empty() {
+        error!("pypi package '{pname}' has no source distribution files available");
     }
 
     PackageInfo {
