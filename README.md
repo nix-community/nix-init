@@ -1,3 +1,5 @@
+<img src="assets/logo.svg" align="right" height="280">
+
 # nix-init
 
 [![release](https://img.shields.io/github/v/release/nix-community/nix-init?logo=github&style=flat-square)](https://github.com/nix-community/nix-init/releases)
