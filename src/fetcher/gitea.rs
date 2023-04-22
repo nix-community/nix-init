@@ -3,7 +3,7 @@ use rustc_hash::FxHashMap;
 use rustyline::completion::Pair;
 use serde::Deserialize;
 
-use crate::fetcher::{json, PackageInfo, Revisions, Version};
+use crate::fetcher::{json, success, PackageInfo, Revisions, Version};
 
 #[derive(Deserialize)]
 struct Repo {
@@ -164,4 +164,12 @@ pub async fn get_version(
     } else {
         Version::Tag
     })
+}
+
+pub async fn has_submodules(cl: &Client, domain: &str, owner: &str, repo: &str, rev: &str) -> bool {
+    success(
+        cl,
+        format!("https://{domain}/api/v1/repos/{owner}/{repo}/contents/.gitmodules?ref={rev}"),
+    )
+    .await
 }

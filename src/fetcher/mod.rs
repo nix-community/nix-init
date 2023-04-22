@@ -169,8 +169,37 @@ impl Fetcher {
             Fetcher::FetchPypi { .. } => None,
         }
     }
+
+    pub async fn has_submodules(&self, cl: &Client, rev: &str) -> bool {
+        match self {
+            Fetcher::FetchFromGitHub {
+                github_base,
+                owner,
+                repo,
+            } => github::has_submodules(cl, github_base, owner, repo, rev).await,
+            Fetcher::FetchFromGitLab {
+                domain,
+                group,
+                owner,
+                repo,
+            } => gitlab::has_submodules(cl, domain, group, owner, repo, rev).await,
+            Fetcher::FetchFromGitea {
+                domain,
+                owner,
+                repo,
+            } => gitea::has_submodules(cl, domain, owner, repo, rev).await,
+            Fetcher::FetchCrate { .. } | Fetcher::FetchPypi { .. } => false,
+        }
+    }
 }
 
 pub async fn json<T: for<'a> Deserialize<'a>>(cl: &Client, url: impl IntoUrl) -> Option<T> {
     cl.get(url).send().await.ok_error()?.json().await.ok_warn()
+}
+
+pub async fn success(cl: &Client, url: impl IntoUrl) -> bool {
+    cl.get(url)
+        .send()
+        .await
+        .map_or(false, |resp| resp.status().is_success())
 }

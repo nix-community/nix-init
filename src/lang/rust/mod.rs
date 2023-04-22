@@ -16,7 +16,7 @@ use cargo::{
 use indoc::writedoc;
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use rustc_hash::FxHashMap;
-use rustyline::{history::History, Editor, Helper};
+use rustyline::{history::History, Editor};
 use std::process::Command;
 use tracing::error;
 
@@ -31,7 +31,7 @@ use std::{
 use crate::{
     inputs::AllInputs,
     lang::rust::deps::load_rust_dependency,
-    prompt::ask_overwrite,
+    prompt::{ask_overwrite, Prompter},
     utils::{fod_hash, CommandExt, ResultExt, FAKE_HASH},
 };
 
@@ -62,7 +62,7 @@ pub async fn cargo_deps_hash(
 }
 
 pub async fn load_cargo_lock(
-    editor: &mut Editor<impl Helper, impl History>,
+    editor: &mut Editor<Prompter, impl History>,
     out_dir: &Path,
     inputs: &mut AllInputs,
     src_dir: &Path,

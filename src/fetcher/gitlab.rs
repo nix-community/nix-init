@@ -4,7 +4,7 @@ use rustyline::completion::Pair;
 use serde::Deserialize;
 
 use crate::{
-    fetcher::{json, PackageInfo, Version},
+    fetcher::{json, success, PackageInfo, Version},
     Revisions,
 };
 
@@ -180,6 +180,24 @@ pub async fn get_version(
     } else {
         Version::Tag
     })
+}
+
+pub async fn has_submodules(
+    cl: &Client,
+    domain: &str,
+    group: &Option<String>,
+    owner: &str,
+    repo: &str,
+    rev: &str,
+) -> bool {
+    success(
+        cl,
+        format!(
+            "{}/repository/files/.gitmodules/raw?ref={rev}",
+            get_api_root(domain, group, owner, repo),
+        ),
+    )
+    .await
 }
 
 fn get_api_root(domain: &str, group: &Option<String>, owner: &str, repo: &str) -> String {

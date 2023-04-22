@@ -19,6 +19,7 @@ pub enum Prompter {
     Path(FilenameCompleter),
     Revision(Revisions),
     NonEmpty,
+    YesNo,
     Build(Vec<BuildType>),
 }
 
@@ -47,6 +48,7 @@ impl Completer for Prompter {
             }
             Prompter::Revision(revisions) => Ok((0, revisions.completions.clone())),
             Prompter::NonEmpty => Ok((0, Vec::new())),
+            Prompter::YesNo => Ok((0, Vec::new())),
             Prompter::Build(choices) => Ok((
                 0,
                 choices
@@ -110,6 +112,8 @@ impl Hinter for Prompter {
 
             Prompter::NonEmpty => None,
 
+            Prompter::YesNo => None,
+
             Prompter::Build(choices) => Some(SimpleHint(if line.is_empty() {
                 format_args!("  ({})", choices[0])
                     .blue()
@@ -151,6 +155,8 @@ impl Validator for Prompter {
                 }
             }
 
+            Prompter::YesNo => ValidationResult::Valid(None),
+
             Prompter::Build(choices) => {
                 let input = ctx.input();
                 if input.is_empty() {
@@ -174,13 +180,18 @@ pub fn prompt(prompt: impl Display) -> String {
 }
 
 pub fn ask_overwrite(
-    editor: &mut Editor<impl Helper, impl History>,
+    editor: &mut Editor<Prompter, impl History>,
     path: &Path,
 ) -> Result<bool, anyhow::Error> {
+    ask(editor, format_args!("Overwrite {}", path.display().green()))
+}
+
+pub fn ask(
+    editor: &mut Editor<Prompter, impl History>,
+    msg: impl Display,
+) -> Result<bool, anyhow::Error> {
+    editor.set_helper(Some(Prompter::YesNo));
     Ok(editor
-        .readline(&prompt(format_args!(
-            "Do you want to overwrite {}? (Y/n)",
-            path.display().green(),
-        )))?
+        .readline(&prompt(format_args!("{msg}? (Y/n)")))?
         .starts_with(['n', 'N']))
 }

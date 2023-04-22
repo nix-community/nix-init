@@ -49,7 +49,7 @@ use crate::{
         rust::{cargo_deps_hash, load_cargo_lock, write_cargo_lock},
     },
     license::{get_nix_license, LICENSE_STORE},
-    prompt::{ask_overwrite, prompt, Prompter},
+    prompt::{ask, ask_overwrite, prompt, Prompter},
     utils::{fod_hash, CommandExt, ResultExt, FAKE_HASH},
 };
 
@@ -159,6 +159,7 @@ async fn run() -> Result<()> {
     )
     .context("failed to parse nurl output")?;
 
+    let mut cmd = Command::new("nurl");
     let mut licenses = BTreeMap::new();
     let mut pypi_format = PypiFormat::TarGz;
     let (pname, rev, version, desc, prefix, mut python_deps) =
@@ -216,11 +217,17 @@ async fn run() -> Result<()> {
                 None => get_version(&rev).into(),
             };
 
+            if fetcher.has_submodules(&cl, &rev).await && !ask(&mut editor, "Fetch submodules")? {
+                cmd.arg("-S");
+            }
+
             editor.set_helper(Some(Prompter::NonEmpty));
+            let version = editor.readline_with_initial(&prompt("Enter version"), (&version, ""))?;
+
             (
                 Some(pname),
                 rev,
-                editor.readline_with_initial(&prompt("Enter version"), (&version, ""))?,
+                version,
                 description,
                 file_url_prefix,
                 python_dependencies,
@@ -249,7 +256,6 @@ async fn run() -> Result<()> {
         .nixpkgs
         .or(cfg.nixpkgs)
         .unwrap_or_else(|| "<nixpkgs>".into());
-    let mut cmd = Command::new("nurl");
     cmd.arg("-n").arg(&nixpkgs);
 
     let src_expr = {
