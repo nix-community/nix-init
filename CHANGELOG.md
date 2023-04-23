@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.2.2 - 2023-04-23
+
+### Features
+
+- Logo and Matrix chat
+- Rust: use the first git dependency when multiple have the same revisions
+- Ask to fetch submodules
+- Improve error messages
+
 ## v0.2.1 - 2023-03-22
 
 ### Features
