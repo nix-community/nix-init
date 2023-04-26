@@ -15,7 +15,7 @@ use cargo::core::Resolve;
 use clap::Parser;
 use expand::expand;
 use flate2::read::GzDecoder;
-use heck::{AsKebabCase, ToKebabCase};
+use heck::{ToKebabCase, ToSnakeCase};
 use indoc::{formatdoc, writedoc};
 use is_terminal::IsTerminal;
 use itertools::Itertools;
@@ -854,7 +854,7 @@ async fn run() -> Result<()> {
                 writeln!(out, "[")?;
 
                 for name in python_deps.always {
-                    writeln!(out, "    {}", AsKebabCase(name))?;
+                    writeln!(out, "    {name}")?;
                 }
                 writeln!(out, "  ];\n")?;
             }
@@ -871,14 +871,14 @@ async fn run() -> Result<()> {
                 }
                 writeln!(out, "{{\n    {extra} = [",)?;
                 for name in deps {
-                    writeln!(out, "      {}", AsKebabCase(name))?;
+                    writeln!(out, "      {name}")?;
                 }
                 writeln!(out, "    ];")?;
 
                 for (extra, deps) in optional {
                     writeln!(out, "    {extra} = [")?;
                     for name in deps {
-                        writeln!(out, "      {}", AsKebabCase(name))?;
+                        writeln!(out, "      {name}")?;
                     }
                     writeln!(out, "    ];")?;
                 }
@@ -892,7 +892,7 @@ async fn run() -> Result<()> {
                 pyproject
                     .as_mut()
                     .and_then(Pyproject::get_name)
-                    .unwrap_or(pname),
+                    .unwrap_or_else(|| pname.to_snake_case()),
             )?;
         }
 

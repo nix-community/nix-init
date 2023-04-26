@@ -106,7 +106,7 @@ impl Pyproject {
                     if name == "maturin" {
                         "rustPlatform.maturinBuildHook".into()
                     } else if application {
-                        format!("python3.pkgs.{}", AsKebabCase(name))
+                        format!("python3.pkgs.{}", AsKebabCase(name.to_lowercase()))
                     } else {
                         name.to_kebab_case()
                     }
@@ -120,7 +120,9 @@ impl Pyproject {
             return Some(PythonDependencies {
                 always: deps
                     .into_iter()
-                    .filter_map(|(name, PoetryDependency { optional })| (!optional).then_some(name))
+                    .filter_map(|(name, PoetryDependency { optional })| {
+                        (!optional).then(|| name.to_lowercase().to_kebab_case())
+                    })
                     .collect(),
                 optional: mem::take(&mut self.tool.poetry.extras),
             });
@@ -139,7 +141,7 @@ impl Pyproject {
                     let parser = parser();
                     for dep in &deps {
                         if let Some(Dependency { name, .. }) = parser.parse(dep).into_output() {
-                            entry.insert(name.into());
+                            entry.insert(name.to_lowercase().to_kebab_case());
                         }
                     }
                 }
@@ -153,7 +155,11 @@ impl Pyproject {
 
 pub fn parse_requirements_txt(src: &Path) -> Option<PythonDependencies> {
     File::open(src.join("requirements.txt")).ok().map(|file| {
-        get_python_dependencies(BufReader::new(file).lines().filter_map(ResultExt::ok_warn))
+        get_python_dependencies(
+            BufReader::new(file)
+                .lines()
+                .filter_map(|line| Some(line.ok_warn()?.to_lowercase().to_kebab_case())),
+        )
     })
 }
 
@@ -170,14 +176,15 @@ pub fn get_python_dependencies(
             load_extras(&mut extras, marker);
         }
 
+        let name = dep.name.to_lowercase().to_kebab_case();
         if extras.is_empty() {
-            deps.always.insert(dep.name.into());
+            deps.always.insert(name);
         } else {
             for extra in extras {
                 deps.optional
                     .entry(extra)
                     .or_insert_with(BTreeSet::new)
-                    .insert(dep.name.into());
+                    .insert(name.clone());
             }
         }
     }
