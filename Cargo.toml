@@ -56,7 +56,7 @@ tar = "0.4.38"
 tempfile = "3.5.0"
 time = { version = "0.3.20", features = ["parsing", "serde"] }
 toml = { version = "0.7.3", default-features = false, features = ["parse"] }
-tracing = "0.1.38"
+tracing = "0.1.37"
 tracing-subscriber = { version = "0.3.17", features = ["env-filter"] }
 url = "2.3.1"
 xdg = "2.5.0"
