@@ -158,7 +158,7 @@ pub fn parse_requirements_txt(src: &Path) -> Option<PythonDependencies> {
         get_python_dependencies(
             BufReader::new(file)
                 .lines()
-                .filter_map(|line| Some(line.ok_warn()?.to_lowercase().to_kebab_case())),
+                .filter_map(|line| line.ok_warn()),
         )
     })
 }
