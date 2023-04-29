@@ -617,14 +617,17 @@ async fn run() -> Result<()> {
                     pyproject_found.load_license(&mut licenses);
                     pyproject_found.load_build_dependencies(&mut inputs, application);
 
-                    if let Some(deps) = pyproject_found
-                        .get_dependencies()
-                        .or_else(|| parse_requirements_txt(&src_dir))
-                    {
+                    if let Some(deps) = pyproject_found.get_dependencies() {
                         python_deps = deps;
                     }
 
                     pyproject = Some(pyproject_found)
+                }
+            }
+
+            if python_deps.always.is_empty() && python_deps.optional.is_empty() {
+                if let Some(deps) = parse_requirements_txt(&src_dir) {
+                    python_deps = deps;
                 }
             }
 
