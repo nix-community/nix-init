@@ -1,5 +1,16 @@
 # Changelog
 
+## v0.2.3 - 2023-04-29
+
+### Features
+
+- Python: improve name normalization
+
+### Fixes
+
+- Python: fix parsing requirements.txt ([#111](https://github.com/nix-community/nix-init/pull/111))
+- Python: acknowledge requirements.txt when pyproject.toml is absent
+
 ## v0.2.2 - 2023-04-23
 
 ### Features
