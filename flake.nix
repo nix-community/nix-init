@@ -73,9 +73,9 @@
 
       src = sourceByRegex self [
         "(license-store-cache|src)(/.*)?"
-        "Cargo\\.(toml|lock)"
-        "build.rs"
-        "rustfmt.toml"
+        ''Cargo\.(toml|lock)''
+        ''build\.rs''
+        ''rustfmt\.toml''
       ];
 
       get-nix-license = callPackage ./src/get-nix-license.nix { };
