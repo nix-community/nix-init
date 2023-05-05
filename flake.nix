@@ -44,7 +44,6 @@
         installShellFiles
         libgit2_1_5
         libiconv
-        makeBinaryWrapper
         mkShell
         nix
         nixpkgs-fmt
@@ -59,11 +58,11 @@
       inherit (nixpkgs.lib)
         concatMapAttrs
         flip
+        getExe
         hasSuffix
         importTOML
         licenses
         maintainers
-        makeBinPath
         nameValuePair
         optionalAttrs
         optionals
@@ -111,7 +110,6 @@
         nativeBuildInputs = [
           curl
           installShellFiles
-          makeBinaryWrapper
           pkg-config
         ];
 
@@ -139,6 +137,8 @@
 
         env = {
           GEN_ARTIFACTS = "artifacts";
+          NIX = getExe nix;
+          NURL = getExe nurl;
           ZSTD_SYS_USE_PKG_CONFIG = true;
         };
 
@@ -194,8 +194,6 @@
       packages.default = buildPackage (args // {
         doCheck = false;
         postInstall = ''
-          wrapProgram $out/bin/nix-init \
-            --prefix PATH : ${makeBinPath [ nix nurl ]}
           installManPage artifacts/nix-init.1
           installShellCompletion artifacts/nix-init.{bash,fish} --zsh artifacts/_nix-init
         '';

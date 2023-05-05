@@ -1,6 +1,7 @@
 mod build;
 mod cfg;
 mod cli;
+mod cmd;
 mod fetcher;
 mod inputs;
 mod lang;
@@ -41,6 +42,7 @@ use crate::{
     build::{BuildType, PythonFormat, RustVendor},
     cfg::load_config,
     cli::Opts,
+    cmd::{NIX, NURL},
     fetcher::{Fetcher, PackageInfo, PypiFormat, Revisions, Version},
     inputs::{write_all_lambda_inputs, write_inputs, write_lambda_input, AllInputs},
     lang::{
@@ -150,16 +152,11 @@ async fn run() -> Result<()> {
         }
     };
 
-    let mut fetcher = serde_json::from_slice(
-        &Command::new("nurl")
-            .arg(&url)
-            .arg("-p")
-            .get_stdout()
-            .await?,
-    )
-    .context("failed to parse nurl output")?;
+    let mut fetcher =
+        serde_json::from_slice(&Command::new(NURL).arg(&url).arg("-p").get_stdout().await?)
+            .context("failed to parse nurl output")?;
 
-    let mut cmd = Command::new("nurl");
+    let mut cmd = Command::new(NURL);
     let mut licenses = BTreeMap::new();
     let mut pypi_format = PypiFormat::TarGz;
     let (pname, rev, version, desc, prefix, mut python_deps) =
@@ -348,7 +345,7 @@ async fn run() -> Result<()> {
         }
     };
 
-    let stdout = Command::new("nix")
+    let stdout = Command::new(NIX)
         .arg("build")
         .arg("--extra-experimental-features")
         .arg("nix-command")

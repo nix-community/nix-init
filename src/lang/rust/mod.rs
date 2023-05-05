@@ -29,6 +29,7 @@ use std::{
 };
 
 use crate::{
+    cmd::NURL,
     inputs::AllInputs,
     lang::rust::deps::load_rust_dependency,
     prompt::{ask_overwrite, Prompter},
@@ -142,7 +143,7 @@ pub async fn write_cargo_lock(
         let hashes: BTreeMap<_, _> = revs
             .into_par_iter()
             .filter_map(|(rev, pkg)| {
-                let hash = Command::new("nurl")
+                let hash = Command::new(NURL)
                     .arg(pkg.source_id().as_url().to_string())
                     .arg(rev)
                     .arg("-Hf")

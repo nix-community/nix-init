@@ -4,6 +4,8 @@ use tracing::{error, info, warn};
 
 use std::{fmt::Display, future::Future, io::BufRead, pin::Pin, process::Output};
 
+use crate::cmd::NIX;
+
 pub const FAKE_HASH: &str = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
 
 pub trait ResultExt {
@@ -67,7 +69,7 @@ fn into_stdout(output: Output) -> Result<Vec<u8>> {
 }
 
 pub async fn fod_hash(expr: String) -> Option<String> {
-    let mut cmd = Command::new("nix");
+    let mut cmd = Command::new(NIX);
     cmd.arg("build")
         .arg("--extra-experimental-features")
         .arg("nix-command")
