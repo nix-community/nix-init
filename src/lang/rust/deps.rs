@@ -67,7 +67,6 @@ pub(super) fn load_rust_dependency(inputs: &mut AllInputs, resolve: &Resolve, pk
         "cocoa" => framework!("AppKit"),
         "cocoa-foundation" => framework!("Foundation"),
         "copypasta" => framework!("AppKit"),
-        "core-foundation-sys" => framework!("CoreFoundation"),
         "core-graphics-types" => framework!("CoreGraphics"),
         "core-text" => framework!("CoreText"),
         "coreaudio-sys" => framework!("CoreAudio"),
