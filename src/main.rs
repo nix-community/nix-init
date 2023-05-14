@@ -892,7 +892,8 @@ async fn run() -> Result<()> {
                 pyproject
                     .as_mut()
                     .and_then(Pyproject::get_name)
-                    .unwrap_or_else(|| pname.to_snake_case()),
+                    .unwrap_or(pname)
+                    .to_snake_case(),
             )?;
         }
 
