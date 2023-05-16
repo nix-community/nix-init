@@ -60,7 +60,7 @@ tracing = "0.1.37"
 tracing-subscriber = { version = "0.3.17", features = ["env-filter"] }
 url = "2.3.1"
 xdg = "2.5.0"
-zip = "0.6.5"
+zip = "0.6.6"
 
 [dependencies.clap]
 version = "4.2.7"
