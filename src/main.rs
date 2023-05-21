@@ -497,9 +497,9 @@ async fn run() -> Result<()> {
 
             if rust.is_some() {
                 inputs.native_build_inputs.always.extend([
+                    "cargo".into(),
                     "rustPlatform.cargoSetupHook".into(),
-                    "rustPlatform.rust.cargo".into(),
-                    "rustPlatform.rust.rustc".into(),
+                    "rustc".into(),
                 ]);
             }
         }
@@ -519,9 +519,9 @@ async fn run() -> Result<()> {
             }
             if rust.is_some() {
                 inputs.native_build_inputs.always.extend([
+                    "cargo".into(),
                     "rustPlatform.cargoSetupHook".into(),
-                    "rustPlatform.rust.cargo".into(),
-                    "rustPlatform.rust.rustc".into(),
+                    "rustc".into(),
                 ]);
             }
         }
