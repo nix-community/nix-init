@@ -53,7 +53,7 @@ serde_yaml = "0.9.21"
 shlex = "1.1.0"
 spdx = "0.10.1"
 tar = "0.4.38"
-tempfile = "3.5.0"
+tempfile = "3.6.0"
 time = { version = "0.3.21", features = ["parsing", "serde"] }
 toml = { version = "0.7.4", default-features = false, features = ["parse"] }
 tracing = "0.1.37"
@@ -83,7 +83,7 @@ clap_mangen = "0.2.12"
 [dev-dependencies]
 heck = "0.4.1"
 insta = "1.29.0"
-tempfile = "3.5.0"
+tempfile = "3.6.0"
 
 [features]
 default = ["vendored"]
