@@ -330,7 +330,7 @@ dependencies = [
  "tar",
  "tempfile",
  "termcolor",
- "time 0.3.21",
+ "time 0.3.22",
  "toml",
  "toml_edit",
  "unicode-width",
@@ -1408,7 +1408,7 @@ dependencies = [
  "bstr",
  "itoa",
  "thiserror",
- "time 0.3.21",
+ "time 0.3.22",
 ]
 
 [[package]]
@@ -2509,7 +2509,7 @@ dependencies = [
  "spdx",
  "tar",
  "tempfile",
- "time 0.3.21",
+ "time 0.3.22",
  "tokio",
  "toml",
  "tracing",
@@ -2768,7 +2768,7 @@ dependencies = [
  "serde_json",
  "sha2",
  "subtle",
- "time 0.3.21",
+ "time 0.3.22",
  "zeroize",
 ]
 
@@ -3360,7 +3360,7 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_with_macros",
- "time 0.3.21",
+ "time 0.3.22",
 ]
 
 [[package]]
@@ -3500,7 +3500,7 @@ dependencies = [
  "nix 0.25.1",
  "rayon",
  "regex",
- "time 0.3.21",
+ "time 0.3.22",
  "timer",
  "tuikit",
  "unicode-width",
@@ -3740,9 +3740,9 @@ dependencies = [
 
 [[package]]
 name = "time"
-version = "0.3.21"
+version = "0.3.22"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8f3403384eaacbca9923fa06940178ac13e4edb725486d70e8e15881d0c836cc"
+checksum = "ea9e1b3cf1243ae005d9e74085d4d542f3125458f3a81af210d901dcd7411efd"
 dependencies = [
  "itoa",
  "libc",
@@ -4476,7 +4476,7 @@ dependencies = [
  "hmac",
  "pbkdf2",
  "sha1",
- "time 0.3.21",
+ "time 0.3.22",
  "zstd",
 ]
 
