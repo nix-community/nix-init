@@ -2727,9 +2727,9 @@ dependencies = [
 
 [[package]]
 name = "parse-display"
-version = "0.8.0"
+version = "0.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6f96cc033d72896bb9a2c239a14e1141c3e2eae6d649e7c10ef4e598d66bc86c"
+checksum = "ddcac6cdc2aaa03a89780c6681ffb46ac5b4b7dbade8d2a20a6a501f6fd363a8"
 dependencies = [
  "once_cell",
  "parse-display-derive",
@@ -2738,9 +2738,9 @@ dependencies = [
 
 [[package]]
 name = "parse-display-derive"
-version = "0.8.0"
+version = "0.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e5587062be441f3d868f7c4c9d13c67f286b03aa679d7f8176ef80bf2ee79e5d"
+checksum = "6e503280f7d6dbf7566bc63d903c3b0f595fc11553a7e1f87f81adb8fcbca983"
 dependencies = [
  "once_cell",
  "proc-macro2",
@@ -2748,7 +2748,7 @@ dependencies = [
  "regex",
  "regex-syntax 0.6.29",
  "structmeta",
- "syn 1.0.109",
+ "syn 2.0.15",
 ]
 
 [[package]]
@@ -3593,25 +3593,25 @@ checksum = "73473c0e59e6d5812c5dfe2a064a6444949f089e20eec9a2e5506596494e4623"
 
 [[package]]
 name = "structmeta"
-version = "0.1.6"
+version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "104842d6278bf64aa9d2f182ba4bde31e8aec7a131d29b7f444bb9b344a09e2a"
+checksum = "78ad9e09554f0456d67a69c1584c9798ba733a5b50349a6c0d0948710523922d"
 dependencies = [
  "proc-macro2",
  "quote",
  "structmeta-derive",
- "syn 1.0.109",
+ "syn 2.0.15",
 ]
 
 [[package]]
 name = "structmeta-derive"
-version = "0.1.6"
+version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "24420be405b590e2d746d83b01f09af673270cf80e9b003a5fa7b651c58c7d93"
+checksum = "a60bcaff7397072dca0017d1db428e30d5002e00b6847703e2e42005c95fbe00"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 1.0.109",
+ "syn 2.0.15",
 ]
 
 [[package]]
