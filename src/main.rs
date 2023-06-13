@@ -354,12 +354,7 @@ async fn run() -> Result<()> {
         .arg("--json")
         .arg("--expr")
         .arg(format!(
-            "let pname={pname:?};version={version:?};in(import({nixpkgs}){{}}).{}{src_expr}",
-            if matches!(fetcher, MaybeFetcher::Known(Fetcher::FetchPypi { .. })) {
-                "python3.pkgs."
-            } else {
-                ""
-            },
+            "let pname={pname:?};version={version:?};in(import({nixpkgs}){{}}).{src_expr}",
         ))
         .get_stdout()
         .await?;
