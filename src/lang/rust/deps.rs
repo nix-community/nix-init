@@ -118,6 +118,13 @@ pub(super) fn load_rust_dependency(inputs: &mut AllInputs, resolve: &Resolve, pk
             build!("libgpg-error")
         }
         "libpulse-sys" => build!("libpulseaudio"),
+        "librocksdb-sys" => {
+            environ!("ROCKSDB_INCLUDE_DIR", r#""${rocksdb}/include""#; "rocksdb".into());
+            environ!("ROCKSDB_LIB_DIR", r#""${rocksdb}/lib""#);
+            if resolve.features(pkg).iter().any(|feat| feat == "io-uring") {
+                build!("liburing"; linux);
+            }
+        }
         "libsecret-sys" => build!("libsecret"),
         "libshumate-sys" => build!("libshumate"),
         "libsodium-sys" | "libsodium-sys-stable" => {
