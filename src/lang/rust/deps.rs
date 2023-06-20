@@ -70,7 +70,10 @@ pub(super) fn load_rust_dependency(inputs: &mut AllInputs, resolve: &Resolve, pk
         "core-graphics-types" => framework!("CoreGraphics"),
         "core-text" => framework!("CoreText"),
         "coreaudio-sys" => framework!("CoreAudio"),
-        "curl-sys" => build!("curl"),
+        "curl-sys" => {
+            native_build!("curl");
+            build!("curl");
+        }
         "evdev-sys" => build!("evdev-sys"),
         "expat-sys" => build!("expat"),
         "freetype-sys" => build!("freetype"),
