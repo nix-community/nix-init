@@ -62,7 +62,7 @@
             curl
             darwin
             installShellFiles
-            libgit2_1_5
+            libgit2
             libiconv
             mkShell
             nix
@@ -122,7 +122,7 @@
             buildInputs = [
               bzip2
               curl
-              libgit2_1_5
+              libgit2
               openssl
               zlib
               zstd
