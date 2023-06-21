@@ -19,21 +19,44 @@ struct Build {
 }
 
 pub fn write_ldflags(out: &mut impl Write, src_dir: &Path) -> Result<()> {
-    let (Some(ldflags), Some(re)) = (get_ldflags(src_dir), regex()) else {
+    let (Some(raw), Some(re)) = (get_ldflags(src_dir), regex()) else {
         writeln!(out, "  ldflags = [ \"-s\" \"-w\" ];\n")?;
         return Ok(())
     };
 
-    let mut ldflags = ldflags
+    let mut raw = raw
         .into_iter()
         .flat_map(|ldflags| shlex::split(&parse_ldflags(&re, &ldflags)).unwrap_or_default());
 
-    if let Some(flag) = ldflags.next() {
-        write!(out, r#"  ldflags = [ "{flag}" "#)?;
-        for flag in ldflags {
-            write!(out, r#""{flag}" "#)?;
+    let mut len = 0;
+    let mut processed = Vec::new();
+    while let Some(mut flag) = raw.next() {
+        if flag == "-X" {
+            if let Some(xflag) = raw.next() {
+                flag.push('=');
+                flag.push_str(&xflag);
+            }
         }
-        writeln!(out, "];\n")?;
+        len += flag.len();
+        processed.push(flag);
+    }
+
+    if processed.is_empty() {
+        return Ok(());
+    }
+
+    if len > 16 {
+        writeln!(out, "  ldflags = [")?;
+        for flag in processed {
+            writeln!(out, r#"    "{flag}""#)?;
+        }
+        writeln!(out, "  ];\n")?;
+    } else {
+        write!(out, "  ldflags = [")?;
+        for flag in processed {
+            write!(out, r#" "{flag}""#)?;
+        }
+        writeln!(out, " ];\n")?;
     }
 
     Ok(())
