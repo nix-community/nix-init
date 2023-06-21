@@ -3,6 +3,7 @@
     crane = {
       url = "github:ipetkov/crane";
       inputs.nixpkgs.follows = "nixpkgs";
+      inputs.flake-utils.follows = "flake-utils";
       inputs.flake-compat.follows = "";
       inputs.rust-overlay.follows = "";
     };
