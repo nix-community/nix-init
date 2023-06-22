@@ -56,7 +56,7 @@ pub(super) fn load_rust_dependency(inputs: &mut AllInputs, resolve: &Resolve, pk
     }
 
     match &*pkg.name() {
-        "alsa-sys" => build!("alsa-lib"),
+        "alsa-sys" => build!("alsa-lib"; linux),
         "arboard" => framework!("AppKit"),
         "ash" => build!("vulkan-loader"),
         "atk-sys" => build!("atk"),
