@@ -262,22 +262,20 @@ async fn run() -> Result<()> {
                     .context("failed to parse nurl output")?;
 
                 if &pname == name {
-                    formatdoc!(
-                        r#"
+                    formatdoc! {r#"
                         fetchCrate {{
                             inherit pname version;
                             hash = "{hash}";
                           }}"#,
-                    )
+                    }
                 } else {
-                    formatdoc!(
-                        r#"
+                    formatdoc! {r#"
                         fetchCrate {{
                             pname = {name:?};
                             inherit version;
                             hash = "{hash}";
                           }}"#,
-                    )
+                    }
                 }
             }
 
@@ -297,13 +295,12 @@ async fn run() -> Result<()> {
                             .await?,
                     )
                     .context("failed to parse nurl output")?;
-                    formatdoc!(
-                        r#"
+                    formatdoc! {r#"
                         fetchPypi {{
                             inherit pname version;
                             hash = "{hash}";{ext}
                           }}"#,
-                    )
+                    }
                 } else {
                     let hash = String::from_utf8(
                         cmd.arg(format!("https://pypi.org/project/{name}"))
@@ -312,14 +309,13 @@ async fn run() -> Result<()> {
                             .await?,
                     )
                     .context("failed to parse nurl output")?;
-                    formatdoc!(
-                        r#"
+                    formatdoc! {r#"
                         fetchPypi {{
                             pname = {name:?};
                             inherit version;
                             hash = "{hash}";{ext}
                           }}"#,
-                    )
+                    }
                 }
             }
 
@@ -550,21 +546,18 @@ async fn run() -> Result<()> {
             };
 
             let res = write_all_lambda_inputs(&mut out, &inputs, &mut BTreeSet::new())?;
-            writedoc!(
-                out,
-                r#"
-                    }}:
+            writedoc! {out, r#"
+                }}:
 
-                    buildGoModule rec {{
-                      pname = {pname:?};
-                      version = {version:?};
+                buildGoModule rec {{
+                  pname = {pname:?};
+                  version = {version:?};
 
-                      src = {src_expr};
+                  src = {src_expr};
 
-                      vendorHash = {hash};
+                  vendorHash = {hash};
 
-                "#,
-            )?;
+            "#}?;
             res
         }
 
@@ -638,17 +631,15 @@ async fn run() -> Result<()> {
                 }
             }
 
-            writedoc!(
-                out,
-                r#"
-                    }}:
+            writedoc! {out, r#"
+                }}:
 
-                    {} rec {{
-                      pname = {pname:?};
-                      version = {version:?};
-                      format = "{format}";
+                {} rec {{
+                  pname = {pname:?};
+                  version = {version:?};
+                  format = "{format}";
 
-                      src = {src_expr};
+                  src = {src_expr};
 
                 "#,
                 if application {
@@ -656,22 +647,19 @@ async fn run() -> Result<()> {
                 } else {
                     "buildPythonPackage"
                 },
-            )?;
+            }?;
 
             match rust {
                 RustVendorData::Hash(hash) => {
                     write!(out, "  ")?;
-                    writedoc!(
-                        out,
-                        r#"
-                            cargoDeps = rustPlatform.fetchCargoTarball {{
-                                inherit src;
-                                name = "${{pname}}-${{version}}";
-                                hash = "{hash}";
-                              }};
+                    writedoc! {out, r#"
+                        cargoDeps = rustPlatform.fetchCargoTarball {{
+                            inherit src;
+                            name = "${{pname}}-${{version}}";
+                            hash = "{hash}";
+                          }};
 
-                        "#,
-                    )?;
+                    "#}?;
                 }
                 RustVendorData::Lock(resolve) => {
                     write!(out, "  cargoDeps = rustPlatform.importCargoLock ")?;
@@ -698,21 +686,18 @@ async fn run() -> Result<()> {
             .await;
             let res =
                 write_all_lambda_inputs(&mut out, &inputs, &mut ["rustPlatform".into()].into())?;
-            writedoc!(
-                out,
-                r#"
-                    }}:
+            writedoc! {out, r#"
+                }}:
 
-                    rustPlatform.buildRustPackage rec {{
-                      pname = {pname:?};
-                      version = {version:?};
+                rustPlatform.buildRustPackage rec {{
+                  pname = {pname:?};
+                  version = {version:?};
 
-                      src = {src_expr};
+                  src = {src_expr};
 
-                      cargoHash = "{hash}";
+                  cargoHash = "{hash}";
 
-                "#,
-            )?;
+            "#}?;
             res
         }
 
@@ -728,38 +713,33 @@ async fn run() -> Result<()> {
 
             let res =
                 write_all_lambda_inputs(&mut out, &inputs, &mut ["rustPlatform".into()].into())?;
-            writedoc!(
-                out,
-                r#"
-                    }}:
+            writedoc! {out, r#"
+                }}:
 
-                    rustPlatform.buildRustPackage rec {{
-                      pname = "{pname}";
-                      version = "{version}";
+                rustPlatform.buildRustPackage rec {{
+                  pname = "{pname}";
+                  version = "{version}";
 
-                      src = {src_expr};
+                  src = {src_expr};
 
-                      cargoLock = "#,
-            )?;
+                  cargoLock = "#,
+            }?;
             write_cargo_lock(&mut out, has_cargo_lock, resolve).await?;
             res
         }
 
         BuildType::MkDerivation { rust: None } => {
             let res = write_all_lambda_inputs(&mut out, &inputs, &mut ["stdenv".into()].into())?;
-            writedoc!(
-                out,
-                r#"
-                    }}:
+            writedoc! { out, r#"
+                }}:
 
-                    stdenv.mkDerivation rec {{
-                      pname = {pname:?};
-                      version = {version:?};
+                stdenv.mkDerivation rec {{
+                  pname = {pname:?};
+                  version = {version:?};
 
-                      src = {src_expr};
+                  src = {src_expr};
 
-                "#,
-            )?;
+            "#}?;
             res
         }
 
@@ -777,25 +757,22 @@ async fn run() -> Result<()> {
             )
             .await;
             let res = write_all_lambda_inputs(&mut out, &inputs, &mut ["stdenv".into()].into())?;
-            writedoc!(
-                out,
-                r#"
-                    }}:
+            writedoc! {out, r#"
+                }}:
 
-                    stdenv.mkDerivation rec {{
-                      pname = {pname:?};
-                      version = {version:?};
+                stdenv.mkDerivation rec {{
+                  pname = {pname:?};
+                  version = {version:?};
 
-                      src = {src_expr};
+                  src = {src_expr};
 
-                      cargoDeps = rustPlatform.fetchCargoTarball {{
-                        inherit src;
-                        name = "${{pname}}-${{version}}";
-                        hash = "{hash}";
-                      }};
+                  cargoDeps = rustPlatform.fetchCargoTarball {{
+                    inherit src;
+                    name = "${{pname}}-${{version}}";
+                    hash = "{hash}";
+                  }};
 
-                "#,
-            )?;
+            "#}?;
             res
         }
 
@@ -810,19 +787,17 @@ async fn run() -> Result<()> {
             };
 
             let res = write_all_lambda_inputs(&mut out, &inputs, &mut ["stdenv".into()].into())?;
-            writedoc!(
-                out,
-                r#"
-                    }}:
+            writedoc! {out, r#"
+                }}:
 
-                    stdenv.mkDerivation rec {{
-                      pname = "{pname}";
-                      version = "{version}";
+                stdenv.mkDerivation rec {{
+                  pname = "{pname}";
+                  version = "{version}";
 
-                      src = {src_expr};
+                  src = {src_expr};
 
-                      cargoDeps = rustPlatform.importCargoLock "#,
-            )?;
+                  cargoDeps = rustPlatform.importCargoLock "#,
+            }?;
             write_cargo_lock(&mut out, has_cargo_lock, resolve).await?;
             res
         }
@@ -906,14 +881,11 @@ async fn run() -> Result<()> {
     let mut desc = desc.trim_matches(|c: char| !c.is_alphanumeric()).to_owned();
     desc.get_mut(0 .. 1).map(str::make_ascii_uppercase);
     write!(out, "  ")?;
-    writedoc!(
-        out,
-        r"
-            meta = with lib; {{
-                description = {desc:?};
-                homepage = {url:?};
-        ",
-    )?;
+    writedoc! {out, r"
+        meta = with lib; {{
+            description = {desc:?};
+            homepage = {url:?};
+    "}?;
 
     if let Some(prefix) = prefix {
         if let Some(walk) = read_dir(&src_dir).ok_warn() {

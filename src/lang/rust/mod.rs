@@ -168,15 +168,12 @@ pub async fn write_cargo_lock(
 
     if !has_cargo_lock {
         write!(out, "  ")?;
-        writedoc!(
-            out,
-            "
-                postPatch = ''
-                    ln -s ${{./Cargo.lock}} Cargo.lock
-                  '';
+        writedoc! {out, "
+            postPatch = ''
+                ln -s ${{./Cargo.lock}} Cargo.lock
+              '';
 
-            ",
-        )?;
+        "}?;
     }
 
     Ok(())
