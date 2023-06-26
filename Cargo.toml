@@ -63,7 +63,7 @@ xdg = "2.5.0"
 zip = "0.6.6"
 
 [dependencies.clap]
-version = "4.3.5"
+version = "4.3.8"
 features = ["cargo", "derive", "unicode", "wrap_help"]
 
 [dependencies.rustyline]
@@ -76,7 +76,7 @@ version = "1.28.2"
 features = ["macros", "process", "rt-multi-thread"]
 
 [build-dependencies]
-clap = { version = "4.3.5", features = ["derive"] }
+clap = { version = "4.3.8", features = ["derive"] }
 clap_complete = "4.3.1"
 clap_mangen = "0.2.12"
 
