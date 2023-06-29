@@ -29,9 +29,10 @@ pub struct Pyproject {
 }
 
 #[serde_as]
-#[derive(Default, Deserialize)]
+#[derive(Deserialize)]
 #[serde(default)]
 struct BuildSystem {
+    #[serde(default = "BuildSystem::default_requires")]
     requires: Vec<String>,
 }
 
@@ -215,4 +216,18 @@ fn load_extras(extras: &mut Vec<String>, marker: Marker) {
 
 pub fn parser<'a>() -> impl Parser<'a, &'a str, Dependency<'a>, Err<EmptyErr>> {
     pep_508::parser().then_ignore(end())
+}
+
+impl BuildSystem {
+    fn default_requires() -> Vec<String> {
+        vec!["setuptools".into()]
+    }
+}
+
+impl Default for BuildSystem {
+    fn default() -> Self {
+        Self {
+            requires: Self::default_requires(),
+        }
+    }
 }
