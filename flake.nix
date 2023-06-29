@@ -174,6 +174,7 @@
                 ];
               in
               cargoNextest (args // {
+                doNotLinkInheritedArtifacts = true;
                 cargoLockParsed = importTOML lock // {
                   package = attrValues (getPackages lock // concatMapAttrs
                     (name: _: optionalAttrs
