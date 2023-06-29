@@ -134,6 +134,7 @@
 
             cargoArtifacts = buildDepsOnly args;
             cargoExtraArgs = "--no-default-features";
+            doInstallCargoArtifacts = false;
 
             postPatch = ''
               mkdir -p data
