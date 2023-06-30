@@ -13,7 +13,11 @@ AllInputs {
         x86_64_linux: {},
     },
     build_inputs: Inputs {
-        always: {},
+        always: {
+            "libxml2",
+            "ncurses",
+            "zlib",
+        },
         darwin: {},
         aarch64_darwin: {},
         x86_64_darwin: {},
