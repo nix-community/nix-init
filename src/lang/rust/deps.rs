@@ -161,6 +161,7 @@ pub(super) fn load_rust_dependency(inputs: &mut AllInputs, resolve: &Resolve, pk
             }
         }
         "llvm-sys" => {
+            build!("libxml2", "ncurses", "zlib");
             let major = pkg.version().major;
             let llvm_pkgs = format!("llvmPackages_{}", major / 10);
             environ!(
