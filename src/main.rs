@@ -6,6 +6,7 @@ mod fetcher;
 mod inputs;
 mod lang;
 mod license;
+mod macros;
 mod prompt;
 mod utils;
 
