@@ -1,6 +1,6 @@
-use parse_display::Display;
-
 use std::fmt::{self, Display, Formatter};
+
+use parse_display::Display;
 
 #[derive(Clone, Copy)]
 pub enum BuildType {

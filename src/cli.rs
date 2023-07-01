@@ -1,6 +1,6 @@
-use clap::Parser;
-
 use std::path::PathBuf;
+
+use clap::Parser;
 
 /// Generate Nix packages with hash prefetching, license detection, and more
 /// https://github.com/nix-community/nix-init

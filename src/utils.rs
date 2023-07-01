@@ -1,8 +1,8 @@
+use std::{fmt::Display, future::Future, io::BufRead, pin::Pin, process::Output};
+
 use anyhow::{bail, Result};
 use tokio::process::Command;
 use tracing::{error, info, warn};
-
-use std::{fmt::Display, future::Future, io::BufRead, pin::Pin, process::Output};
 
 use crate::cmd::NIX;
 

@@ -1,12 +1,12 @@
 mod deps;
 mod goreleaser;
 
-pub use goreleaser::write_ldflags;
-
 use std::{
     fs::File,
     io::{BufRead, BufReader},
 };
+
+pub use goreleaser::write_ldflags;
 
 use crate::{inputs::AllInputs, lang::go::deps::load_go_dependency};
 

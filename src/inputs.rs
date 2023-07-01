@@ -1,10 +1,10 @@
-use anyhow::Result;
-
 use std::{
     borrow::Cow,
     collections::{BTreeMap, BTreeSet},
     fmt::Write,
 };
+
+use anyhow::Result;
 
 #[derive(Debug, Default)]
 pub struct AllInputs {

@@ -1,9 +1,9 @@
+use std::{borrow::Cow, fmt::Write, fs::File, path::Path};
+
 use anyhow::Result;
 use heck::ToLowerCamelCase;
 use regex::{Captures, Regex};
 use serde::Deserialize;
-
-use std::{borrow::Cow, fmt::Write, fs::File, path::Path};
 
 use crate::utils::ResultExt;
 

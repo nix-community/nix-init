@@ -1,9 +1,3 @@
-use chumsky::{error::EmptyErr, extra::Err, primitive::end, Parser};
-use heck::{AsKebabCase, ToKebabCase};
-use pep_508::{Comparator, Dependency, Marker, Operator, Variable};
-use serde::Deserialize;
-use serde_with::{serde_as, DefaultOnError};
-
 use std::{
     collections::{BTreeMap, BTreeSet},
     fs::{self, File},
@@ -11,6 +5,12 @@ use std::{
     mem,
     path::{Path, PathBuf},
 };
+
+use chumsky::{error::EmptyErr, extra::Err, primitive::end, Parser};
+use heck::{AsKebabCase, ToKebabCase};
+use pep_508::{Comparator, Dependency, Marker, Operator, Variable};
+use serde::Deserialize;
+use serde_with::{serde_as, DefaultOnError};
 
 use crate::{inputs::AllInputs, license::parse_spdx_expression, utils::ResultExt};
 

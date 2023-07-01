@@ -1,6 +1,6 @@
-use askalono::Store;
-
 use std::{env::args_os, fs::File};
+
+use askalono::Store;
 
 fn main() {
     let mut args = args_os();

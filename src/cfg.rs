@@ -1,3 +1,5 @@
+use std::{fs, path::PathBuf};
+
 use anyhow::{Context, Result};
 use reqwest::header::{HeaderMap, HeaderValue, AUTHORIZATION};
 use rustc_hash::FxHashMap;
@@ -5,8 +7,6 @@ use secrecy::{ExposeSecret, SecretString};
 use serde::Deserialize;
 use tokio::process::Command;
 use xdg::BaseDirectories;
-
-use std::{fs, path::PathBuf};
 
 use crate::utils::{CommandExt, ResultExt};
 

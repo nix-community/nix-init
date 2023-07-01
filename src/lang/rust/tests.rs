@@ -1,11 +1,11 @@
+use std::fs::{copy, create_dir, File};
+
 use heck::AsKebabCase;
 use insta::assert_debug_snapshot;
 use tempfile::tempdir;
 
 use super::resolve_workspace;
 use crate::{inputs::AllInputs, lang::rust::load_rust_dependencies};
-
-use std::fs::{copy, create_dir, File};
 
 macro_rules! tests {
     ($($name:ident)+) => {

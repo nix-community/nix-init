@@ -10,6 +10,15 @@ mod macros;
 mod prompt;
 mod utils;
 
+use std::{
+    cmp::Ordering,
+    collections::{BTreeMap, BTreeSet},
+    fmt::Write as _,
+    fs::{create_dir_all, metadata, read_dir, read_to_string, File},
+    io::{stderr, BufRead, BufReader, Write as _},
+    path::PathBuf,
+};
+
 use anyhow::{Context, Result};
 use askalono::{IdentifiedLicense, ScanResult, ScanStrategy, TextData};
 use bstr::{ByteSlice, ByteVec};
@@ -29,15 +38,6 @@ use tokio::process::Command;
 use tracing::debug;
 use tracing_subscriber::EnvFilter;
 use zip::ZipArchive;
-
-use std::{
-    cmp::Ordering,
-    collections::{BTreeMap, BTreeSet},
-    fmt::Write as _,
-    fs::{create_dir_all, metadata, read_dir, read_to_string, File},
-    io::{stderr, BufRead, BufReader, Write as _},
-    path::PathBuf,
-};
 
 use crate::{
     build::{BuildType, PythonFormat, RustVendor},

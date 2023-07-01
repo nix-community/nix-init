@@ -2,6 +2,15 @@ mod deps;
 #[cfg(test)]
 mod tests;
 
+use std::{
+    collections::BTreeMap,
+    fmt::{Display, Write},
+    fs::File,
+    io::{self, Write as _},
+    path::Path,
+    process::Command,
+};
+
 use anyhow::{anyhow, Context, Result};
 use cargo::{
     core::{
@@ -17,16 +26,7 @@ use indoc::writedoc;
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use rustc_hash::FxHashMap;
 use rustyline::{history::History, Editor};
-use std::process::Command;
 use tracing::error;
-
-use std::{
-    collections::BTreeMap,
-    fmt::{Display, Write},
-    fs::File,
-    io::{self, Write as _},
-    path::Path,
-};
 
 use crate::{
     cmd::NURL,
