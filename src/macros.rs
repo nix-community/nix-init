@@ -18,6 +18,7 @@ macro_rules! input_macros {
             }};
         }
 
+        #[allow(unused_macros)]
         macro_rules! environ {
             ($name:expr, $value:expr) => {
                 environ!($name, $value;);
@@ -31,6 +32,7 @@ macro_rules! input_macros {
         }
 
         // native build inputs
+        #[allow(unused_macros)]
         macro_rules! native_build {
             ($_($tt:tt)+) => {
                 input!(native_build_inputs: $_($tt)+)
@@ -38,6 +40,7 @@ macro_rules! input_macros {
         }
 
         // build inputs
+        #[allow(unused_macros)]
         macro_rules! build {
             ($_($tt:tt)+) => {
                 input!(build_inputs: $_($tt)+)
@@ -45,6 +48,7 @@ macro_rules! input_macros {
         }
 
         // apple frameworks
+        #[allow(unused_macros)]
         macro_rules! framework {
             ($_($input:literal),+) => {
                 build!($_(concat!("darwin.apple_sdk.frameworks.", $input)),+; darwin)
@@ -52,6 +56,7 @@ macro_rules! input_macros {
         }
 
         // gstreamer libraries
+        #[allow(unused_macros)]
         macro_rules! gst {
             ($_($input:literal),+) => {
                 build!($_(concat!("gst_all_1.", $input)),+)

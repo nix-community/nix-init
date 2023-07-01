@@ -47,7 +47,7 @@ use crate::{
     fetcher::{Fetcher, PackageInfo, PypiFormat, Revisions, Version},
     inputs::{write_all_lambda_inputs, write_inputs, write_lambda_input, AllInputs},
     lang::{
-        go::write_ldflags,
+        go::{load_go_dependencies, write_ldflags},
         python::{parse_requirements_txt, Pyproject},
         rust::{cargo_deps_hash, load_cargo_lock, write_cargo_lock},
     },
@@ -531,10 +531,14 @@ async fn run() -> Result<()> {
     let mut pyproject = None;
     let (native_build_inputs, build_inputs) = match choice {
         BuildType::BuildGoModule => {
+            let go_sum = File::open(src_dir.join("go.sum")).ok_warn();
+
+            if let Some(go_sum) = &go_sum {
+                load_go_dependencies(&mut inputs, go_sum);
+            }
+
             let hash = if src_dir.join("vendor").is_dir()
-                || src_dir
-                    .join("go.sum")
-                    .metadata()
+                || go_sum.and_then(|go_sum| go_sum.metadata().ok_warn())
                     .map_or(true, |metadata| metadata.len() == 0)
             {
                 "null".into()

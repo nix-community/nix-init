@@ -1,0 +1,34 @@
+---
+source: src/lang/go/mod.rs
+expression: inputs
+---
+AllInputs {
+    native_build_inputs: Inputs {
+        always: {
+            "pkg-config",
+        },
+        darwin: {},
+        aarch64_darwin: {},
+        x86_64_darwin: {},
+        linux: {},
+        aarch64_linux: {},
+        x86_64_linux: {},
+    },
+    build_inputs: Inputs {
+        always: {
+            "gtk3",
+            "gtk4",
+        },
+        darwin: {
+            "darwin.apple_sdk.frameworks.Cocoa",
+        },
+        aarch64_darwin: {},
+        x86_64_darwin: {},
+        linux: {
+            "xorg.libX11",
+        },
+        aarch64_linux: {},
+        x86_64_linux: {},
+    },
+    env: {},
+}
