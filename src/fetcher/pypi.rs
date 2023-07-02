@@ -42,7 +42,8 @@ pub async fn get_package_info(cl: &Client, pname: &str) -> PackageInfo {
     let mut completions = Vec::new();
     let mut versions = Default::default();
 
-    let Some(project) = json::<Project>(cl, format!("https://pypi.org/pypi/{pname}/json")).await else {
+    let Some(project) = json::<Project>(cl, format!("https://pypi.org/pypi/{pname}/json")).await
+    else {
         return PackageInfo {
             pname: pname.into(),
             description: "".into(),

@@ -21,7 +21,7 @@ struct Build {
 pub fn write_ldflags(out: &mut impl Write, src_dir: &Path) -> Result<()> {
     let (Some(raw), Some(re)) = (get_ldflags(src_dir), regex()) else {
         writeln!(out, "  ldflags = [ \"-s\" \"-w\" ];\n")?;
-        return Ok(())
+        return Ok(());
     };
 
     let mut raw = raw

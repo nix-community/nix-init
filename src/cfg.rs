@@ -28,23 +28,31 @@ impl AccessTokens {
 
             Some(AccessToken::Command { command }) => {
                 let mut args = command.iter();
-                let Some(cmd) = args.next() else { return; };
+                let Some(cmd) = args.next() else {
+                    return;
+                };
                 let Some(stdout) = Command::new(cmd).args(args).get_stdout().await.ok_warn() else {
                     return;
                 };
-                let Some(token) = String::from_utf8(stdout).ok_warn() else { return; };
+                let Some(token) = String::from_utf8(stdout).ok_warn() else {
+                    return;
+                };
                 format!("Bearer {}", token.trim())
             }
 
             Some(AccessToken::File { file }) => {
-                let Some(token) = fs::read_to_string(file).ok_warn() else { return; };
+                let Some(token) = fs::read_to_string(file).ok_warn() else {
+                    return;
+                };
                 format!("Bearer {}", token.trim())
             }
 
             None => return,
         };
 
-        let Some(mut value) = HeaderValue::from_str(&value).ok_warn() else { return; };
+        let Some(mut value) = HeaderValue::from_str(&value).ok_warn() else {
+            return;
+        };
         value.set_sensitive(true);
         headers.insert(AUTHORIZATION, value);
     }

@@ -88,11 +88,15 @@ pub async fn fod_hash(expr: String) -> Option<String> {
 
     let mut lines = stderr.lines();
     loop {
-        let Ok(line) = lines.next()? else { continue; };
+        let Ok(line) = lines.next()? else {
+            continue;
+        };
         if !line.trim_start().starts_with("specified:") {
             continue;
         }
-        let Ok(line) = lines.next()? else { continue; };
+        let Ok(line) = lines.next()? else {
+            continue;
+        };
         let Some(hash) = line.trim_start().strip_prefix("got:") else {
             continue;
         };

@@ -895,7 +895,9 @@ async fn run() -> Result<()> {
     if let Some(prefix) = prefix {
         if let Some(walk) = read_dir(&src_dir).ok_warn() {
             for entry in walk {
-                let Ok(entry) = entry else { continue; };
+                let Ok(entry) = entry else {
+                    continue;
+                };
                 let path = entry.path();
 
                 if !path.is_file() {
@@ -903,7 +905,9 @@ async fn run() -> Result<()> {
                 }
 
                 let name = entry.file_name();
-                let Some(name) = name.to_str() else { continue; };
+                let Some(name) = name.to_str() else {
+                    continue;
+                };
                 if matches!(
                     name.to_ascii_lowercase().as_bytes(),
                     expand!([@b"changelog", ..] | [@b"changes", ..] | [@b"news"] | [@b"releases", ..]),
@@ -919,7 +923,9 @@ async fn run() -> Result<()> {
         let strategy = ScanStrategy::new(store).confidence_threshold(0.8);
 
         for entry in walk {
-            let Ok(entry) = entry else { continue; };
+            let Ok(entry) = entry else {
+                continue;
+            };
             let path = entry.path();
 
             if !path.is_file() {
@@ -935,12 +941,15 @@ async fn run() -> Result<()> {
                 continue;
             }
 
-            let Some(text) = read_to_string(&path).ok_warn() else { continue; };
+            let Some(text) = read_to_string(&path).ok_warn() else {
+                continue;
+            };
             let Some(ScanResult {
                 score,
                 license: Some(IdentifiedLicense { name, .. }),
                 ..
-            }) = strategy.scan(&TextData::from(text)).ok_warn() else {
+            }) = strategy.scan(&TextData::from(text)).ok_warn()
+            else {
                 continue;
             };
 

@@ -31,7 +31,9 @@ pub async fn get_package_info(cl: &Client, pname: &str) -> PackageInfo {
     let mut completions = Vec::new();
     let mut versions = Default::default();
 
-    let Some(info) = json::<CrateInfo>(cl, format!("https://crates.io/api/v1/crates/{pname}")).await else {
+    let Some(info) =
+        json::<CrateInfo>(cl, format!("https://crates.io/api/v1/crates/{pname}")).await
+    else {
         return PackageInfo {
             pname: pname.into(),
             description: "".into(),
