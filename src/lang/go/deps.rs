@@ -6,7 +6,7 @@ pub(super) fn load_go_dependency(inputs: &mut AllInputs, pkg: &str) {
     match pkg {
         "github.com/diamondburned/gotk4-adwaita/pkg" => build!("libadwaita"),
         "github.com/diamondburned/gotk4/pkg" => {
-            native_build!("pkg-config");
+            native_build!("pkg-config", "wrapGAppsHook4");
             build!("gtk4");
         }
         "github.com/dlasky/gotk3-layershell" => {
@@ -31,7 +31,7 @@ pub(super) fn load_go_dependency(inputs: &mut AllInputs, pkg: &str) {
         }
         "github.com/google/gopacket" => build!("libpcap"),
         "github.com/gotk3/gotk3" => {
-            native_build!("pkg-config");
+            native_build!("pkg-config", "wrapGAppsHook");
             build!("gtk3");
         }
         "github.com/itchio/ox" => framework!("Cocoa"),

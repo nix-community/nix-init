@@ -60,8 +60,14 @@ pub(super) fn load_rust_dependency(inputs: &mut AllInputs, resolve: &Resolve, pk
         "gstreamer-validate-sys" => gst!("gst-devtools"),
         "gstreamer-video-sys" => gst!("gst-plugins-base"),
         "gstreamer-webrtc-sys" => gst!("gst-plugins-bad"),
-        "gtk-sys" => build!("gtk3"),
-        "gtk4-sys" => build!("gtk4"),
+        "gtk-sys" => {
+            native_build!("wrapGAppsHook");
+            build!("gtk3");
+        }
+        "gtk4-sys" => {
+            native_build!("wrapGAppsHook4");
+            build!("gtk4");
+        }
         "io-kit-sys" => framework!("IOKit"),
         "io-surface" => build!("IOSurface"),
         "libadwaita-sys" => build!("libadwaita"),

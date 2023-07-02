@@ -6,6 +6,8 @@ AllInputs {
     native_build_inputs: Inputs {
         always: {
             "pkg-config",
+            "wrapGAppsHook",
+            "wrapGAppsHook4",
         },
         darwin: {},
         aarch64_darwin: {},
