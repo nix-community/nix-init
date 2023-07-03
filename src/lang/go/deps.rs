@@ -38,6 +38,14 @@ pub(super) fn load_go_dependency(inputs: &mut AllInputs, pkg: GoPackage<'_>) {
         }
         "github.com/itchio/ox" => framework!("Cocoa"),
         "github.com/itchio/screw" => framework!("Cocoa"),
+        "github.com/shirou/gopsutil" => {
+            if pkg.version.get().is_some_and(|version| {
+                version < Version::new(3, 21, 3)
+                    && (version.major != 2 || version < Version::new(2, 21, 11))
+            }) {
+                environ!("CGO_CFLAGS", r#""-Wno-undef-prefix""#);
+            }
+        }
         "golang.design/x/clipboard" => {
             build!("xorg.libX11"; linux);
             framework!("Cocoa");
