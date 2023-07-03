@@ -1,9 +1,11 @@
-use crate::{inputs::AllInputs, macros::input_macros};
+use semver::Version;
 
-pub(super) fn load_go_dependency(inputs: &mut AllInputs, pkg: &str) {
+use crate::{inputs::AllInputs, lang::go::GoPackage, macros::input_macros};
+
+pub(super) fn load_go_dependency(inputs: &mut AllInputs, pkg: GoPackage<'_>) {
     input_macros!(inputs);
 
-    match pkg {
+    match pkg.name {
         "github.com/diamondburned/gotk4-adwaita/pkg" => build!("libadwaita"),
         "github.com/diamondburned/gotk4/pkg" => {
             native_build!("pkg-config", "wrapGAppsHook4");

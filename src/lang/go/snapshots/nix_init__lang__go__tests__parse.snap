@@ -1,0 +1,12 @@
+---
+source: src/lang/go/mod.rs
+expression: "parse_line(\"golang.org/x/mod v0.11.0 h1:bUO06HqtnRcc/7l71XBe4WcqTZ+3AH1J59zWDDwLKgU=\")"
+---
+(
+    "golang.org/x/mod",
+    Version {
+        major: 0,
+        minor: 11,
+        patch: 0,
+    },
+)

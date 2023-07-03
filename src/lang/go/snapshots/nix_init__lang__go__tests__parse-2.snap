@@ -1,0 +1,12 @@
+---
+source: src/lang/go/mod.rs
+expression: "parse_line(\"github.com/spf13/cobra v1.7.0/go.mod h1:uLxZILRyS/50WlhOIKD7W6V5bgeIt+4sICxh6uRMrb0=\")"
+---
+(
+    "github.com/spf13/cobra",
+    Version {
+        major: 1,
+        minor: 7,
+        patch: 0,
+    },
+)
