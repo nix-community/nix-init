@@ -21,14 +21,14 @@ macro_rules! input_macros {
         #[allow(unused_macros)]
         macro_rules! environ {
             ($name:expr, $value:expr) => {
-                environ!($name, $value;);
+                environ!($name, $value;)
             };
-            ($name:expr, $value:expr; $_($tt:tt)*) => {
+            ($name:expr, $value:expr; $_($tt:tt)*) => {{
                 $inputs.env.insert(
                     $name.into(),
                     ($value.into(), vec![$_($tt)*]),
                 );
-            };
+            }};
         }
 
         // native build inputs
