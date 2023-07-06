@@ -1,5 +1,25 @@
 # Changelog
 
+## v0.2.4 - 2023-07-06
+
+### Features
+
+- Go: support dependency inference
+- Rust: improve dependency inference for the following crates: alsa-sys, curl-sys, gtk-sys, gtk4-sys, librocksdb-sys, llvm-sys
+- Go: improve ldflags formatting
+- Add nix and nurl to runtime with environment variables instead of relying on a wrapper
+
+### Changes
+
+- Drop support for nixpkgs 22.11
+
+### Fixes
+
+- Rust: use `cargo` and `rustc` instead of `rustPlatform.rust.cargo` and `rustPlatform.rust.rustc`
+- Python: fix `pythonImportsCheck`
+- Python(pyproject): default build-system.requires to setuptools
+- Fix interaction with `showAliases = false` on nixpkgs 23.11 ([#153](https://github.com/nix-community/nix-init/issues/153))
+
 ## v0.2.3 - 2023-04-29
 
 ### Features
