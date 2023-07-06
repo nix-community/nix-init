@@ -2,7 +2,7 @@
 members = ["license-store-cache"]
 
 [workspace.package]
-version = "0.2.3"
+version = "0.2.4"
 authors = ["figsoda <figsoda@pm.me>"]
 edition = "2021"
 license = "MPL-2.0"
@@ -34,7 +34,7 @@ expand = "0.3.0"
 flate2 = "1.0.26"
 heck = "0.4.1"
 indoc = "2.0.2"
-is-terminal = "0.4.8"
+is-terminal = "0.4.9"
 itertools = "0.11.0"
 once_cell = "1.18.0"
 owo-colors = "3.5.0"
