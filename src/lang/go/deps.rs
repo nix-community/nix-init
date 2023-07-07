@@ -20,17 +20,6 @@ pub(super) fn load_go_dependency(inputs: &mut AllInputs, pkg: GoPackage<'_>) {
             build!("libayatana-appindicator"; linux);
             framework!("Cocoa", "WebKit");
         }
-        "github.com/go-gl/glfw" => {
-            build!(
-                "xorg.libX11",
-                "xorg.libXcursor",
-                "xorg.libXi",
-                "xorg.libXinerama",
-                "xorg.libXrandr";
-                linux
-            );
-            framework!("Cocoa", "Kernel");
-        }
         "github.com/google/gopacket" => build!("libpcap"),
         "github.com/gotk3/gotk3" => {
             native_build!("pkg-config", "wrapGAppsHook");
