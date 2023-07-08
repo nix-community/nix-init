@@ -9,7 +9,7 @@ pub(super) fn load_go_dependency(inputs: &mut AllInputs, pkg: GoPackage<'_>) {
         "github.com/diamondburned/gotk4-adwaita/pkg" => build!("libadwaita"),
         "github.com/diamondburned/gotk4/pkg" => {
             native_build!("pkg-config", "wrapGAppsHook4");
-            build!("gtk4");
+            build!("gobject-introspection", "gtk4");
         }
         "github.com/dlasky/gotk3-layershell" => {
             native_build!("pkg-config");
