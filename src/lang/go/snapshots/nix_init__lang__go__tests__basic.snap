@@ -18,6 +18,7 @@ AllInputs {
     },
     build_inputs: Inputs {
         always: {
+            "gobject-introspection",
             "gtk3",
             "gtk4",
         },
