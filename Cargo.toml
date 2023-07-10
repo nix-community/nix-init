@@ -54,7 +54,7 @@ shlex = "1.1.0"
 spdx = "0.10.1"
 tar = "0.4.38"
 tempfile = "3.6.0"
-time = { version = "0.3.22", features = ["parsing", "serde"] }
+time = { version = "0.3.23", features = ["parsing", "serde"] }
 toml = { version = "0.7.6", default-features = false, features = ["parse"] }
 tracing = "0.1.37"
 tracing-subscriber = { version = "0.3.17", features = ["env-filter"] }
