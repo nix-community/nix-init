@@ -81,8 +81,9 @@ nix-init will try to find `nix-init/config.toml` under XDG configuration directo
 # maintainers that will get added to the package meta
 maintainers = ["figsoda"]
 
-# path to nixpkgs, equivalent to `--nixpkgs`
-nixpkgs = "<nixpkgs>"
+# path to nixpkgs (in nix), equivalent to `--nixpkgs`
+nixpkgs = "<nixpkgs>" # use the nixpkgs from channels (default)
+# nixpkgs = 'builtins.getFlake "nixpkgs"' # use the nixpkgs from the flake registry
 
 # access tokens to access private repositories and avoid rate limits
 [access-tokens]

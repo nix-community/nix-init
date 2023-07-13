@@ -15,6 +15,11 @@ pub struct Opts {
     pub url: Option<String>,
 
     /// Path to nixpkgs (in nix)
+    ///
+    /// Examples:
+    /// {n}  -n ./. (use the current directory)
+    /// {n}  -n 'builtins.getFlake "nixpkgs"' (use the nixpkgs from the flake registry)
+    /// {n}  -n '<nixpkgs>' (default, use the nixpkgs from channels)
     #[arg(short, long)]
     pub nixpkgs: Option<String>,
 
