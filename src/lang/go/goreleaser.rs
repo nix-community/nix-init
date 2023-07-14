@@ -99,6 +99,7 @@ fn parse_ldflags<'a>(re: &Regex, ldflags: &'a str) -> Cow<'a, str> {
         ".Patch" => "${lib.versions.patch version}".into(),
         ".Date" | ".CommitDate" => "1970-01-01T00:00:00Z".into(),
         ".Timestamp" | ".CommitTimestamp" => "0".into(),
+        ".Summary" | ".PrefixedSummary" => "${src.rev}".into(),
         x => format!("${{{}}}", x.to_lower_camel_case()),
     })
 }
