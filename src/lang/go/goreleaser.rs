@@ -97,6 +97,7 @@ fn parse_ldflags<'a>(re: &Regex, ldflags: &'a str) -> Cow<'a, str> {
         ".Branch" | ".PrefixedTag" | ".Tag" | ".ShortCommit" | ".FullCommit" | ".Commit" => {
             "${src.rev}".into()
         }
+        ".IsGitDirty" => "false".into(),
         ".Major" => "${lib.versions.major version}".into(),
         ".Minor" => "${lib.versions.minor version}".into(),
         ".Patch" => "${lib.versions.patch version}".into(),
