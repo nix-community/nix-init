@@ -4,6 +4,7 @@ use anyhow::Result;
 use heck::ToLowerCamelCase;
 use regex::{Captures, Regex};
 use serde::Deserialize;
+use serde_with::{serde_as, OneOrMany};
 
 use crate::utils::ResultExt;
 
@@ -13,8 +14,10 @@ struct GoReleaser {
     builds: Vec<Build>,
 }
 
+#[serde_as]
 #[derive(Deserialize)]
 struct Build {
+    #[serde_as(as = "Option<OneOrMany<_>>")]
     ldflags: Option<Vec<String>>,
 }
 
