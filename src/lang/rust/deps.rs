@@ -127,6 +127,7 @@ pub(super) fn load_rust_dependency(inputs: &mut AllInputs, resolve: &Resolve, pk
                 llvm_pkgs,
             );
         }
+        "locate-dwarf" => framework!("CoreServices"),
         "lzma-sys" => build!("xz"),
         "metal" => framework!("Metal"),
         "ncurses" => build!("ncurses"),
