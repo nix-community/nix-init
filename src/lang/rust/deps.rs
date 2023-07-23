@@ -165,6 +165,7 @@ pub(super) fn load_rust_dependency(inputs: &mut AllInputs, resolve: &Resolve, pk
         "webkit2gtk5-webextension-sys" => build!("webkitgtk_5_0"),
         "wgpu-hal" => framework!("QuartzCore"),
         "whoami" => framework!("CoreFoundation", "SystemConfiguration"),
+        "wholesym" => framework!("CoreServices"),
         "xcb" => {
             build!("xorg.libxcb"; linux);
             if pkg.version() < &Version::new(0, 10, 0) {
