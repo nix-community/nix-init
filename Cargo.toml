@@ -59,7 +59,7 @@ toml = { version = "0.7.6", default-features = false, features = ["parse"] }
 tracing = "0.1.37"
 tracing-subscriber = { version = "0.3.17", features = ["env-filter"] }
 url = "2.4.0"
-xdg = "2.5.0"
+xdg = "2.5.2"
 zip = "0.6.6"
 
 [dependencies.clap]
