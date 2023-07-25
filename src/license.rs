@@ -9,7 +9,7 @@ pub static LICENSE_STORE: Lazy<Option<Store>> = Lazy::new(|| {
     Store::from_cache(include_bytes!("../data/license-store-cache.zstd") as &[_]).ok_warn()
 });
 
-include!("../data/get-nix-license.rs");
+include!("../data/get_nix_license.rs");
 
 pub fn parse_spdx_expression(license: &str, source: &'static str) -> Vec<&'static str> {
     Expression::parse_mode(license, ParseMode::LAX)

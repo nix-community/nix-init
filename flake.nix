@@ -83,7 +83,7 @@
             ''rustfmt\.toml''
           ];
 
-          get-nix-license = callPackage ./src/get-nix-license.nix { };
+          get-nix-license = callPackage ./src/get_nix_license.nix { };
 
           license-store-cache = buildPackage {
             pname = "license-store-cache";
@@ -138,7 +138,7 @@
 
             postPatch = ''
               mkdir -p data
-              ln -s ${get-nix-license} data/get-nix-license.rs
+              ln -s ${get-nix-license} data/get_nix_license.rs
               ln -s ${license-store-cache} data/license-store-cache.zstd
             '';
 
@@ -192,7 +192,7 @@
 
             shellHook = ''
               mkdir -p data
-              ln -sf ${get-nix-license} data/get-nix-license.rs
+              ln -sf ${get-nix-license} data/get_nix_license.rs
               ln -sf ${license-store-cache} data/license-store-cache.zstd
             '';
           };
