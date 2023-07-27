@@ -150,6 +150,8 @@ pub(super) fn load_rust_dependency(inputs: &mut AllInputs, resolve: &Resolve, pk
         "pq-sys" => build!("postgresql"),
         "prost-build" => native_build!("protobuf"),
         "rdkafka-sys" => build!("rdkafka"),
+        "readkey" => framework!("AppKit"),
+        "readmouse" => framework!("AppKit"),
         "ring" => framework!("Security"),
         "security-framework-sys" => framework!("Security"),
         "servo-fontconfig-sys" => build!("fontconfig"),
