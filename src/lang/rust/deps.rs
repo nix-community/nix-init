@@ -169,6 +169,32 @@ pub(super) fn load_rust_dependency(inputs: &mut AllInputs, resolve: &Resolve, pk
         "wgpu-hal" => framework!("QuartzCore"),
         "whoami" => framework!("CoreFoundation", "SystemConfiguration"),
         "wholesym" => framework!("CoreServices"),
+        "x11" => {
+            for feat in resolve.features(pkg) {
+                // https://github.com/AltF02/x11-rs/blob/fced94ef6eb5935c892079a46812806f7b7a9237/x11/build.rs#L14
+                let dep = match &**feat {
+                    "glx" => "libGL",
+                    "xlib" => "xorg.libX11",
+                    "xlib_xcb" => "xorg.libX11",
+                    "xcursor" => "xorg.libXcursor",
+                    "dpms" => "xorg.libXext",
+                    "xfixes" => "xorg.libXfixes",
+                    "xft" => "xorg.libXft",
+                    "xinput" => "xorg.libX1",
+                    "xinerama" => "xorg.libXinerama",
+                    "xmu" => "xorg.libXmu",
+                    "xrandr" => "xorg.libXrandr",
+                    "xrender" => "xorg.libXrender",
+                    "xpresent" => "xorg.libXpresent",
+                    "xss" => "xorg.libXScrnSaver",
+                    "xt" => "xorg.libXt",
+                    "xtst" => "xorg.libXtst",
+                    "xf86vmode" => "xorg.libXxf86vm",
+                    _ => continue,
+                };
+                build!(dep; linux);
+            }
+        }
         "xcb" => {
             build!("xorg.libxcb"; linux);
             if pkg.version() < &Version::new(0, 10, 0) {
