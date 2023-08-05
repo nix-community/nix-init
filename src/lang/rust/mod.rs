@@ -36,6 +36,8 @@ use crate::{
     utils::{fod_hash, CommandExt, ResultExt, FAKE_HASH},
 };
 
+// &mut is required, clippy incorrectly warns about it
+#[allow(clippy::needless_pass_by_ref_mut)]
 pub async fn cargo_deps_hash(
     inputs: &mut AllInputs,
     pname: impl Display,
