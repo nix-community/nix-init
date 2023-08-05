@@ -138,7 +138,7 @@ impl Pyproject {
                 let mut all_deps = always.map_or_else(Default::default, get_python_dependencies);
 
                 for (extra, deps) in optional {
-                    let entry = all_deps.optional.entry(extra).or_insert_with(BTreeSet::new);
+                    let entry = all_deps.optional.entry(extra).or_default();
                     let parser = parser();
                     for dep in &deps {
                         if let Some(Dependency { name, .. }) = parser.parse(dep).into_output() {
@@ -182,10 +182,7 @@ pub fn get_python_dependencies(
             deps.always.insert(name);
         } else {
             for extra in extras {
-                deps.optional
-                    .entry(extra)
-                    .or_insert_with(BTreeSet::new)
-                    .insert(name.clone());
+                deps.optional.entry(extra).or_default().insert(name.clone());
             }
         }
     }
