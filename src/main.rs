@@ -393,6 +393,7 @@ async fn run() -> Result<()> {
     let has_cmake = src_dir.join("CMakeLists.txt").is_file();
     let has_go = src_dir.join("go.mod").is_file();
     let has_meson = src_dir.join("meson.build").is_file();
+    let has_zig = src_dir.join("build.zig").is_file();
     let pyproject_toml = src_dir.join("pyproject.toml");
     let has_pyproject = pyproject_toml.is_file();
     let has_setuptools = src_dir.join("setup.py").is_file();
@@ -508,6 +509,9 @@ async fn run() -> Result<()> {
                     .native_build_inputs
                     .always
                     .extend(["meson".into(), "ninja".into()]);
+            }
+            if has_zig {
+                inputs.native_build_inputs.always.insert("zigHook".into());
             }
             if rust.is_some() {
                 inputs.native_build_inputs.always.extend([
@@ -987,7 +991,13 @@ async fn run() -> Result<()> {
     for maintainer in cfg.maintainers {
         write!(out, "{maintainer} ")?;
     }
-    writeln!(out, "];\n  }};\n}}")?;
+    writeln!(out, "];")?;
+
+    if has_zig && matches!(choice, BuildType::MkDerivation { .. }) {
+        writeln!(out, "    inherit (zigHook.meta) platforms;")?;
+    }
+
+    writeln!(out, "  }};\n}}")?;
 
     out_file.set_len(0)?;
     write!(out_file, "{out}")?;
