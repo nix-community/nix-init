@@ -52,7 +52,7 @@ serde_with = "3.2.0"
 serde_yaml = "0.9.25"
 shlex = "1.1.0"
 spdx = "0.10.2"
-tar = "0.4.39"
+tar = "0.4.40"
 tempfile = "3.7.1"
 time = { version = "0.3.25", features = ["parsing", "serde"] }
 toml = { version = "0.7.6", default-features = false, features = ["parse"] }
