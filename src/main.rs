@@ -993,8 +993,12 @@ async fn run() -> Result<()> {
     }
     writeln!(out, "];")?;
 
-    if has_zig && matches!(choice, BuildType::MkDerivation { .. }) {
-        writeln!(out, "    inherit (zigHook.meta) platforms;")?;
+    if matches!(choice, BuildType::MkDerivation { .. }) {
+        if has_zig {
+            writeln!(out, "    inherit (zigHook.meta) platforms;")?;
+        } else {
+            writeln!(out, "    platforms = platforms.all;")?;
+        }
     }
 
     writeln!(out, "  }};\n}}")?;
