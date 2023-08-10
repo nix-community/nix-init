@@ -511,7 +511,7 @@ async fn run() -> Result<()> {
                     .extend(["meson".into(), "ninja".into()]);
             }
             if has_zig {
-                inputs.native_build_inputs.always.insert("zigHook".into());
+                inputs.native_build_inputs.always.insert("zig.hook".into());
             }
             if rust.is_some() {
                 inputs.native_build_inputs.always.extend([
@@ -995,7 +995,7 @@ async fn run() -> Result<()> {
 
     if matches!(choice, BuildType::MkDerivation { .. }) {
         if has_zig {
-            writeln!(out, "    inherit (zigHook.meta) platforms;")?;
+            writeln!(out, "    inherit (zig.meta) platforms;")?;
         } else {
             writeln!(out, "    platforms = platforms.all;")?;
         }
