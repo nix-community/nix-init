@@ -169,6 +169,7 @@ pub(super) fn load_rust_dependency(inputs: &mut AllInputs, resolve: &Resolve, pk
         "wgpu-hal" => framework!("QuartzCore"),
         "whoami" => framework!("CoreFoundation", "SystemConfiguration"),
         "wholesym" => framework!("CoreServices"),
+        "wireplumber" => build!("wireplumber"),
         "x11" => {
             for feat in resolve.features(pkg) {
                 // https://github.com/AltF02/x11-rs/blob/fced94ef6eb5935c892079a46812806f7b7a9237/x11/build.rs#L14
