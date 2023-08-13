@@ -871,7 +871,8 @@ async fn run() -> Result<()> {
                 pyproject
                     .as_mut()
                     .and_then(Pyproject::get_name)
-                    .unwrap_or(pname)
+                    .as_ref()
+                    .unwrap_or(&pname)
                     .to_snake_case(),
             )?;
         }
@@ -992,6 +993,10 @@ async fn run() -> Result<()> {
         write!(out, "{maintainer} ")?;
     }
     writeln!(out, "];")?;
+
+    if !matches!(choice, BuildType::BuildPythonPackage { application, .. } if !application) {
+        writeln!(out, "    mainProgram = {pname:?};")?;
+    }
 
     if matches!(choice, BuildType::MkDerivation { .. }) {
         if has_zig {
