@@ -77,6 +77,7 @@ pub(super) fn load_rust_dependency(inputs: &mut AllInputs, resolve: &Resolve, pk
             native_build!("libgpg-error");
             build!("libgpg-error")
         }
+        "libpanel-sys" => build!("libpanel"),
         "libpulse-sys" => build!("libpulseaudio"),
         "librocksdb-sys" => {
             environ!("ROCKSDB_INCLUDE_DIR", r#""${rocksdb}/include""#; "rocksdb".into());
