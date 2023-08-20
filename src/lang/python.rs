@@ -98,21 +98,41 @@ impl Pyproject {
 
     pub fn load_build_dependencies(&self, inputs: &mut AllInputs, application: bool) {
         let parser = parser();
-        inputs.native_build_inputs.always.extend(
-            self.build_system
-                .requires
-                .iter()
-                .filter_map(|dep| parser.parse(dep.as_str()).into_output())
-                .map(|Dependency { name, .. }| {
-                    if name == "maturin" {
-                        "rustPlatform.maturinBuildHook".into()
-                    } else if application {
+        for dep in self
+            .build_system
+            .requires
+            .iter()
+            .filter_map(|dep| parser.parse(dep.as_str()).into_output())
+        {
+            match dep.name {
+                "maturin" => {
+                    inputs
+                        .native_build_inputs
+                        .always
+                        .insert("rustPlatform.maturinBuildHook".into());
+                }
+                "setuptools" => {
+                    if application {
+                        inputs.native_build_inputs.always.extend([
+                            "python3.pkgs.setuptools".into(),
+                            "python3.pkgs.wheel".into(),
+                        ]);
+                    } else {
+                        inputs
+                            .native_build_inputs
+                            .always
+                            .extend(["setuptools".into(), "wheel".into()]);
+                    }
+                }
+                name => {
+                    inputs.native_build_inputs.always.insert(if application {
                         format!("python3.pkgs.{}", AsKebabCase(name.to_lowercase()))
                     } else {
-                        name.to_kebab_case()
-                    }
-                }),
-        );
+                        name.to_lowercase().to_kebab_case()
+                    });
+                }
+            }
+        }
     }
 
     pub fn get_dependencies(&mut self) -> Option<PythonDependencies> {
@@ -217,7 +237,7 @@ pub fn parser<'a>() -> impl Parser<'a, &'a str, Dependency<'a>, Err<EmptyErr>> {
 
 impl BuildSystem {
     fn default_requires() -> Vec<String> {
-        vec!["setuptools".into()]
+        vec!["setuptools".into(), "wheel".into()]
     }
 }
 
