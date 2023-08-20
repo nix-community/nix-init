@@ -148,6 +148,7 @@ pub(super) fn load_rust_dependency(inputs: &mut AllInputs, resolve: &Resolve, pk
         "pango-sys" => build!("pango"),
         "pipewire-sys" => build!("pipewire"),
         "pkg-config" => native_build!("pkg-config"),
+        "poppler-sys-rs" => build!("poppler"),
         "pq-sys" => build!("postgresql"),
         "prost-build" => native_build!("protobuf"),
         "rdkafka-sys" => build!("rdkafka"),
