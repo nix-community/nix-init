@@ -77,6 +77,13 @@ pub(super) fn load_rust_dependency(inputs: &mut AllInputs, resolve: &Resolve, pk
             native_build!("libgpg-error");
             build!("libgpg-error")
         }
+        "libhandy-sys" => {
+            if pkg.version() < &Version::new(0, 7, 0) {
+                build!("libhandy_0");
+            } else {
+                build!("libhandy");
+            }
+        }
         "libpanel-sys" => build!("libpanel"),
         "libpulse-sys" => build!("libpulseaudio"),
         "librocksdb-sys" => {
