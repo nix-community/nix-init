@@ -112,17 +112,14 @@ impl Pyproject {
                         .insert("rustPlatform.maturinBuildHook".into());
                 }
                 "setuptools" => {
-                    if application {
-                        inputs.native_build_inputs.always.extend([
+                    inputs.native_build_inputs.always.extend(if application {
+                        [
                             "python3.pkgs.setuptools".into(),
                             "python3.pkgs.wheel".into(),
-                        ]);
+                        ]
                     } else {
-                        inputs
-                            .native_build_inputs
-                            .always
-                            .extend(["setuptools".into(), "wheel".into()]);
-                    }
+                        ["setuptools".into(), "wheel".into()]
+                    });
                 }
                 name => {
                     inputs.native_build_inputs.always.insert(if application {
