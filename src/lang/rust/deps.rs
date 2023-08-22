@@ -38,6 +38,7 @@ pub(super) fn load_rust_dependency(inputs: &mut AllInputs, resolve: &Resolve, pk
             build!("gpgme")
         }
         "gsk4-sys" => build!("gtk4"),
+        "gspell-sys" => build!("gspell"),
         "gstreamer-allocators-sys" => gst!("gst-plugins-base"),
         "gstreamer-app-sys" => gst!("gst-plugins-base"),
         "gstreamer-audio-sys" => gst!("gst-plugins-base"),
@@ -168,6 +169,7 @@ pub(super) fn load_rust_dependency(inputs: &mut AllInputs, resolve: &Resolve, pk
         "soup-sys" => build!("libsoup"),
         "soup2-sys" => build!("libsoup"),
         "soup3-sys" => build!("libsoup_3"),
+        "sourceview4-sys" => build!("gtksourceview4"),
         "sourceview5-sys" => build!("gtksourceview5"),
         "spirv-tools-sys" => build!("spirv-tools"),
         "sys-locale" => framework!("CoreFoundation"),
