@@ -172,6 +172,7 @@ pub(super) fn load_rust_dependency(inputs: &mut AllInputs, resolve: &Resolve, pk
         "spirv-tools-sys" => build!("spirv-tools"),
         "sys-locale" => framework!("CoreFoundation"),
         "sysinfo" => framework!("IOKit"),
+        "vte4-sys" => build!("vte-gtk4"),
         "wayland-sys" => build!("wayland"; linux),
         "webkit2gtk-sys" => build!("webkitgtk"),
         "webkit2gtk-webextension-sys" => build!("webkitgtk"),
