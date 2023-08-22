@@ -178,6 +178,7 @@ pub(super) fn load_rust_dependency(inputs: &mut AllInputs, resolve: &Resolve, pk
         "webkit2gtk-webextension-sys" => build!("webkitgtk"),
         "webkit2gtk5-sys" => build!("webkitgtk_5_0"),
         "webkit2gtk5-webextension-sys" => build!("webkitgtk_5_0"),
+        "webkit6-sys" => build!("webkitgtk_6_0"),
         "wgpu-hal" => framework!("QuartzCore"),
         "whoami" => framework!("CoreFoundation", "SystemConfiguration"),
         "wholesym" => framework!("CoreServices"),
