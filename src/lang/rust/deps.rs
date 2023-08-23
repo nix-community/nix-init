@@ -15,6 +15,7 @@ pub(super) fn load_rust_dependency(inputs: &mut AllInputs, resolve: &Resolve, pk
         "bzip2-sys" => build!("bzip2"),
         "cairo-sys-rs" => build!("cairo"),
         "clipboard" => framework!("AppKit"),
+        "clipboard_macos" => framework!("AppKit"),
         "cocoa" => framework!("AppKit"),
         "cocoa-foundation" => framework!("Foundation"),
         "copypasta" => framework!("AppKit"),
