@@ -978,17 +978,22 @@ async fn run() -> Result<()> {
         .collect();
 
     write!(out, "    license = ")?;
-    if let [license] = &licenses[..] {
-        write!(out, "licenses.{license}")?;
+    if licenses.is_empty() {
+        writeln!(
+            out,
+            "licenses.unfree; # FIXME: nix-init did not found a license",
+        )?;
+    } else if let [license] = &licenses[..] {
+        writeln!(out, "licenses.{license};")?;
     } else {
         write!(out, "with licenses; [ ")?;
         for license in licenses {
             write!(out, "{license} ")?;
         }
-        write!(out, "]")?;
+        writeln!(out, "];")?;
     }
 
-    write!(out, ";\n    maintainers = with maintainers; [ ")?;
+    write!(out, "    maintainers = with maintainers; [ ")?;
     for maintainer in cfg.maintainers {
         write!(out, "{maintainer} ")?;
     }
