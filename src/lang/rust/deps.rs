@@ -95,6 +95,7 @@ pub(super) fn load_rust_dependency(inputs: &mut AllInputs, resolve: &Resolve, pk
                 build!("liburing"; linux);
             }
         }
+        "libseat-sys" => build!("seatd"),
         "libsecret-sys" => build!("libsecret"),
         "libshumate-sys" => build!("libshumate"),
         "libsodium-sys" | "libsodium-sys-stable" => {
