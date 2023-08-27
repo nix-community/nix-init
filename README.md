@@ -2,7 +2,7 @@
 
 # nix-init
 
-[![matrix](https://img.shields.io/matrix/nix-init:matrix.org?style=flat-square)](https://matrix.to/#/#nix-init:matrix.org)
+[![matrix](https://img.shields.io/matrix/nix-init:nixos.org?server_fqdn=matrix.org&style=flat-square)](https://matrix.to/#/#nix-init:nixos.org)
 [![release](https://img.shields.io/github/v/release/nix-community/nix-init?logo=github&style=flat-square)](https://github.com/nix-community/nix-init/releases)
 [![version](https://img.shields.io/crates/v/nix-init?logo=rust&style=flat-square)](https://crates.io/crates/nix-init)
 [![deps](https://deps.rs/repo/github/nix-community/nix-init/status.svg?style=flat-square&compact=true)](https://deps.rs/repo/github/nix-community/nix-init)
