@@ -177,6 +177,7 @@ pub(super) fn load_rust_dependency(inputs: &mut AllInputs, resolve: &Resolve, pk
         "sys-locale" => framework!("CoreFoundation"),
         "sysinfo" => framework!("IOKit"),
         "tracker-sys" => build!("tracker"),
+        "trash" => framework!("Foundation"),
         "vte4-sys" => build!("vte-gtk4"),
         "wayland-sys" => build!("wayland"; linux),
         "webkit2gtk-sys" => build!("webkitgtk"),
