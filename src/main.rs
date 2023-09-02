@@ -423,6 +423,9 @@ async fn run() -> Result<()> {
     }
     if has_setuptools {
         python_formats.push(PythonFormat::Setuptools);
+        if !has_pyproject {
+            python_formats.push(PythonFormat::Pyproject);
+        }
     }
     if !python_formats.is_empty() {
         for rust in rust_vendors.iter().map(Some).chain(Some(None)) {
@@ -607,16 +610,15 @@ async fn run() -> Result<()> {
             };
 
             if matches!(format, PythonFormat::Pyproject) {
-                if let Some(mut pyproject_found) = Pyproject::from_path(pyproject_toml) {
-                    pyproject_found.load_license(&mut licenses);
-                    pyproject_found.load_build_dependencies(&mut inputs, application);
+                let mut pyproject_found = Pyproject::from_path(pyproject_toml);
+                pyproject_found.load_license(&mut licenses);
+                pyproject_found.load_build_dependencies(&mut inputs, application);
 
-                    if let Some(deps) = pyproject_found.get_dependencies() {
-                        python_deps = deps;
-                    }
-
-                    pyproject = Some(pyproject_found)
+                if let Some(deps) = pyproject_found.get_dependencies() {
+                    python_deps = deps;
                 }
+
+                pyproject = Some(pyproject_found)
             }
 
             if python_deps.always.is_empty() && python_deps.optional.is_empty() {

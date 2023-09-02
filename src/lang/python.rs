@@ -72,8 +72,11 @@ struct PoetryDependency {
 }
 
 impl Pyproject {
-    pub fn from_path(path: PathBuf) -> Option<Pyproject> {
-        toml::from_str(&fs::read_to_string(path).ok_warn()?).ok_warn()
+    pub fn from_path(path: PathBuf) -> Pyproject {
+        let Ok(content) = &fs::read_to_string(path) else {
+            return Default::default();
+        };
+        toml::from_str(content).ok_warn().unwrap_or_default()
     }
 
     pub fn get_name(&mut self) -> Option<String> {
