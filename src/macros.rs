@@ -1,4 +1,4 @@
-/// define a set af macros to work with inputs
+/// define a set of macros to work with inputs
 macro_rules! input_macros {
     // workaround to escape `$`
     // so it can be used with nested macro_rules
