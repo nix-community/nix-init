@@ -96,52 +96,6 @@ async fn run() -> Result<()> {
     editor.set_completion_type(CompletionType::Fuzzy);
     editor.set_max_history_size(0)?;
 
-    let output = match opts.output {
-        Some(output) => output,
-        None => {
-            editor.set_helper(Some(Prompter::Path(FilenameCompleter::new())));
-            let output =
-                editor.readline(&prompt("Enter output path (defaults to current directory)"))?;
-            editor.set_helper(None);
-            if output.is_empty() {
-                PathBuf::from(".")
-            } else {
-                PathBuf::from(output)
-            }
-        }
-    };
-
-    let (out_dir, out_path) = if let Ok(metadata) = metadata(&output) {
-        if metadata.is_dir() {
-            let out_path = output.join("default.nix");
-            if out_path.exists() && ask_overwrite(&mut editor, &out_path)? {
-                return Ok(());
-            }
-            (Some(output.as_path()), out_path)
-        } else if ask_overwrite(&mut editor, &output)? {
-            return Ok(());
-        } else {
-            (output.parent(), output.clone())
-        }
-    } else if <[u8] as ByteSlice>::from_path(&output)
-        .map_or(false, |out_path| out_path.ends_with_str(b"/"))
-    {
-        let _ = create_dir_all(&output);
-        (Some(output.as_ref()), output.join("default.nix"))
-    } else {
-        let out_dir = output.parent();
-        if let Some(out_dir) = out_dir {
-            let _ = create_dir_all(out_dir);
-        }
-        (out_dir, output.clone())
-    };
-
-    let mut out_file = File::options()
-        .create(true)
-        .write(true)
-        .open(out_path)
-        .context("failed to create output file")?;
-
     let mut out = String::new();
     writeln!(out, "{{ lib")?;
 
@@ -461,6 +415,46 @@ async fn run() -> Result<()> {
         .ok()
         .and_then(|i: usize| choices.get(i))
         .unwrap_or_else(|| &choices[0]);
+
+    let output = match opts.output {
+        Some(output) => output,
+        None => {
+            editor.set_helper(Some(Prompter::Path(FilenameCompleter::new())));
+            let output =
+                editor.readline(&prompt("Enter output path (defaults to current directory)"))?;
+            editor.set_helper(None);
+            if output.is_empty() {
+                PathBuf::from(".")
+            } else {
+                PathBuf::from(output)
+            }
+        }
+    };
+
+    let (out_dir, out_path) = if let Ok(metadata) = metadata(&output) {
+        if metadata.is_dir() {
+            let out_path = output.join("default.nix");
+            if out_path.exists() && ask_overwrite(&mut editor, &out_path)? {
+                return Ok(());
+            }
+            (Some(output.as_path()), out_path)
+        } else if ask_overwrite(&mut editor, &output)? {
+            return Ok(());
+        } else {
+            (output.parent(), output.clone())
+        }
+    } else if <[u8] as ByteSlice>::from_path(&output)
+        .map_or(false, |out_path| out_path.ends_with_str(b"/"))
+    {
+        let _ = create_dir_all(&output);
+        (Some(output.as_ref()), output.join("default.nix"))
+    } else {
+        let out_dir = output.parent();
+        if let Some(out_dir) = out_dir {
+            let _ = create_dir_all(out_dir);
+        }
+        (out_dir, output.clone())
+    };
 
     let mut inputs = AllInputs::default();
     match choice {
@@ -1015,7 +1009,7 @@ async fn run() -> Result<()> {
 
     writeln!(out, "  }};\n}}")?;
 
-    out_file.set_len(0)?;
+    let mut out_file = File::create(out_path).context("failed to create output file")?;
     write!(out_file, "{out}")?;
 
     Ok(())
