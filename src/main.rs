@@ -210,89 +210,87 @@ async fn run() -> Result<()> {
         .unwrap_or_else(|| "<nixpkgs>".into());
     cmd.arg("-n").arg(&nixpkgs);
 
-    let src_expr = {
-        match fetcher {
-            MaybeFetcher::Known(Fetcher::FetchCrate { pname: ref name }) => {
-                let hash = String::from_utf8(cmd.arg(&url).arg(&rev).arg("-H").get_stdout().await?)
-                    .context("failed to parse nurl output")?;
+    let src_expr = match fetcher {
+        MaybeFetcher::Known(Fetcher::FetchCrate { pname: ref name }) => {
+            let hash = String::from_utf8(cmd.arg(&url).arg(&rev).arg("-H").get_stdout().await?)
+                .context("failed to parse nurl output")?;
 
-                if &pname == name {
-                    formatdoc! {r#"
-                        fetchCrate {{
-                            inherit pname version;
-                            hash = "{hash}";
-                          }}"#,
-                    }
-                } else {
-                    formatdoc! {r#"
-                        fetchCrate {{
-                            pname = {name:?};
-                            inherit version;
-                            hash = "{hash}";
-                          }}"#,
-                    }
+            if &pname == name {
+                formatdoc! {r#"
+                    fetchCrate {{
+                        inherit pname version;
+                        hash = "{hash}";
+                      }}"#,
+                }
+            } else {
+                formatdoc! {r#"
+                    fetchCrate {{
+                        pname = {name:?};
+                        inherit version;
+                        hash = "{hash}";
+                      }}"#,
                 }
             }
+        }
 
-            MaybeFetcher::Known(Fetcher::FetchPypi { pname: ref name }) => {
-                cmd.arg("-H");
-                let mut ext = String::new();
-                if !matches!(pypi_format, PypiFormat::TarGz) {
-                    write!(ext, "\n    extension = \"{pypi_format}\";")?;
-                    cmd.arg("-A").arg("extension").arg(pypi_format.to_string());
-                }
-
-                if &pname == name {
-                    let hash = String::from_utf8(
-                        cmd.arg(format!("https://pypi.org/project/{name}"))
-                            .arg(&rev)
-                            .get_stdout()
-                            .await?,
-                    )
-                    .context("failed to parse nurl output")?;
-                    formatdoc! {r#"
-                        fetchPypi {{
-                            inherit pname version;
-                            hash = "{hash}";{ext}
-                          }}"#,
-                    }
-                } else {
-                    let hash = String::from_utf8(
-                        cmd.arg(format!("https://pypi.org/project/{name}"))
-                            .arg(&rev)
-                            .get_stdout()
-                            .await?,
-                    )
-                    .context("failed to parse nurl output")?;
-                    formatdoc! {r#"
-                        fetchPypi {{
-                            pname = {name:?};
-                            inherit version;
-                            hash = "{hash}";{ext}
-                          }}"#,
-                    }
-                }
+        MaybeFetcher::Known(Fetcher::FetchPypi { pname: ref name }) => {
+            cmd.arg("-H");
+            let mut ext = String::new();
+            if !matches!(pypi_format, PypiFormat::TarGz) {
+                write!(ext, "\n    extension = \"{pypi_format}\";")?;
+                cmd.arg("-A").arg("extension").arg(pypi_format.to_string());
             }
 
-            _ => {
-                if rev == version {
-                    cmd.arg("-o").arg("rev").arg("version");
-                } else if rev.contains(&version) {
-                    cmd.arg("-O")
-                        .arg("rev")
-                        .arg(rev.replacen(&version, "${version}", 1));
-                }
-
-                String::from_utf8(
-                    cmd.arg(&url)
+            if &pname == name {
+                let hash = String::from_utf8(
+                    cmd.arg(format!("https://pypi.org/project/{name}"))
                         .arg(&rev)
-                        .arg("-i")
-                        .arg("2")
                         .get_stdout()
                         .await?,
                 )
-                .context("failed to parse nurl output")?
+                .context("failed to parse nurl output")?;
+                formatdoc! {r#"
+                    fetchPypi {{
+                        inherit pname version;
+                        hash = "{hash}";{ext}
+                      }}"#,
+                }
+            } else {
+                let hash = String::from_utf8(
+                    cmd.arg(format!("https://pypi.org/project/{name}"))
+                        .arg(&rev)
+                        .get_stdout()
+                        .await?,
+                )
+                .context("failed to parse nurl output")?;
+                formatdoc! {r#"
+                    fetchPypi {{
+                        pname = {name:?};
+                        inherit version;
+                        hash = "{hash}";{ext}
+                      }}"#,
+                }
             }
+        }
+
+        _ => {
+            if rev == version {
+                cmd.arg("-o").arg("rev").arg("version");
+            } else if rev.contains(&version) {
+                cmd.arg("-O")
+                    .arg("rev")
+                    .arg(rev.replacen(&version, "${version}", 1));
+            }
+
+            String::from_utf8(
+                cmd.arg(&url)
+                    .arg(&rev)
+                    .arg("-i")
+                    .arg("2")
+                    .get_stdout()
+                    .await?,
+            )
+            .context("failed to parse nurl output")?
         }
     };
 
