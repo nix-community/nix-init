@@ -13,6 +13,7 @@ use crate::utils::{CommandExt, ResultExt};
 #[derive(Default, Deserialize)]
 #[serde(default, rename_all = "kebab-case")]
 pub struct Config {
+    pub commit: bool,
     pub maintainers: Vec<String>,
     pub nixpkgs: Option<String>,
     pub access_tokens: AccessTokens,

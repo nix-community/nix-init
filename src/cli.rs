@@ -23,6 +23,12 @@ pub struct Opts {
     #[arg(short, long)]
     pub nixpkgs: Option<String>,
 
+    /// Commit the changes if the output path is name-based (RFC 140)
+    ///
+    /// see https://github.com/NixOS/nixpkgs/tree/master/pkgs/by-name for more information
+    #[arg(short = 'C', long, num_args=0..=1, require_equals = true, default_missing_value = "true")]
+    pub commit: Option<bool>,
+
     /// Specify the config file
     #[arg(short, long)]
     pub config: Option<PathBuf>,

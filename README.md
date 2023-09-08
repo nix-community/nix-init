@@ -50,6 +50,7 @@ Arguments:
 Options:
   -u, --url <URL>          Specify the URL
   -n, --nixpkgs <NIXPKGS>  Path to nixpkgs (in nix)
+  -C, --commit[=<COMMIT>]  Commit the changes if the output path is name-based (RFC 140) [possible values: true, false]
   -c, --config <CONFIG>    Specify the config file
   -h, --help               Print help
   -V, --version            Print version
@@ -84,6 +85,10 @@ maintainers = ["figsoda"]
 # path to nixpkgs (in nix), equivalent to `--nixpkgs`
 nixpkgs = "<nixpkgs>" # use the nixpkgs from channels (default)
 # nixpkgs = 'builtins.getFlake "nixpkgs"' # use the nixpkgs from the flake registry
+
+# commit the changes if the output path is name-based (RFC 140)
+# see https://github.com/NixOS/nixpkgs/tree/master/pkgs/by-name for more information
+commit = true
 
 # access tokens to access private repositories and avoid rate limits
 [access-tokens]

@@ -16,7 +16,7 @@ use std::{
     fmt::Write as _,
     fs::{create_dir_all, metadata, read_dir, read_to_string, File},
     io::{stderr, BufRead, BufReader, Write as _},
-    path::{Path, PathBuf},
+    path::{Component, Path, PathBuf},
 };
 
 use anyhow::{Context, Result};
@@ -1022,8 +1022,52 @@ async fn run() -> Result<()> {
 
     writeln!(out, "  }};\n}}")?;
 
-    let mut out_file = File::create(out_path).context("failed to create output file")?;
+    let mut out_file = File::create(&out_path).context("failed to create output file")?;
     write!(out_file, "{out}")?;
+
+    if !opts.commit.unwrap_or(cfg.commit) || !Path::new(".git").is_dir() {
+        return Ok(());
+    }
+    let Some(out_dir) = out_dir else {
+        return Ok(());
+    };
+
+    let mut xs = out_path.components();
+    let attr: &str = match (
+        xs.next(),
+        xs.next(),
+        xs.next(),
+        xs.next(),
+        xs.next(),
+        xs.next(),
+    ) {
+        (
+            Some(Component::Normal(pkgs)),
+            Some(Component::Normal(by_name)),
+            Some(Component::Normal(_)),
+            Some(Component::Normal(attr)),
+            Some(Component::Normal(package_nix)),
+            None,
+        ) if pkgs == "pkgs" && by_name == "by-name" && package_nix == "package.nix" => {
+            attr.try_into()?
+        }
+        _ => return Ok(()),
+    };
+
+    Command::new("git")
+        .arg("add")
+        .arg("-N")
+        .arg(out_dir)
+        .run()
+        .await?;
+
+    Command::new("git")
+        .arg("commit")
+        .arg(out_dir)
+        .arg("-om")
+        .arg(format!("{attr}: init at {version}\n\n{url}"))
+        .run()
+        .await?;
 
     Ok(())
 }

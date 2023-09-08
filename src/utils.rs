@@ -33,6 +33,7 @@ pub trait CommandExt {
         Self: 'a;
 
     fn get_stdout(&mut self) -> Self::Output<'_, Result<Vec<u8>>>;
+    fn run(&mut self) -> Self::Output<'_, Result<()>>;
 }
 
 impl CommandExt for Command {
@@ -44,6 +45,17 @@ impl CommandExt for Command {
             into_stdout(self.output().await?)
         })
     }
+
+    fn run(&mut self) -> Self::Output<'_, Result<()>> {
+        Box::pin(async move {
+            info!("{:?}", &self);
+            let status = self.status().await?;
+            if !status.success() {
+                bail!("command failed with {status}");
+            }
+            Ok(())
+        })
+    }
 }
 
 impl CommandExt for std::process::Command {
@@ -52,6 +64,15 @@ impl CommandExt for std::process::Command {
     fn get_stdout(&mut self) -> Self::Output<'_, Result<Vec<u8>>> {
         info!("{:?}", &self);
         into_stdout(self.output()?)
+    }
+
+    fn run(&mut self) -> Self::Output<'_, Result<()>> {
+        info!("{:?}", &self);
+        let status = self.status()?;
+        if !status.success() {
+            bail!("command failed with {status}");
+        }
+        Ok(())
     }
 }
 
