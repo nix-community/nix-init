@@ -426,7 +426,14 @@ async fn run() -> Result<()> {
         };
 
         let msg = &prompt("Enter output path (leave as empty for the current directory)");
-        let output = if Path::new("pkgs/by-name").is_dir() {
+        let output = if !matches!(
+            choice,
+            BuildType::BuildPythonPackage {
+                application: false,
+                ..
+            }
+        ) && Path::new("pkgs/by-name").is_dir()
+        {
             let path = &format!(
                 "pkgs/by-name/{}/{attr}/package.nix",
                 attr.chars().take(2).collect::<String>(),
