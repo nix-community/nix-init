@@ -16,7 +16,7 @@ use std::{
     fmt::Write as _,
     fs::{create_dir_all, metadata, read_dir, read_to_string, File},
     io::{stderr, BufRead, BufReader, Write as _},
-    path::PathBuf,
+    path::{Path, PathBuf},
 };
 
 use anyhow::{Context, Result};
@@ -416,18 +416,33 @@ async fn run() -> Result<()> {
         .and_then(|i: usize| choices.get(i))
         .unwrap_or_else(|| &choices[0]);
 
-    let output = match opts.output {
-        Some(output) => output,
-        None => {
-            editor.set_helper(Some(Prompter::Path(FilenameCompleter::new())));
-            let output =
-                editor.readline(&prompt("Enter output path (defaults to current directory)"))?;
-            editor.set_helper(None);
-            if output.is_empty() {
-                PathBuf::from(".")
-            } else {
-                PathBuf::from(output)
-            }
+    let output = if let Some(output) = opts.output {
+        output
+    } else {
+        editor.set_helper(Some(Prompter::Path(FilenameCompleter::new())));
+
+        let attr = if pname.starts_with(|c| matches!(c, 'A'..='Z' | 'a'..='z' | '_')) {
+            pname.clone()
+        } else {
+            format!("_{pname}")
+        };
+
+        let msg = &prompt("Enter output path (leave as empty for the current directory)");
+        let output = if Path::new("pkgs/by-name").is_dir() {
+            let path = &format!(
+                "pkgs/by-name/{}/{attr}/package.nix",
+                attr.chars().take(2).collect::<String>(),
+            );
+            editor.readline_with_initial(msg, (path, ""))
+        } else {
+            editor.readline(msg)
+        }?;
+        editor.set_helper(None);
+
+        if output.is_empty() {
+            PathBuf::from(".")
+        } else {
+            PathBuf::from(output)
         }
     };
 
