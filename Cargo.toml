@@ -55,7 +55,7 @@ spdx = "0.10.2"
 tar = "0.4.40"
 tempfile = "3.8.0"
 time = { version = "0.3.28", features = ["parsing", "serde"] }
-toml = { version = "0.7.7", default-features = false, features = ["parse"] }
+toml = { version = "0.7.8", default-features = false, features = ["parse"] }
 tracing = "0.1.37"
 tracing-subscriber = { version = "0.3.17", features = ["env-filter"] }
 url = "2.4.1"
