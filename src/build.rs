@@ -7,7 +7,6 @@ pub enum BuildType {
     BuildGoModule,
     BuildPythonPackage {
         application: bool,
-        format: PythonFormat,
         rust: Option<RustVendor>,
     },
     BuildRustPackage {
@@ -25,13 +24,6 @@ pub enum RustVendor {
     ImportCargoLock,
 }
 
-#[derive(Clone, Copy, Display)]
-#[display(style = "camelCase")]
-pub enum PythonFormat {
-    Pyproject,
-    Setuptools,
-}
-
 impl Display for BuildType {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
@@ -39,14 +31,10 @@ impl Display for BuildType {
                 write!(f, "buildGoModule")?;
             }
 
-            BuildType::BuildPythonPackage {
-                application,
-                format,
-                rust,
-            } => {
+            BuildType::BuildPythonPackage { application, rust } => {
                 write!(
                     f,
-                    "buildPython{} - {format}",
+                    "buildPython{}",
                     if *application {
                         "Application"
                     } else {
