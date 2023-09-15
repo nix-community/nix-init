@@ -26,7 +26,7 @@ use cargo::core::Resolve;
 use clap::Parser;
 use expand::expand;
 use flate2::read::GzDecoder;
-use heck::{ToKebabCase, ToSnakeCase};
+use heck::{AsSnakeCase, ToKebabCase};
 use indoc::{formatdoc, writedoc};
 use is_terminal::IsTerminal;
 use itertools::Itertools;
@@ -40,7 +40,7 @@ use tracing_subscriber::EnvFilter;
 use zip::ZipArchive;
 
 use crate::{
-    build::{BuildType, PythonFormat, RustVendor},
+    build::{BuildType, RustVendor},
     cfg::load_config,
     cli::Opts,
     cmd::{NIX, NURL},
@@ -347,8 +347,7 @@ async fn run() -> Result<()> {
     let has_meson = src_dir.join("meson.build").is_file();
     let has_zig = src_dir.join("build.zig").is_file();
     let pyproject_toml = src_dir.join("pyproject.toml");
-    let has_pyproject = pyproject_toml.is_file();
-    let has_setuptools = src_dir.join("setup.py").is_file();
+    let has_python = pyproject_toml.is_file() || src_dir.join("setup.py").is_file();
 
     let rust_vendors = if has_cargo {
         if cargo_lock.map_or(true, |file| {
@@ -369,26 +368,13 @@ async fn run() -> Result<()> {
         choices.push(BuildType::BuildGoModule);
     }
 
-    let mut python_formats = Vec::with_capacity(2);
-    if has_pyproject {
-        python_formats.push(PythonFormat::Pyproject);
-    }
-    if has_setuptools {
-        python_formats.push(PythonFormat::Setuptools);
-        if !has_pyproject {
-            python_formats.push(PythonFormat::Pyproject);
-        }
-    }
-    if !python_formats.is_empty() {
+    if has_python {
         for rust in rust_vendors.iter().map(Some).chain(Some(None)) {
-            for &format in &python_formats {
-                for application in [true, false] {
-                    choices.push(BuildType::BuildPythonPackage {
-                        application,
-                        format,
-                        rust: rust.copied(),
-                    });
-                }
+            for application in [true, false] {
+                choices.push(BuildType::BuildPythonPackage {
+                    application,
+                    rust: rust.copied(),
+                });
             }
         }
     }
@@ -481,9 +467,7 @@ async fn run() -> Result<()> {
         BuildType::BuildGoModule => {
             writeln!(out, ", buildGoModule")?;
         }
-        BuildType::BuildPythonPackage {
-            application, rust, ..
-        } => {
+        BuildType::BuildPythonPackage { application, rust } => {
             writeln!(
                 out,
                 ", {}",
@@ -549,7 +533,7 @@ async fn run() -> Result<()> {
         }
     }
 
-    let mut pyproject = None;
+    let mut python_import = None;
     let (native_build_inputs, build_inputs) = match choice {
         BuildType::BuildGoModule => {
             let go_sum = File::open(src_dir.join("go.sum")).ok_warn();
@@ -587,11 +571,7 @@ async fn run() -> Result<()> {
             res
         }
 
-        BuildType::BuildPythonPackage {
-            application,
-            format,
-            rust,
-        } => {
+        BuildType::BuildPythonPackage { application, rust } => {
             enum RustVendorData {
                 Hash(String),
                 Lock(Option<Resolve>),
@@ -623,16 +603,17 @@ async fn run() -> Result<()> {
                 None => RustVendorData::None,
             };
 
-            if matches!(format, PythonFormat::Pyproject) {
-                let mut pyproject_found = Pyproject::from_path(pyproject_toml);
-                pyproject_found.load_license(&mut licenses);
-                pyproject_found.load_build_dependencies(&mut inputs, application);
+            let mut pyproject = Pyproject::from_path(pyproject_toml);
 
-                if let Some(deps) = pyproject_found.get_dependencies() {
-                    python_deps = deps;
-                }
+            if let Some(name) = pyproject.get_name() {
+                python_import = Some(name);
+            }
 
-                pyproject = Some(pyproject_found)
+            pyproject.load_license(&mut licenses);
+            pyproject.load_build_dependencies(&mut inputs, application);
+
+            if let Some(deps) = pyproject.get_dependencies() {
+                python_deps = deps;
             }
 
             if python_deps.always.is_empty() && python_deps.optional.is_empty() {
@@ -662,7 +643,7 @@ async fn run() -> Result<()> {
                 {} rec {{
                   pname = {pname:?};
                   version = {version:?};
-                  format = "{format}";
+                  pyproject = true;
 
                   src = {src_expr};
 
@@ -883,13 +864,8 @@ async fn run() -> Result<()> {
 
             writeln!(
                 out,
-                "  pythonImportsCheck = [ {:?} ];\n",
-                pyproject
-                    .as_mut()
-                    .and_then(Pyproject::get_name)
-                    .as_ref()
-                    .unwrap_or(&pname)
-                    .to_snake_case(),
+                "  pythonImportsCheck = [ \"{}\" ];\n",
+                AsSnakeCase(python_import.as_ref().unwrap_or(&pname)),
             )?;
         }
 
