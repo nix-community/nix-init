@@ -1,5 +1,30 @@
 # Changelog
 
+## v0.3.0 - 2023-09-16
+
+### Features
+
+- `pkgs/by-name` support: sensible defaults for the output path, and a `commit` option to automatically commit the changes
+- set `meta.mainProgram` by default
+- Zig: support `zig.hook`
+- Python: also add `wheel` when using `setuptools` as the build backend
+- add a meaningful comment when no licenses were found
+- Rust: improve dependency inference for the following crates: clipboard_macos, gspell-sys, libhandy-sys, libpanel-sys, libseat-sys, locate-dwarf, poppler-sys-rs, readkey, readmosue, soup-sys, soup2-sys, soup3-sys, sourceview4-sys, tracker-sys, trash, vte4-sys, webkit6-sys, wholesym, wireplumber, x11, xcb
+- Go: support the following fields in GoReleaser templates: `.IsGitDirty`, `.PrefixedSummary`, `.Summary`
+- Go: improve dependency inference for gotk4
+- mkDerivation: set `meta.platforms` by default
+- improve documentation for the nixpkgs option
+
+### Changes
+
+- Python: use `pyproject = true` instead of `format = "..."` (no longer suggests `format = "setuptools"`)
+- prompt for the output path last
+- Go: remove dependency inferencec for glfw due to false positives
+
+### Fixes
+
+- Go: fix parsing of GoReleaser configuration files when `ldflags` is a string instead of a list
+
 ## v0.2.4 - 2023-07-06
 
 ### Features
