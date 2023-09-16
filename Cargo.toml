@@ -2,7 +2,7 @@
 members = ["license-store-cache"]
 
 [workspace.package]
-version = "0.2.4"
+version = "0.3.0"
 authors = ["figsoda <figsoda@pm.me>"]
 edition = "2021"
 license = "MPL-2.0"
