@@ -19,7 +19,7 @@
 
 - Python: use `pyproject = true` instead of `format = "..."` (no longer suggests `format = "setuptools"`)
 - prompt for the output path last
-- Go: remove dependency inferencec for glfw due to false positives
+- Go: remove dependency inference for glfw due to false positives
 
 ### Fixes
 
