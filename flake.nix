@@ -1,10 +1,14 @@
 {
+  description = "Generate Nix packages from URLs with hash prefetching, dependency inference, license detection, and more";
+
   inputs = {
     crane = {
       url = "github:ipetkov/crane";
-      inputs.nixpkgs.follows = "nixpkgs";
-      inputs.flake-compat.follows = "";
-      inputs.rust-overlay.follows = "";
+      inputs = {
+        nixpkgs.follows = "nixpkgs";
+        flake-compat.follows = "";
+        rust-overlay.follows = "";
+      };
     };
     fenix = {
       url = "github:nix-community/fenix";
