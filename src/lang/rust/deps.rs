@@ -113,6 +113,11 @@ pub(super) fn load_rust_dependency(inputs: &mut AllInputs, resolve: &Resolve, pk
         "libsqlite3-sys" => build!("sqlite"),
         "libudev-sys" => build!("udev"),
         "libusb1-sys" => build!("libusb"),
+        "libwebp-sys2" => {
+            if resolve.features(pkg).iter().all(|feat| feat != "static") {
+                build!("libwebp");
+            }
+        }
         "libxml" => build!("libxml2"),
         "libz-sys" => {
             let mut ng = false;
