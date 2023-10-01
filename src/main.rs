@@ -891,7 +891,7 @@ async fn run() -> Result<()> {
     desc.get_mut(0..1).map(str::make_ascii_uppercase);
     write!(out, "  ")?;
     writedoc! {out, r"
-        meta = with lib; {{
+        meta = {{
             description = {desc:?};
             homepage = {url:?};
     "}?;
@@ -980,19 +980,19 @@ async fn run() -> Result<()> {
     if licenses.is_empty() {
         writeln!(
             out,
-            "licenses.unfree; # FIXME: nix-init did not find a license",
+            "lib.licenses.unfree; # FIXME: nix-init did not find a license",
         )?;
     } else if let [license] = &licenses[..] {
-        writeln!(out, "licenses.{license};")?;
+        writeln!(out, "lib.licenses.{license};")?;
     } else {
-        write!(out, "with licenses; [ ")?;
+        write!(out, "with lib.licenses; [ ")?;
         for license in licenses {
             write!(out, "{license} ")?;
         }
         writeln!(out, "];")?;
     }
 
-    write!(out, "    maintainers = with maintainers; [ ")?;
+    write!(out, "    maintainers = with lib.maintainers; [ ")?;
     for maintainer in cfg.maintainers {
         write!(out, "{maintainer} ")?;
     }
@@ -1006,7 +1006,7 @@ async fn run() -> Result<()> {
         if has_zig {
             writeln!(out, "    inherit (zig.meta) platforms;")?;
         } else {
-            writeln!(out, "    platforms = platforms.all;")?;
+            writeln!(out, "    platforms = lib.platforms.all;")?;
         }
     }
 
