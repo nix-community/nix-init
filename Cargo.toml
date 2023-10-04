@@ -42,7 +42,7 @@ parse-display = "0.8.2"
 pep-508 = "0.3.0"
 rayon = "1.8.0"
 regex = "1.9.6"
-reqwest = { version = "0.11.20", features = ["json"] }
+reqwest = { version = "0.11.22", features = ["json"] }
 rustc-hash = "1.1.0"
 secrecy = { version = "0.8.0", features = ["serde"] }
 semver = "1.0.19"
