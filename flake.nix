@@ -131,7 +131,7 @@
               zlib
               zstd
             ] ++ optionals stdenv.isDarwin [
-              darwin.apple_sdk.frameworks.Security
+              darwin.apple_sdk.frameworks.SystemConfiguration
             ] ++ optionals (stdenv.isDarwin && stdenv.isx86_64) [
               darwin.apple_sdk.frameworks.CoreFoundation
             ];
