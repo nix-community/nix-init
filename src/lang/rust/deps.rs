@@ -186,6 +186,7 @@ pub(super) fn load_rust_dependency(inputs: &mut AllInputs, resolve: &Resolve, pk
         "trash" => framework!("Foundation"),
         "vte4-sys" => build!("vte-gtk4"),
         "wayland-sys" => build!("wayland"; linux),
+        "webbrowser" => framework!("CoreServices"),
         "webkit2gtk-sys" => build!("webkitgtk"),
         "webkit2gtk-webextension-sys" => build!("webkitgtk"),
         "webkit2gtk5-sys" => build!("webkitgtk_5_0"),
