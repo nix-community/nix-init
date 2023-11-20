@@ -101,6 +101,7 @@ pub async fn load_cargo_lock(
                             None,
                             &[],
                             true,
+                            None,
                         )?;
                         write!(target, "{}", resolve_to_string(&ws, &mut resolve)?)?;
                         Ok(resolve)
@@ -199,6 +200,7 @@ fn resolve_workspace(src_dir: &Path) -> Option<Resolve> {
         None,
         &[],
         true,
+        None,
     )
     .ok_error()
 }
