@@ -72,6 +72,7 @@ pub(super) fn load_rust_dependency(inputs: &mut AllInputs, resolve: &Resolve, pk
         }
         "io-kit-sys" => framework!("IOKit"),
         "io-surface" => build!("IOSurface"),
+        "jemalloc-sys" => build!("rust-jemalloc-sys"),
         "libadwaita-sys" => build!("libadwaita"),
         "libdbus-sys" => build!("dbus"),
         "libgit2-sys" => build!("libgit2"),
@@ -183,6 +184,7 @@ pub(super) fn load_rust_dependency(inputs: &mut AllInputs, resolve: &Resolve, pk
         "sys-locale" => framework!("CoreFoundation"),
         "sysinfo" => framework!("IOKit"),
         "system-configuration-sys" => framework!("SystemConfiguration"),
+        "tikv-jemalloc-sys" => build!("rust-jemalloc-sys"),
         "tracker-sys" => build!("tracker"),
         "trash" => framework!("Foundation"),
         "vte4-sys" => build!("vte-gtk4"),
