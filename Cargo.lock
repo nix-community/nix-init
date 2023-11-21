@@ -303,9 +303,9 @@ dependencies = [
 
 [[package]]
 name = "cargo"
-version = "0.75.0"
+version = "0.75.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5fd077f2cb74b87f972015dc436ee3ea87292539d16d1d4d3e62303105e7a7b4"
+checksum = "8883ad826b173ffc1363f9478d16714977ba3b3ddd540d2dd5cbc0ceeda1819b"
 dependencies = [
  "anstream",
  "anstyle",
@@ -393,9 +393,9 @@ dependencies = [
 
 [[package]]
 name = "cargo-credential-libsecret"
-version = "0.3.2"
+version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7ad243e36ec5bc20e738b36fbcc42533da99cffacb90ef0d6dfe8b9d791a1f80"
+checksum = "a1433b31d23bb41ee5db8cbbff2257361206984ba3e1587e0622a28dc2a3f904"
 dependencies = [
  "anyhow",
  "cargo-credential",
@@ -404,9 +404,9 @@ dependencies = [
 
 [[package]]
 name = "cargo-credential-macos-keychain"
-version = "0.3.1"
+version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8c1d7aa6dbc2e1764071e3ea97539df2e9ebf5512302062917a5cca9c9a95a63"
+checksum = "fed52a63bf607de492234d9bc4b32f5dfe18f6bc0d7f4283193153355285f211"
 dependencies = [
  "cargo-credential",
  "security-framework",
@@ -414,9 +414,9 @@ dependencies = [
 
 [[package]]
 name = "cargo-credential-wincred"
-version = "0.3.1"
+version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "66a1db314f0de303d822d44531e52d20919e9ed6fc08ebcaf0ec7226e4825eb7"
+checksum = "594d90197d0f2c2dda8466f277968aa92fd71d64a92a88b86310c069932b6c4b"
 dependencies = [
  "cargo-credential",
  "windows-sys 0.48.0",
