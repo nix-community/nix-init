@@ -973,7 +973,7 @@ async fn run() -> Result<()> {
     if licenses.is_empty() {
         writeln!(
             out,
-            "licenses.unfree; # FIXME: nix-init did not found a license",
+            "licenses.unfree; # FIXME: nix-init did not find a license",
         )?;
     } else if let [license] = &licenses[..] {
         writeln!(out, "licenses.{license};")?;
