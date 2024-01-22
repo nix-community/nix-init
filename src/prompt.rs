@@ -17,6 +17,7 @@ use crate::{
 #[derive(Helper, Highlighter)]
 pub enum Prompter {
     Path(FilenameCompleter),
+    List(Vec<String>),
     Revision(Revisions),
     NonEmpty,
     YesNo,
@@ -46,6 +47,17 @@ impl Completer for Prompter {
                 );
                 Ok(completions)
             }
+            Prompter::List(choices) => Ok((
+                0,
+                choices
+                    .iter()
+                    .enumerate()
+                    .map(|(i, choice)| Pair {
+                        display: format!("{i} - {choice}"),
+                        replacement: i.to_string(),
+                    })
+                    .collect(),
+            )),
             Prompter::Revision(revisions) => Ok((0, revisions.completions.clone())),
             Prompter::NonEmpty => Ok((0, Vec::new())),
             Prompter::YesNo => Ok((0, Vec::new())),
@@ -82,6 +94,17 @@ impl Hinter for Prompter {
     fn hint(&self, line: &str, _: usize, _: &Context<'_>) -> Option<Self::Hint> {
         match self {
             Prompter::Path(_) => None,
+
+            Prompter::List(choices) => Some(SimpleHint(if line.is_empty() {
+                format_args!("  ({})", choices[0])
+                    .blue()
+                    .italic()
+                    .to_string()
+            } else if let Some(choice) = line.parse().ok().and_then(|i: usize| choices.get(i)) {
+                format_args!("  ({choice})").blue().italic().to_string()
+            } else {
+                "  press <tab> to see options".yellow().italic().to_string()
+            })),
 
             Prompter::Revision(revisions) => {
                 let style = Style::new().blue().italic();
@@ -133,6 +156,21 @@ impl Validator for Prompter {
         Ok(match self {
             Prompter::Path(_) => {
                 ValidationResult::Valid(ctx.input().is_empty().then(|| ".".into()))
+            }
+
+            Prompter::List(choices) => {
+                let input = ctx.input();
+                if input.is_empty() {
+                    ValidationResult::Valid(Some(choices[0].to_string()))
+                } else if let Some(choice) = input
+                    .parse::<usize>()
+                    .ok()
+                    .and_then(|choice| choices.get(choice))
+                {
+                    ValidationResult::Valid(Some(format!(" - {choice}")))
+                } else {
+                    ValidationResult::Invalid(None)
+                }
             }
 
             Prompter::Revision(revisions) => {

@@ -73,6 +73,27 @@ struct Outputs {
     out: String,
 }
 
+fn is_target_for_packaging(src_dir: &PathBuf) -> bool {
+    let has_cargo = src_dir.join("Cargo.toml").is_file();
+    let cargo_lock = File::open(src_dir.join("Cargo.lock"));
+    let has_cargo_lock = cargo_lock.is_ok();
+    let has_cmake = src_dir.join("CMakeLists.txt").is_file();
+    let has_go = src_dir.join("go.mod").is_file();
+    let has_meson = src_dir.join("meson.build").is_file();
+    let has_zig = src_dir.join("build.zig").is_file();
+    let pyproject_toml = src_dir.join("pyproject.toml");
+    let has_pyproject = pyproject_toml.is_file();
+    let has_setuptools = src_dir.join("setup.py").is_file();
+
+    (has_cargo && has_cargo_lock)
+        || has_cmake
+        || has_go
+        || has_meson
+        || has_zig
+        || has_pyproject
+        || has_setuptools
+}
+
 #[tokio::main]
 async fn main() -> Result<()> {
     run().await
@@ -338,7 +359,72 @@ async fn run() -> Result<()> {
         PathBuf::from(&src)
     };
 
-    let mut choices = Vec::new();
+    // Let's first find all subdirectories that are compatible with our supported recipes.
+    let root_src_dir = src_dir.clone();
+    let mut open_subdirs = vec![(0, src_dir)];
+    let mut sourceroot_candidates = vec![".".into()];
+    while !open_subdirs.is_empty() {
+        // If we call this, we have a non-empty vector.
+        let (depth, target_dir) = open_subdirs.pop().unwrap();
+        let subdirs = std::fs::read_dir(&target_dir).with_context(|| {
+            format!("failed to list subdirectories of {}", target_dir.display())
+        })?;
+
+        for maybe_subdir in subdirs {
+            let subdir = maybe_subdir.context(format!(
+                "unexpected io error while reading a subdirectory of {}",
+                target_dir.to_string_lossy()
+            ))?;
+
+            let subdir_path = &subdir.path();
+
+            // We want only subdirectories.
+            if !subdir_path.is_dir() {
+                continue;
+            }
+
+            if is_target_for_packaging(subdir_path) {
+                sourceroot_candidates.push(subdir.file_name());
+            }
+
+            // Recurse into that subdir.
+            if depth < 3 {
+                open_subdirs.push((depth + 1, subdir_path.to_path_buf()));
+            }
+        }
+    }
+
+    editor.set_helper(Some(Prompter::List(
+        sourceroot_candidates
+            .iter()
+            .map(|sr| PathBuf::from(sr).to_string_lossy().to_string())
+            .collect(),
+    )));
+
+    let choice = editor.readline(&prompt("Which subdirectory should we use?"))?;
+
+    let src_dir = &root_src_dir.join(&PathBuf::from(
+        choice
+            .parse()
+            .ok()
+            .and_then(|i: usize| sourceroot_candidates.get(i))
+            .unwrap_or_else(|| &sourceroot_candidates[0]),
+    ));
+
+    let source_root = if src_dir != &root_src_dir {
+        Some(
+            src_dir
+                .strip_prefix(&root_src_dir)
+                .expect("Failed to strip the root source directory prefix"),
+        )
+    } else {
+        None
+    };
+    let source_root_expr = match source_root {
+        Some(subdir) => format!("\nsourceRoot = \"source/{}\";", subdir.to_string_lossy()),
+        None => "".to_string(),
+    };
+
     let has_cargo = src_dir.join("Cargo.toml").is_file();
     let cargo_lock = File::open(src_dir.join("Cargo.lock"));
     let has_cargo_lock = cargo_lock.is_ok();
@@ -349,6 +435,7 @@ async fn run() -> Result<()> {
     let pyproject_toml = src_dir.join("pyproject.toml");
     let has_python = pyproject_toml.is_file() || src_dir.join("setup.py").is_file();
 
+    let mut choices = Vec::new();
     let rust_vendors = if has_cargo {
         if cargo_lock.map_or(true, |file| {
             BufReader::new(file)
@@ -563,7 +650,7 @@ async fn run() -> Result<()> {
                   pname = {pname:?};
                   version = {version:?};
 
-                  src = {src_expr};
+                  src = {src_expr};{source_root_expr}
 
                   vendorHash = {hash};
 
@@ -645,7 +732,7 @@ async fn run() -> Result<()> {
                   version = {version:?};
                   pyproject = true;
 
-                  src = {src_expr};
+                  src = {src_expr};{source_root_expr}
 
                 "#,
                 if application {
@@ -699,7 +786,7 @@ async fn run() -> Result<()> {
                   pname = {pname:?};
                   version = {version:?};
 
-                  src = {src_expr};
+                  src = {src_expr};{source_root_expr}
 
                   cargoHash = "{hash}";
 
@@ -726,7 +813,7 @@ async fn run() -> Result<()> {
                   pname = "{pname}";
                   version = "{version}";
 
-                  src = {src_expr};
+                  src = {src_expr};{source_root_expr}
 
                   cargoLock = "#,
             }?;
@@ -743,7 +830,7 @@ async fn run() -> Result<()> {
                   pname = {pname:?};
                   version = {version:?};
 
-                  src = {src_expr};
+                  src = {src_expr};{source_root_expr}
 
             "#}?;
             res
@@ -770,7 +857,7 @@ async fn run() -> Result<()> {
                   pname = {pname:?};
                   version = {version:?};
 
-                  src = {src_expr};
+                  src = {src_expr};{source_root_expr}
 
                   cargoDeps = rustPlatform.fetchCargoTarball {{
                     inherit src;
@@ -800,7 +887,7 @@ async fn run() -> Result<()> {
                   pname = "{pname}";
                   version = "{version}";
 
-                  src = {src_expr};
+                  src = {src_expr};{source_root_expr}
 
                   cargoDeps = rustPlatform.importCargoLock "#,
             }?;
@@ -881,7 +968,7 @@ async fn run() -> Result<()> {
     }
 
     let mut desc = desc.trim_matches(|c: char| !c.is_alphanumeric()).to_owned();
-    desc.get_mut(0 .. 1).map(str::make_ascii_uppercase);
+    desc.get_mut(0..1).map(str::make_ascii_uppercase);
     write!(out, "  ")?;
     writedoc! {out, r"
         meta = with lib; {{
@@ -1064,5 +1151,5 @@ fn get_version(rev: &str) -> &str {
 }
 
 fn get_version_number(rev: &str) -> &str {
-    &rev[rev.find(char::is_numeric).unwrap_or_default() ..]
+    &rev[rev.find(char::is_numeric).unwrap_or_default()..]
 }
