@@ -28,7 +28,7 @@ include = ["data", "src", "Cargo.lock", "Cargo.toml", "build.rs"]
 anyhow = "1.0.79"
 askalono.workspace = true
 bstr = "1.9.0"
-cargo = "0.75.1"
+cargo = "0.76.0"
 chumsky = "=1.0.0-alpha.6"
 expand = "0.3.0"
 flate2 = "1.0.28"
