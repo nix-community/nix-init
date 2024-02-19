@@ -4,11 +4,7 @@
   inputs = {
     crane = {
       url = "github:ipetkov/crane";
-      inputs = {
-        nixpkgs.follows = "nixpkgs";
-        flake-compat.follows = "";
-        rust-overlay.follows = "";
-      };
+      inputs.nixpkgs.follows = "nixpkgs";
     };
     fenix = {
       url = "github:nix-community/fenix";
@@ -180,6 +176,7 @@
               in
               cargoNextest (args // {
                 cargoArtifacts = null;
+                cargoLock = lock;
                 cargoLockParsed = importTOML lock // {
                   package = attrValues (getPackages lock // concatMapAttrs
                     (name: _: optionalAttrs
