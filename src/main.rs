@@ -353,7 +353,7 @@ async fn run() -> Result<()> {
         if cargo_lock.map_or(true, |file| {
             BufReader::new(file)
                 .lines()
-                .flatten()
+                .map_while(Result::ok)
                 .any(|line| line.starts_with(r#"source = "git+"#))
         }) {
             &[RustVendor::ImportCargoLock, RustVendor::FetchCargoTarball]
