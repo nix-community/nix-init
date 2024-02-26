@@ -27,7 +27,7 @@ include = ["data", "src", "Cargo.lock", "Cargo.toml", "build.rs"]
 [dependencies]
 anyhow = "1.0.80"
 askalono.workspace = true
-bstr = "1.9.0"
+bstr = "1.9.1"
 cargo = "0.75.1"
 chumsky = "=1.0.0-alpha.6"
 expand = "0.3.0"
