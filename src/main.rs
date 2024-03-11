@@ -810,7 +810,14 @@ async fn run() -> Result<()> {
     };
 
     if native_build_inputs {
-        write_inputs(&mut out, &inputs.native_build_inputs, "nativeBuildInputs")?;
+        match choice {
+            BuildType::BuildPythonPackage { .. } => {
+                write_inputs(&mut out, &inputs.native_build_inputs, "build-system")?;
+            }
+            _ => {
+                write_inputs(&mut out, &inputs.native_build_inputs, "nativeBuildInputs")?;
+            }
+        }
     }
     if build_inputs {
         write_inputs(&mut out, &inputs.build_inputs, "buildInputs")?;
@@ -823,7 +830,7 @@ async fn run() -> Result<()> {
 
         BuildType::BuildPythonPackage { application, .. } => {
             if !python_deps.always.is_empty() {
-                write!(out, "  propagatedBuildInputs = ")?;
+                write!(out, "  dependencies = ")?;
                 if application {
                     write!(out, "with python3.pkgs; ")?;
                 }
@@ -841,7 +848,7 @@ async fn run() -> Result<()> {
                 .filter(|(_, deps)| !deps.is_empty());
 
             if let Some((extra, deps)) = optional.next() {
-                write!(out, "  passthru.optional-dependencies = ")?;
+                write!(out, "  optional-dependencies = ")?;
                 if application {
                     write!(out, "with python3.pkgs; ")?;
                 }
@@ -864,7 +871,7 @@ async fn run() -> Result<()> {
 
             writeln!(
                 out,
-                "  pythonImportsCheck = [ \"{}\" ];\n",
+                "  pythonImportsCheck = [\n    \"{}\"\n  ];\n",
                 AsSnakeCase(python_import.as_ref().unwrap_or(&pname)),
             )?;
         }
