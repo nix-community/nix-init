@@ -82,7 +82,7 @@ clap_mangen = "0.2.20"
 
 [dev-dependencies]
 heck = "0.4.1"
-insta = "1.35.0"
+insta = "1.37.0"
 tempfile = "3.10.0"
 
 [features]
