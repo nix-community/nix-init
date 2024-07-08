@@ -116,12 +116,9 @@ impl Pyproject {
                 }
                 "setuptools" => {
                     inputs.native_build_inputs.always.extend(if application {
-                        [
-                            "python3.pkgs.setuptools".into(),
-                            "python3.pkgs.wheel".into(),
-                        ]
+                        ["python3.pkgs.setuptools".into()]
                     } else {
-                        ["setuptools".into(), "wheel".into()]
+                        ["setuptools".into()]
                     });
                 }
                 name => {

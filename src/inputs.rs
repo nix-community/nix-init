@@ -33,7 +33,7 @@ pub fn write_all_lambda_inputs(
     let build_inputs = write_lambda_inputs(out, written, &inputs.build_inputs)?;
     for input in inputs.env.values().flat_map(|(_, inputs)| inputs) {
         if written.insert(input.clone()) {
-            writeln!(out, ", {input}")?;
+            writeln!(out, "  {input},")?;
         }
     }
     Ok((native_build_inputs, build_inputs))
@@ -53,7 +53,7 @@ fn write_lambda_inputs(
     {
         non_empty = true;
         if written.insert(input.into()) {
-            writeln!(out, ", {input}")?;
+            writeln!(out, "  {input},")?;
         }
     }
 
@@ -83,7 +83,7 @@ pub fn write_lambda_input(
     input: &str,
 ) -> Result<()> {
     if written.insert(input.into()) {
-        writeln!(out, ", {input}")?;
+        writeln!(out, "  {input},")?;
     }
     Ok(())
 }
