@@ -97,7 +97,7 @@ async fn run() -> Result<()> {
     editor.set_max_history_size(0)?;
 
     let mut out = String::new();
-    writeln!(out, "{{ lib")?;
+    writeln!(out, "{{\n  lib,")?;
 
     let url = match opts.url {
         Some(url) => url,
@@ -465,12 +465,12 @@ async fn run() -> Result<()> {
     let mut inputs = AllInputs::default();
     match choice {
         BuildType::BuildGoModule => {
-            writeln!(out, ", buildGoModule")?;
+            writeln!(out, "  buildGoModule,")?;
         }
         BuildType::BuildPythonPackage { application, rust } => {
             writeln!(
                 out,
-                ", {}",
+                "  {},",
                 if application {
                     "python3"
                 } else {
@@ -498,10 +498,10 @@ async fn run() -> Result<()> {
             }
         }
         BuildType::BuildRustPackage { .. } => {
-            writeln!(out, ", rustPlatform")?;
+            writeln!(out, "  rustPlatform,")?;
         }
         BuildType::MkDerivation { rust } => {
-            writeln!(out, ", stdenv")?;
+            writeln!(out, "  stdenv,")?;
             if has_cmake {
                 inputs.native_build_inputs.always.insert("cmake".into());
             }
@@ -526,10 +526,10 @@ async fn run() -> Result<()> {
 
     match fetcher {
         MaybeFetcher::Known(fetcher) => {
-            writeln!(out, ", {fetcher}")?;
+            writeln!(out, "  {fetcher},")?;
         }
         MaybeFetcher::Unknown { fetcher } => {
-            writeln!(out, ", {fetcher}")?;
+            writeln!(out, "  {fetcher},")?;
         }
     }
 
