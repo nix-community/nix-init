@@ -30,7 +30,7 @@ jobs:
         with:
           ref: ${{ inputs.tag != null && format('refs/tags/{0}', inputs.tag) || '' }}
       - uses: DeterminateSystems/nix-installer-action@v11
-      - uses: DeterminateSystems/flakehub-push@v3
+      - uses: DeterminateSystems/flakehub-push@v4
         with:
           visibility: public
           tag: ${{ inputs.tag }}
