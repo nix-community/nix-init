@@ -10,9 +10,12 @@
 
 Generate Nix packages from URLs
 
-> Note: It is likely that the generated package will not work without some tweaks, also remember to double check the license and description even if it does work
+> Note: It is likely that the generated package will not work without some
+> tweaks, also remember to double check the license and description even if it
+> does work
 
-- Hash prefetching powered by [nurl] with support for `cargoHash` and `vendorHash`
+- Hash prefetching powered by [nurl] with support for `cargoHash` and
+  `vendorHash`
 - Dependency inference for Rust, Go, and Python projects
 - Interactive prompts with fuzzy tab completions
 - License detection
@@ -21,12 +24,13 @@ Generate Nix packages from URLs
 
 ## Installation
 
-The latest release of nix-init is packaged in nixpkgs and kept up to date on the unstable branches
+The latest release of nix-init is packaged in nixpkgs and kept up to date on the
+unstable branches
 
 ![](https://repology.org/badge/vertical-allrepos/nix-init.svg)
 
-If you want to use a more recent snapshot of nix-init, it is also available as a flake.
-The following command is equivalent to running `nix-init --help`:
+If you want to use a more recent snapshot of nix-init, it is also available as a
+flake. The following command is equivalent to running `nix-init --help`:
 
 ```bash
 nix run github:nix-community/nix-init -- --help
@@ -69,11 +73,13 @@ Options:
 - `fetchFromGitLab`
 - `fetchFromGitea`
 - `fetchPypi`
-- All other fetchers supported by [nurl] are also supported, you just have to manually input the tag/revision of the package
+- All other fetchers supported by [nurl] are also supported, you just have to
+  manually input the tag/revision of the package
 
 ## Configuration
 
-nix-init will try to find `nix-init/config.toml` under XDG configuration directories
+nix-init will try to find `nix-init/config.toml` under XDG configuration
+directories
 
 ```toml
 # ~/.config/nix-init/config.toml
