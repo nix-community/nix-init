@@ -25,7 +25,13 @@
       imports = [ ./formatters.nix ];
 
       perSystem =
-        { config, pkgs, ... }:
+        {
+          config,
+          self',
+          pkgs,
+          lib,
+          ...
+        }:
         {
           packages.nix-init = pkgs.callPackage ./default.nix {
             inherit (config.packages) get-nix-license license-store-cache;
@@ -34,9 +40,15 @@
           packages.license-store-cache = pkgs.callPackage ./license-store-cache.nix { };
           packages.default = config.packages.nix-init;
 
-          checks = {
-            clippy = config.packages.nix-init.override { enableClippy = true; };
-          };
+          checks =
+            let
+              packages = lib.mapAttrs' (n: lib.nameValuePair "package-${n}") self'.packages;
+              devShells = lib.mapAttrs' (n: lib.nameValuePair "devShell-${n}") self'.devShells;
+              otherChecks = {
+                clippy = config.packages.nix-init.override { enableClippy = true; };
+              };
+            in
+            packages // devShells // otherChecks;
         };
     };
 }
