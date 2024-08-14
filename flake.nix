@@ -7,7 +7,10 @@
       url = "github:hercules-ci/flake-parts";
       inputs.nixpkgs-lib.follows = "nixpkgs";
     };
-    nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
+    treefmt-nix = {
+      url = "github:numtide/treefmt-nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs =
@@ -19,6 +22,7 @@
         "x86_64-darwin"
         "x86_64-linux"
       ];
+      imports = [ ./formatters.nix ];
 
       perSystem =
         { config, pkgs, ... }:
