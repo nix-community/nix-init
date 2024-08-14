@@ -49,7 +49,8 @@
             pipe
             sourceByRegex
             ;
-          inherit (crane.lib.${system}.overrideToolchain inputs'.fenix.packages.default.toolchain)
+          craneLib = crane.mkLib pkgs;
+          inherit (craneLib.overrideToolchain inputs'.fenix.packages.default.toolchain)
             buildDepsOnly
             buildPackage
             cargoClippy
