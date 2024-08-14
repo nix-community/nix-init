@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.3.1 - 2024-08-14
+
+### Fixes
+
+* many crate updates
+* update dependencies by @figsoda in https://github.com/nix-community/nix-init/pull/332, https://github.com/nix-community/nix-init/pull/409
+* Update python derivation template by @mweinelt in https://github.com/nix-community/nix-init/pull/419
+* Fix `time` compilation failure by @a-kenji in https://github.com/nix-community/nix-init/pull/457
+
 ## v0.3.0 - 2023-09-16
 
 ### Features
