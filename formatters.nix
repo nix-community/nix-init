@@ -14,7 +14,18 @@
           nixfmt.enable = true;
           nixfmt.package = pkgs.nixfmt-rfc-style;
           deno.enable = true;
+          actionlint.enable = true;
         };
+        settings.global.excludes = [
+          "*.toml"
+          "*.snap"
+          "*/go.mod"
+          "*/go.sum"
+          "*.go"
+          ".github/dependabot.yml"
+          "assets/*"
+          "LICENSE"
+        ];
       };
     };
 }
