@@ -13,6 +13,7 @@
           rustfmt.enable = true;
           nixfmt.enable = true;
           nixfmt.package = pkgs.nixfmt-rfc-style;
+          deno.enable = true;
         };
       };
     };
