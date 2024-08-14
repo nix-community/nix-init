@@ -14,6 +14,7 @@
           nixfmt.enable = true;
           nixfmt.package = pkgs.nixfmt-rfc-style;
           deno.enable = true;
+          deadnix.enable = true;
           actionlint.enable = true;
         };
         settings.global.excludes = [
@@ -23,6 +24,7 @@
           "*/go.sum"
           "*.go"
           ".github/dependabot.yml"
+          ".mergify.yml"
           "assets/*"
           "LICENSE"
         ];
