@@ -33,6 +33,10 @@
           packages.get-nix-license = pkgs.callPackage ./src/get_nix_license.nix { };
           packages.license-store-cache = pkgs.callPackage ./license-store-cache.nix { };
           packages.default = config.packages.nix-init;
+
+          checks = {
+            clippy = config.packages.nix-init.override { enableClippy = true; };
+          };
         };
     };
 }
