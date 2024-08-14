@@ -1,0 +1,17 @@
+queue_rules:
+  - name: default
+    merge_conditions:
+      - check-success=check (macos-latest)
+      - check-success=check (ubuntu-latest)
+      - check-success=ci/hercules/onPush/default
+defaults:
+  actions:
+    queue:
+      merge_method: rebase
+pull_request_rules:
+  - name: merge using the merge queue
+    conditions:
+      - base=main
+      - label~=merge-queue|dependencies
+    actions:
+      queue: {}
