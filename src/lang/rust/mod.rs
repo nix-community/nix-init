@@ -19,8 +19,8 @@ use cargo::{
         Resolve, Shell, Workspace,
     },
     ops::{load_pkg_lockfile, resolve_to_string, resolve_with_previous},
-    util::homedir,
-    Config,
+    sources::SourceConfigMap,
+    util::{context::GlobalContext, homedir},
 };
 use indoc::writedoc;
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
@@ -93,7 +93,10 @@ pub async fn load_cargo_lock(
                         let cfg = cargo_config(src_dir)?;
                         let ws = Workspace::new(&src_dir.join("Cargo.toml"), &cfg)?;
                         let mut resolve = resolve_with_previous(
-                            &mut PackageRegistry::new(&cfg)?,
+                            &mut PackageRegistry::new_with_source_config(
+                                &cfg,
+                                SourceConfigMap::new(&cfg)?,
+                            )?,
                             &ws,
                             &CliFeatures::new_all(true),
                             HasDevUnits::Yes,
@@ -101,7 +104,6 @@ pub async fn load_cargo_lock(
                             None,
                             &[],
                             true,
-                            None,
                         )?;
                         write!(target, "{}", resolve_to_string(&ws, &mut resolve)?)?;
                         Ok(resolve)
@@ -138,7 +140,7 @@ pub async fn write_cargo_lock(
         let mut revs = FxHashMap::default();
         for (k, v) in resolve.iter().filter_map(|pkg| {
             let src = pkg.source_id();
-            src.is_git().then_some((src.precise()?, pkg))
+            src.is_git().then_some((src.precise_git_fragment()?, pkg))
         }) {
             revs.entry(k).or_insert(v);
         }
@@ -189,7 +191,9 @@ fn resolve_workspace(src_dir: &Path) -> Option<Resolve> {
 
     let ws = Workspace::new(&src_dir.join("Cargo.toml"), &cfg).ok_error()?;
     let lock = load_pkg_lockfile(&ws).ok_error()?;
-    let mut registry = PackageRegistry::new(&cfg).ok_error()?;
+    let mut registry =
+        PackageRegistry::new_with_source_config(&cfg, SourceConfigMap::new(&cfg).ok()?)
+            .ok_error()?;
 
     resolve_with_previous(
         &mut registry,
@@ -200,13 +204,12 @@ fn resolve_workspace(src_dir: &Path) -> Option<Resolve> {
         None,
         &[],
         true,
-        None,
     )
     .ok_error()
 }
 
-fn cargo_config(src_dir: &Path) -> Result<Config> {
-    Ok(Config::new(
+fn cargo_config(src_dir: &Path) -> Result<GlobalContext> {
+    Ok(GlobalContext::new(
         Shell::new(),
         src_dir.into(),
         homedir(src_dir).context("failed to find cargo home")?,

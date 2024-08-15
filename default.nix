@@ -21,10 +21,13 @@
 
 rustPlatform.buildRustPackage rec {
   pname = "nix-init";
-  version = "0.3.0";
+  version = (builtins.fromTOML (builtins.readFile ./Cargo.toml)).workspace.package.version;
 
   src = ./.;
-  cargoLock.lockFile = ./Cargo.lock;
+  cargoLock = {
+    lockFile = ./Cargo.lock;
+    outputHashes."cargo-0.82.0" = "sha256-1G14vLW3FhLxOWGxuHXcWgb+XXS1vOOyQYKVbrJWlmI=";
+  };
 
   nativeBuildInputs = [
     curl
