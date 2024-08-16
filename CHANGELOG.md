@@ -4,12 +4,14 @@
 
 ### Changes
 
-- remove use of meta = with lib; by @eclairevoyant in https://github.com/nix-community/nix-init/pull/292
+- remove use of meta = with lib; by @eclairevoyant in
+  https://github.com/nix-community/nix-init/pull/292
 
 ### Fixes
 
 - many crate updates
-- upgrade to Cargo 1.81 by @K900 in https://github.com/nix-community/nix-init/pull/469
+- upgrade to Cargo 1.81 by @K900 in
+  https://github.com/nix-community/nix-init/pull/469
 
 ## v0.3.1 - 2024-08-14
 
