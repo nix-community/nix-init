@@ -3739,9 +3739,9 @@ dependencies = [
 
 [[package]]
 name = "secrecy"
-version = "0.8.0"
+version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9bd1c54ea06cfd2f6b63219704de0b9b4f72dcc2b8fdef820be6cd799780e91e"
+checksum = "e1f662a494cd3c8dd64a16514bdcd4ebf7d76558fad96392500ea5e0b72b8b68"
 dependencies = [
  "serde",
  "zeroize",
