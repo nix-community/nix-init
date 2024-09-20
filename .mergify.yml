@@ -3,7 +3,7 @@ queue_rules:
     merge_conditions:
       - check-success=check (macos-latest)
       - check-success=check (ubuntu-latest)
-      - check-success=buildbot/nix-eval
+      - check-success=buildbot/nix-build
     batch_size: 5
     merge_method: rebase
 pull_request_rules:
