@@ -19,7 +19,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Install nix
-        uses: cachix/install-nix-action@v29
+        uses: cachix/install-nix-action@v30
 
       - name: Set up cachix
         uses: cachix/cachix-action@v15
