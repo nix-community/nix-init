@@ -41,7 +41,7 @@ owo-colors = "4.1.0"
 parse-display = "0.10.0"
 pep-508 = "0.4.0"
 rayon = "1.10.0"
-regex = "1.11.0"
+regex = "1.11.1"
 reqwest = { version = "0.12.8", features = ["json"] }
 rustc-hash = "2.0.0"
 secrecy = { version = "0.10.3", features = ["serde"] }
