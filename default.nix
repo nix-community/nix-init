@@ -23,7 +23,7 @@ rustPlatform.buildRustPackage rec {
   pname = "nix-init";
   version = (builtins.fromTOML (builtins.readFile ./Cargo.toml)).workspace.package.version;
 
-  src = ./.;
+  src = ./.; # change this to minimise unrelated rebuilds
   cargoLock = {
     lockFile = ./Cargo.lock;
     outputHashes."cargo-0.82.0" = "sha256-1G14vLW3FhLxOWGxuHXcWgb+XXS1vOOyQYKVbrJWlmI=";
