@@ -164,7 +164,7 @@ async fn run() -> Result<()> {
                     rev.clone()
                 }
                 Some(Version::Head { date, .. } | Version::Commit { date, .. }) => {
-                    format!("unstable-{date}")
+                    format!("0-unstable-{date}")
                 }
                 None => get_version(&rev).into(),
             };
