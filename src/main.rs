@@ -148,10 +148,11 @@ async fn run() -> Result<()> {
                 rev
             };
 
-            let version = match match revisions.versions.remove(&rev) {
+            let version = match revisions.versions.remove(&rev) {
                 Some(version) => Some(version),
                 None => fetcher.get_version(&cl, &rev).await,
-            } {
+            } ;
+            let version = match version {
                 Some(Version::Latest | Version::Tag) => get_version_number(&rev).into(),
                 Some(Version::Pypi {
                     pname: pypi_pname,
@@ -164,7 +165,7 @@ async fn run() -> Result<()> {
                     rev.clone()
                 }
                 Some(Version::Head { date, .. } | Version::Commit { date, .. }) => {
-                    format!("unstable-{date}")
+                    format!("0-unstable-{date}")
                 }
                 None => get_version(&rev).into(),
             };
