@@ -2,7 +2,8 @@
   description = "Generate Nix packages from URLs with hash prefetching, dependency inference, license detection, and more";
 
   inputs = {
-    nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
+    # Temporary pin until libgit2 1.9.0 reaches the channels.
+    nixpkgs.url = "github:nixos/nixpkgs/pull/373096/head";
     flake-parts = {
       url = "github:hercules-ci/flake-parts";
       inputs.nixpkgs-lib.follows = "nixpkgs";
