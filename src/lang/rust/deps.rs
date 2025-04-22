@@ -8,20 +8,11 @@ pub(super) fn load_rust_dependency(inputs: &mut AllInputs, resolve: &Resolve, pk
 
     match &*pkg.name() {
         "alsa-sys" => build!("alsa-lib"; linux),
-        "arboard" => framework!("AppKit"),
         "ash" => build!("vulkan-loader"),
         "atk-sys" => build!("atk"),
         "bindgen" => native_build!("rustPlatform.bindgenHook"),
         "bzip2-sys" => build!("bzip2"),
         "cairo-sys-rs" => build!("cairo"),
-        "clipboard" => framework!("AppKit"),
-        "clipboard_macos" => framework!("AppKit"),
-        "cocoa" => framework!("AppKit"),
-        "cocoa-foundation" => framework!("Foundation"),
-        "copypasta" => framework!("AppKit"),
-        "core-graphics-types" => framework!("CoreGraphics"),
-        "core-text" => framework!("CoreText"),
-        "coreaudio-sys" => framework!("CoreAudio"),
         "curl-sys" => {
             native_build!("curl");
             build!("curl");
@@ -29,7 +20,6 @@ pub(super) fn load_rust_dependency(inputs: &mut AllInputs, resolve: &Resolve, pk
         "evdev-sys" => build!("evdev-sys"),
         "expat-sys" => build!("expat"),
         "freetype-sys" => build!("freetype"),
-        "fsevent-sys" => framework!("CoreFoundation", "CoreServices"),
         "gdk-pixbuf-sys" => build!("gdk-pixbuf"),
         "gdk-sys" => build!("gtk3"),
         "gdk4-sys" => build!("gtk4"),
@@ -70,7 +60,6 @@ pub(super) fn load_rust_dependency(inputs: &mut AllInputs, resolve: &Resolve, pk
             native_build!("wrapGAppsHook4");
             build!("gtk4");
         }
-        "io-kit-sys" => framework!("IOKit"),
         "io-surface" => build!("IOSurface"),
         "jemalloc-sys" => build!("rust-jemalloc-sys"),
         "libadwaita-sys" => build!("libadwaita"),
@@ -145,9 +134,7 @@ pub(super) fn load_rust_dependency(inputs: &mut AllInputs, resolve: &Resolve, pk
                 llvm_pkgs,
             );
         }
-        "locate-dwarf" => framework!("CoreServices"),
         "lzma-sys" => build!("xz"),
-        "metal" => framework!("Metal"),
         "ncurses" => build!("ncurses"),
         "nettle-sys" => build!("nettle"),
         "onig_sys" => {
@@ -156,7 +143,6 @@ pub(super) fn load_rust_dependency(inputs: &mut AllInputs, resolve: &Resolve, pk
         }
         "openssl-sys" => {
             build!("openssl");
-            framework!("Security");
             if resolve.features(pkg).iter().any(|feat| feat == "vendored") {
                 environ!("OPENSSL_NO_VENDOR", "true");
             }
@@ -169,10 +155,6 @@ pub(super) fn load_rust_dependency(inputs: &mut AllInputs, resolve: &Resolve, pk
         "pq-sys" => build!("postgresql"),
         "prost-build" => native_build!("protobuf"),
         "rdkafka-sys" => build!("rdkafka"),
-        "readkey" => framework!("AppKit"),
-        "readmouse" => framework!("AppKit"),
-        "ring" => framework!("Security"),
-        "security-framework-sys" => framework!("Security"),
         "servo-fontconfig-sys" => build!("fontconfig"),
         "smithay-client-toolkit" => build!("libxkbcommon"),
         "soup-sys" => build!("libsoup"),
@@ -181,23 +163,15 @@ pub(super) fn load_rust_dependency(inputs: &mut AllInputs, resolve: &Resolve, pk
         "sourceview4-sys" => build!("gtksourceview4"),
         "sourceview5-sys" => build!("gtksourceview5"),
         "spirv-tools-sys" => build!("spirv-tools"),
-        "sys-locale" => framework!("CoreFoundation"),
-        "sysinfo" => framework!("IOKit"),
-        "system-configuration-sys" => framework!("SystemConfiguration"),
         "tikv-jemalloc-sys" => build!("rust-jemalloc-sys"),
         "tracker-sys" => build!("tracker"),
-        "trash" => framework!("Foundation"),
         "vte4-sys" => build!("vte-gtk4"),
         "wayland-sys" => build!("wayland"; linux),
-        "webbrowser" => framework!("CoreServices"),
         "webkit2gtk-sys" => build!("webkitgtk"),
         "webkit2gtk-webextension-sys" => build!("webkitgtk"),
         "webkit2gtk5-sys" => build!("webkitgtk_5_0"),
         "webkit2gtk5-webextension-sys" => build!("webkitgtk_5_0"),
         "webkit6-sys" => build!("webkitgtk_6_0"),
-        "wgpu-hal" => framework!("QuartzCore"),
-        "whoami" => framework!("CoreFoundation", "SystemConfiguration"),
-        "wholesym" => framework!("CoreServices"),
         "wireplumber" => build!("wireplumber"),
         "x11" => {
             for feat in resolve.features(pkg) {
