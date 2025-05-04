@@ -18,15 +18,12 @@ pub(super) fn load_go_dependency(inputs: &mut AllInputs, pkg: GoPackage<'_>) {
         "github.com/getlantern/systray" => {
             native_build!("pkg-config");
             build!("libayatana-appindicator"; linux);
-            framework!("Cocoa", "WebKit");
         }
         "github.com/google/gopacket" => build!("libpcap"),
         "github.com/gotk3/gotk3" => {
             native_build!("pkg-config", "wrapGAppsHook");
             build!("gtk3");
         }
-        "github.com/itchio/ox" => framework!("Cocoa"),
-        "github.com/itchio/screw" => framework!("Cocoa"),
         "github.com/shirou/gopsutil" => {
             if pkg.version.get().is_some_and(|version| {
                 version < Version::new(3, 21, 3)
@@ -37,7 +34,6 @@ pub(super) fn load_go_dependency(inputs: &mut AllInputs, pkg: GoPackage<'_>) {
         }
         "golang.design/x/clipboard" => {
             build!("xorg.libX11"; linux);
-            framework!("Cocoa");
         }
         _ => {}
     }

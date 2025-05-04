@@ -22,9 +22,7 @@ AllInputs {
             "gtk3",
             "gtk4",
         },
-        darwin: {
-            "darwin.apple_sdk.frameworks.Cocoa",
-        },
+        darwin: {},
         aarch64_darwin: {},
         x86_64_darwin: {},
         linux: {

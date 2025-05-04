@@ -47,14 +47,6 @@ macro_rules! input_macros {
             };
         }
 
-        // apple frameworks
-        #[allow(unused_macros)]
-        macro_rules! framework {
-            ($_($input:literal),+) => {
-                build!($_(concat!("darwin.apple_sdk.frameworks.", $input)),+; darwin)
-            };
-        }
-
         // gstreamer libraries
         #[allow(unused_macros)]
         macro_rules! gst {
