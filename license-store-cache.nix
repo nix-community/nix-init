@@ -12,7 +12,7 @@ rustPlatform.buildRustPackage {
 
   cargoLock = {
     lockFile = ./Cargo.lock;
-    outputHashes."cargo-0.82.0" = "sha256-1G14vLW3FhLxOWGxuHXcWgb+XXS1vOOyQYKVbrJWlmI=";
+    outputHashes."cargo-0.88.0" = "sha256-skY0B2YGBFCwqmyqasRRvAheZbxFNn46W/oMEj9Tmik=";
   };
 
   buildInputs = lib.optionals stdenv.isDarwin [ libiconv ];
