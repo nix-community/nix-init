@@ -28,7 +28,7 @@ include = ["data", "src", "Cargo.lock", "Cargo.toml", "build.rs"]
 anyhow = "1.0.95"
 askalono.workspace = true
 bstr = "1.10.0"
-cargo = { git = "https://github.com/rust-lang/cargo.git", rev = "d585829270c758468b9fd20b2b7fd3d4f4557763" }
+cargo = { git = "https://github.com/rust-lang/cargo.git", rev = "99624be96e9d213b0e9b1e36451271f24e4a41d8" }
 chumsky = "=1.0.0-alpha.6"
 expand = "0.3.0"
 flate2 = "1.0.34"
