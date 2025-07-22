@@ -151,7 +151,7 @@ async fn run() -> Result<()> {
             let version = match revisions.versions.remove(&rev) {
                 Some(version) => Some(version),
                 None => fetcher.get_version(&cl, &rev).await,
-            } ;
+            };
             let version = match version {
                 Some(Version::Latest | Version::Tag) => get_version_number(&rev).into(),
                 Some(Version::Pypi {
@@ -535,6 +535,7 @@ async fn run() -> Result<()> {
     }
 
     let mut python_import = None;
+    let mut close_parenthesis = false; // final ')', for example when using finalAttrs.
     let (native_build_inputs, build_inputs) = match choice {
         BuildType::BuildGoModule => {
             let go_sum = File::open(src_dir.join("go.sum")).ok_warn();
@@ -557,14 +558,18 @@ async fn run() -> Result<()> {
             };
 
             let res = write_all_lambda_inputs(&mut out, &inputs, &mut BTreeSet::new())?;
+
+            let src_expr_final_attrs = src_expr.replace("${version}", "${finalAttrs.version}");
+
+            close_parenthesis = true;
             writedoc! {out, r#"
                 }}:
 
-                buildGoModule rec {{
+                buildGoModule (finalAttrs: {{
                   pname = {pname:?};
                   version = {version:?};
 
-                  src = {src_expr};
+                  src = {src_expr_final_attrs};
 
                   vendorHash = {hash};
 
@@ -1011,7 +1016,11 @@ async fn run() -> Result<()> {
         }
     }
 
-    writeln!(out, "  }};\n}}")?;
+    write!(out, "  }};\n}}")?;
+    if close_parenthesis {
+        write!(out, ")")?;
+    };
+    writeln!(out)?;
 
     let mut out_file = File::create(&out_path).context("failed to create output file")?;
     write!(out_file, "{out}")?;
