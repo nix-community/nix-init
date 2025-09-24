@@ -151,7 +151,7 @@ async fn run() -> Result<()> {
             let version = match revisions.versions.remove(&rev) {
                 Some(version) => Some(version),
                 None => fetcher.get_version(&cl, &rev).await,
-            } ;
+            };
             let version = match version {
                 Some(Version::Latest | Version::Tag) => get_version_number(&rev).into(),
                 Some(Version::Pypi {
