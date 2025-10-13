@@ -66,3 +66,59 @@ pub struct Opts {
     #[arg(short, long)]
     pub force: bool,
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn parse_headless_with_url() {
+        let opts = Opts::try_parse_from(&[
+            "nix-init",
+            "--headless",
+            "--url",
+            "https://github.com/owner/repo",
+        ])
+        .unwrap();
+
+        assert!(opts.headless);
+        assert_eq!(opts.url.unwrap(), "https://github.com/owner/repo");
+    }
+
+    #[test]
+    fn parse_all_headless_flags() {
+        let opts = Opts::try_parse_from(&[
+            "nix-init",
+            "--headless",
+            "--url",
+            "https://example.com",
+            "--rev",
+            "v1.0.0",
+            "--version-name",
+            "1.0.0",
+            "--pname",
+            "test-pkg",
+            "--build",
+            "rust-pkg",
+            "--fetch-submodules",
+            "--force",
+        ])
+        .unwrap();
+
+        assert!(opts.headless);
+        assert_eq!(opts.rev.unwrap(), "v1.0.0");
+        assert_eq!(opts.version.unwrap(), "1.0.0");
+        assert_eq!(opts.pname.unwrap(), "test-pkg");
+        assert_eq!(opts.build.unwrap(), "rust-pkg");
+        assert!(opts.fetch_submodules);
+        assert!(opts.force);
+    }
+
+    #[test]
+    fn headless_defaults_to_false() {
+        let opts = Opts::try_parse_from(&["nix-init"]).unwrap();
+        assert!(!opts.headless);
+        assert!(!opts.fetch_submodules);
+        assert!(!opts.force);
+    }
+}
