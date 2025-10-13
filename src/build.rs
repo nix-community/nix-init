@@ -24,6 +24,27 @@ pub enum RustVendor {
     ImportCargoLock,
 }
 
+impl BuildType {
+    pub fn cli_flag(&self) -> Option<&'static str> {
+        match self {
+            BuildType::BuildGoModule => Some("go-mod"),
+            BuildType::BuildPythonPackage {
+                application: true, ..
+            } => Some("python-app"),
+            BuildType::BuildPythonPackage {
+                application: false, ..
+            } => Some("python-pkg"),
+            BuildType::BuildRustPackage { .. } => Some("rust-pkg"),
+            BuildType::MkDerivation { rust: None } => Some("drv"),
+            BuildType::MkDerivation { rust: Some(_) } => None,
+        }
+    }
+
+    pub fn from_cli_flag(flag: &str, choices: &[BuildType]) -> Option<BuildType> {
+        choices.iter().find(|c| c.cli_flag() == Some(flag)).copied()
+    }
+}
+
 impl Display for BuildType {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {

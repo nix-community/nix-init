@@ -436,53 +436,17 @@ async fn run() -> Result<()> {
     choices.push(BuildType::MkDerivation { rust: None });
 
     let choice = if let Some(build_str) = opts.build.as_deref() {
-        *choices
-            .iter()
-            .find(|c| match (build_str, c) {
-                ("go-mod", BuildType::BuildGoModule) => true,
-                (
-                    "python-app",
-                    BuildType::BuildPythonPackage {
-                        application: true, ..
-                    },
-                ) => true,
-                (
-                    "python-pkg",
-                    BuildType::BuildPythonPackage {
-                        application: false, ..
-                    },
-                ) => true,
-                ("rust-pkg", BuildType::BuildRustPackage { .. }) => true,
-                ("drv", BuildType::MkDerivation { rust: None }) => true,
-                _ => false,
-            })
-            .with_context(|| {
-                format!(
-                    "invalid build type '{}'\nAvailable options for this package:\n{}",
-                    build_str,
-                    choices
-                        .iter()
-                        .map(|c| {
-                            let flag = match c {
-                                BuildType::BuildGoModule => "go-mod",
-                                BuildType::BuildPythonPackage {
-                                    application: true, ..
-                                } => "python-app",
-                                BuildType::BuildPythonPackage {
-                                    application: false, ..
-                                } => "python-pkg",
-                                BuildType::BuildRustPackage { .. } => "rust-pkg",
-                                BuildType::MkDerivation { rust: None } => "drv",
-                                BuildType::MkDerivation { rust: Some(_) } => {
-                                    "(not available via flag)"
-                                }
-                            };
-                            format!("  - {} ({})", flag, c)
-                        })
-                        .collect::<Vec<_>>()
-                        .join("\n")
-                )
-            })?
+        BuildType::from_cli_flag(build_str, &choices).with_context(|| {
+            format!(
+                "invalid build type '{}'\nAvailable options for this package:\n{}",
+                build_str,
+                choices
+                    .iter()
+                    .filter_map(|c| c.cli_flag().map(|flag| format!("  - {} ({})", flag, c)))
+                    .collect::<Vec<_>>()
+                    .join("\n")
+            )
+        })?
     } else if opts.headless {
         choices[0]
     } else {
