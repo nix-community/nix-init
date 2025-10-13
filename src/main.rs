@@ -219,17 +219,19 @@ async fn run() -> Result<()> {
             (pname, rev, version, "".into(), None, Default::default())
         };
 
-    let pname = if let Some(pname) = pname {
-        if opts.headless {
-            pname.to_kebab_case()
+    let pname = flag_or_prompt!(opts, opts.pname, {
+        if let Some(ref detected_pname) = pname {
+            detected_pname.to_kebab_case()
         } else {
-            editor.readline_with_initial(&prompt("Enter pname"), (&pname.to_kebab_case(), ""))?
+            anyhow::bail!("--pname is required in headless mode when package name cannot be auto-detected");
         }
-    } else if opts.headless {
-        anyhow::bail!("--pname is required in headless mode when package name cannot be auto-detected");
-    } else {
-        editor.readline(&prompt("Enter pname"))?
-    };
+    }, {
+        if let Some(pname) = pname {
+            editor.readline_with_initial(&prompt("Enter pname"), (&pname.to_kebab_case(), ""))?
+        } else {
+            editor.readline(&prompt("Enter pname"))?
+        }
+    });
 
     let nixpkgs = opts
         .nixpkgs

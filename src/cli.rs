@@ -18,6 +18,10 @@ pub struct Opts {
     #[arg(short, long)]
     pub rev: Option<String>,
 
+    /// Specify the package name
+    #[arg(short = 'p', long)]
+    pub pname: Option<String>,
+
     /// Path to nixpkgs (in nix)
     ///
     /// Examples:
