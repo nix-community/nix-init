@@ -61,4 +61,8 @@ pub struct Opts {
     /// Fetch git submodules (defaults to false in headless mode, prompts in interactive mode)
     #[arg(long)]
     pub fetch_submodules: bool,
+
+    /// Allow overwriting existing output files in headless mode
+    #[arg(short, long)]
+    pub force: bool,
 }

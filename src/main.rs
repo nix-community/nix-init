@@ -518,23 +518,23 @@ async fn run() -> Result<()> {
         if metadata.is_dir() {
             let out_path = output.join("default.nix");
             if out_path.exists() {
-                if opts.headless {
+                if opts.headless && !opts.force {
                     anyhow::bail!(
-                        "Output file {} already exists (refusing to overwrite in headless mode)",
+                        "Output file {} already exists (refusing to overwrite in headless mode). Use --force to overwrite.",
                         out_path.display()
                     );
-                } else if ask_overwrite(&mut editor, &out_path)? {
+                } else if !opts.headless && ask_overwrite(&mut editor, &out_path)? {
                     return Ok(());
                 }
             }
             (Some(output.as_path()), out_path)
         } else {
-            if opts.headless {
+            if opts.headless && !opts.force {
                 anyhow::bail!(
-                    "Output file {} already exists (refusing to overwrite in headless mode)",
+                    "Output file {} already exists (refusing to overwrite in headless mode). Use --force to overwrite.",
                     output.display()
                 );
-            } else if ask_overwrite(&mut editor, &output)? {
+            } else if !opts.headless && ask_overwrite(&mut editor, &output)? {
                 return Ok(());
             }
             (output.parent(), output.clone())
