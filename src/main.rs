@@ -186,10 +186,14 @@ async fn run() -> Result<()> {
                 None => get_version(&rev).into(),
             };
 
-            if opts.headless {
-                cmd.arg("-S");
-            } else if fetcher.has_submodules(&cl, &rev).await && !ask(&mut editor, "Fetch submodules")? {
-                cmd.arg("-S");
+            if fetcher.has_submodules(&cl, &rev).await {
+                if !opts.fetch_submodules {
+                    if opts.headless {
+                        cmd.arg("-S");
+                    } else if !ask(&mut editor, "Fetch submodules")? {
+                        cmd.arg("-S");
+                    }
+                }
             }
 
             editor.set_helper(Some(Prompter::NonEmpty));

@@ -57,4 +57,8 @@ pub struct Opts {
     /// All other options will use sensible defaults if not specified.
     #[arg(long)]
     pub headless: bool,
+
+    /// Fetch git submodules (defaults to false in headless mode, prompts in interactive mode)
+    #[arg(long)]
+    pub fetch_submodules: bool,
 }
