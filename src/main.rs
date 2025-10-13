@@ -87,10 +87,6 @@ async fn run() -> Result<()> {
 
     let opts = Opts::parse();
 
-    if opts.headless && opts.url.is_none() {
-        anyhow::bail!("--url is required when using --headless mode");
-    }
-
     tokio::spawn(async {
         Lazy::force(&LICENSE_STORE);
     });
@@ -100,16 +96,30 @@ async fn run() -> Result<()> {
     editor.set_completion_type(CompletionType::Fuzzy);
     editor.set_max_history_size(0)?;
 
+    macro_rules! flag_or_prompt {
+        ($opts:expr, $flag:expr, $default:expr, $prompt_block:expr) => {
+            match $flag {
+                Some(val) => val,
+                None => {
+                    if $opts.headless {
+                        $default
+                    } else {
+                        $prompt_block
+                    }
+                }
+            }
+        };
+    }
+
     let mut out = String::new();
     writeln!(out, "{{\n  lib,")?;
 
-    let url = match opts.url {
-        Some(url) => url,
-        None => {
-            editor.set_helper(Some(Prompter::NonEmpty));
-            editor.readline(&prompt("Enter url"))?
-        }
-    };
+    let url = flag_or_prompt!(opts, opts.url, {
+        anyhow::bail!("--url is required when using --headless mode")
+    }, {
+        editor.set_helper(Some(Prompter::NonEmpty));
+        editor.readline(&prompt("Enter url"))?
+    });
 
     let mut fetcher =
         serde_json::from_slice(&Command::new(NURL).arg(&url).arg("-p").get_stdout().await?)
