@@ -114,12 +114,15 @@ async fn run() -> Result<()> {
     let mut out = String::new();
     writeln!(out, "{{\n  lib,")?;
 
-    let url = flag_or_prompt!(opts, opts.url, {
-        anyhow::bail!("--url is required when using --headless mode")
-    }, {
-        editor.set_helper(Some(Prompter::NonEmpty));
-        editor.readline(&prompt("Enter url"))?
-    });
+    let url = flag_or_prompt!(
+        opts,
+        opts.url,
+        { anyhow::bail!("--url is required when using --headless mode") },
+        {
+            editor.set_helper(Some(Prompter::NonEmpty));
+            editor.readline(&prompt("Enter url"))?
+        }
+    );
 
     let mut fetcher =
         serde_json::from_slice(&Command::new(NURL).arg(&url).arg("-p").get_stdout().await?)
@@ -167,7 +170,7 @@ async fn run() -> Result<()> {
             let version = match revisions.versions.remove(&rev) {
                 Some(version) => Some(version),
                 None => fetcher.get_version(&cl, &rev).await,
-            } ;
+            };
             let version = match version {
                 Some(Version::Latest | Version::Tag) => get_version_number(&rev).into(),
                 Some(Version::Pypi {
@@ -227,19 +230,25 @@ async fn run() -> Result<()> {
             (pname, rev, version, "".into(), None, Default::default())
         };
 
-    let pname = flag_or_prompt!(opts, opts.pname, {
-        if let Some(ref detected_pname) = pname {
-            detected_pname.to_kebab_case()
-        } else {
-            anyhow::bail!("--pname is required in headless mode when package name cannot be auto-detected");
+    let pname = flag_or_prompt!(
+        opts,
+        opts.pname,
+        {
+            if let Some(ref detected_pname) = pname {
+                detected_pname.to_kebab_case()
+            } else {
+                anyhow::bail!("--pname is required in headless mode when package name cannot be auto-detected");
+            }
+        },
+        {
+            if let Some(pname) = pname {
+                editor
+                    .readline_with_initial(&prompt("Enter pname"), (&pname.to_kebab_case(), ""))?
+            } else {
+                editor.readline(&prompt("Enter pname"))?
+            }
         }
-    }, {
-        if let Some(pname) = pname {
-            editor.readline_with_initial(&prompt("Enter pname"), (&pname.to_kebab_case(), ""))?
-        } else {
-            editor.readline(&prompt("Enter pname"))?
-        }
-    });
+    );
 
     let nixpkgs = opts
         .nixpkgs
@@ -429,15 +438,23 @@ async fn run() -> Result<()> {
     let choice = if let Some(build_str) = opts.build.as_deref() {
         *choices
             .iter()
-            .find(|c| {
-                match (build_str, c) {
-                    ("go-mod", BuildType::BuildGoModule) => true,
-                    ("python-app", BuildType::BuildPythonPackage { application: true, .. }) => true,
-                    ("python-pkg", BuildType::BuildPythonPackage { application: false, .. }) => true,
-                    ("rust-pkg", BuildType::BuildRustPackage { .. }) => true,
-                    ("drv", BuildType::MkDerivation { rust: None }) => true,
-                    _ => false,
-                }
+            .find(|c| match (build_str, c) {
+                ("go-mod", BuildType::BuildGoModule) => true,
+                (
+                    "python-app",
+                    BuildType::BuildPythonPackage {
+                        application: true, ..
+                    },
+                ) => true,
+                (
+                    "python-pkg",
+                    BuildType::BuildPythonPackage {
+                        application: false, ..
+                    },
+                ) => true,
+                ("rust-pkg", BuildType::BuildRustPackage { .. }) => true,
+                ("drv", BuildType::MkDerivation { rust: None }) => true,
+                _ => false,
             })
             .with_context(|| {
                 format!(
@@ -448,11 +465,17 @@ async fn run() -> Result<()> {
                         .map(|c| {
                             let flag = match c {
                                 BuildType::BuildGoModule => "go-mod",
-                                BuildType::BuildPythonPackage { application: true, .. } => "python-app",
-                                BuildType::BuildPythonPackage { application: false, .. } => "python-pkg",
+                                BuildType::BuildPythonPackage {
+                                    application: true, ..
+                                } => "python-app",
+                                BuildType::BuildPythonPackage {
+                                    application: false, ..
+                                } => "python-pkg",
                                 BuildType::BuildRustPackage { .. } => "rust-pkg",
                                 BuildType::MkDerivation { rust: None } => "drv",
-                                BuildType::MkDerivation { rust: Some(_) } => "(not available via flag)",
+                                BuildType::MkDerivation { rust: Some(_) } => {
+                                    "(not available via flag)"
+                                }
                             };
                             format!("  - {} ({})", flag, c)
                         })
