@@ -32,4 +32,11 @@ pub struct Opts {
     /// Specify the config file
     #[arg(short, long)]
     pub config: Option<PathBuf>,
+
+    /// Run in headless mode - accept defaults for all prompts
+    ///
+    /// URL must be provided via --url flag in headless mode.
+    /// All other options will use sensible defaults if not specified.
+    #[arg(long)]
+    pub headless: bool,
 }

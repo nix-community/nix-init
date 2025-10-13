@@ -87,6 +87,10 @@ async fn run() -> Result<()> {
 
     let opts = Opts::parse();
 
+    if opts.headless && opts.url.is_none() {
+        anyhow::bail!("--url is required when using --headless mode");
+    }
+
     tokio::spawn(async {
         Lazy::force(&LICENSE_STORE);
     });
@@ -170,7 +174,9 @@ async fn run() -> Result<()> {
                 None => get_version(&rev).into(),
             };
 
-            if fetcher.has_submodules(&cl, &rev).await && !ask(&mut editor, "Fetch submodules")? {
+            if opts.headless {
+                cmd.arg("-S");
+            } else if fetcher.has_submodules(&cl, &rev).await && !ask(&mut editor, "Fetch submodules")? {
                 cmd.arg("-S");
             }
 
@@ -200,7 +206,13 @@ async fn run() -> Result<()> {
         };
 
     let pname = if let Some(pname) = pname {
-        editor.readline_with_initial(&prompt("Enter pname"), (&pname.to_kebab_case(), ""))?
+        if opts.headless {
+            pname.to_kebab_case()
+        } else {
+            editor.readline_with_initial(&prompt("Enter pname"), (&pname.to_kebab_case(), ""))?
+        }
+    } else if opts.headless {
+        anyhow::bail!("--pname is required in headless mode when package name cannot be auto-detected");
     } else {
         editor.readline(&prompt("Enter pname"))?
     };
@@ -390,19 +402,25 @@ async fn run() -> Result<()> {
 
     choices.push(BuildType::MkDerivation { rust: None });
 
-    editor.set_helper(Some(Prompter::Build(choices)));
-    let choice = editor.readline(&prompt("How should this package be built?"))?;
-    let Some(Prompter::Build(choices)) = editor.helper_mut() else {
-        unreachable!();
+    let choice = if opts.headless {
+        choices[0]
+    } else {
+        editor.set_helper(Some(Prompter::Build(choices)));
+        let choice = editor.readline(&prompt("How should this package be built?"))?;
+        let Some(Prompter::Build(choices)) = editor.helper_mut() else {
+            unreachable!();
+        };
+        *choice
+            .parse()
+            .ok()
+            .and_then(|i: usize| choices.get(i))
+            .unwrap_or_else(|| &choices[0])
     };
-    let choice = *choice
-        .parse()
-        .ok()
-        .and_then(|i: usize| choices.get(i))
-        .unwrap_or_else(|| &choices[0]);
 
     let output = if let Some(output) = opts.output {
         output
+    } else if opts.headless {
+        PathBuf::from(".")
     } else {
         editor.set_helper(Some(Prompter::Path(FilenameCompleter::new())));
 
@@ -441,13 +459,26 @@ async fn run() -> Result<()> {
     let (out_dir, out_path) = if let Ok(metadata) = metadata(&output) {
         if metadata.is_dir() {
             let out_path = output.join("default.nix");
-            if out_path.exists() && ask_overwrite(&mut editor, &out_path)? {
-                return Ok(());
+            if out_path.exists() {
+                if opts.headless {
+                    anyhow::bail!(
+                        "Output file {} already exists (refusing to overwrite in headless mode)",
+                        out_path.display()
+                    );
+                } else if ask_overwrite(&mut editor, &out_path)? {
+                    return Ok(());
+                }
             }
             (Some(output.as_path()), out_path)
-        } else if ask_overwrite(&mut editor, &output)? {
-            return Ok(());
         } else {
+            if opts.headless {
+                anyhow::bail!(
+                    "Output file {} already exists (refusing to overwrite in headless mode)",
+                    output.display()
+                );
+            } else if ask_overwrite(&mut editor, &output)? {
+                return Ok(());
+            }
             (output.parent(), output.clone())
         }
     } else if <[u8] as ByteSlice>::from_path(&output)
