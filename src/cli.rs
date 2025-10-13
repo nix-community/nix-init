@@ -5,7 +5,7 @@ use clap::Parser;
 /// Generate Nix packages with hash prefetching, license detection, and more
 /// https://github.com/nix-community/nix-init
 #[derive(Parser)]
-#[command(version, verbatim_doc_comment)]
+#[command(disable_version_flag = true, verbatim_doc_comment)]
 pub struct Opts {
     /// The path or directory to output the generated file to
     pub output: Option<PathBuf>,
@@ -17,6 +17,10 @@ pub struct Opts {
     /// Specify the git revision, tag, or commit hash
     #[arg(short, long)]
     pub rev: Option<String>,
+
+    /// Specify the version
+    #[arg(short = 'v', long)]
+    pub version: Option<String>,
 
     /// Specify the package name
     #[arg(short = 'p', long)]

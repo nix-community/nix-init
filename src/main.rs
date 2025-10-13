@@ -193,7 +193,9 @@ async fn run() -> Result<()> {
             }
 
             editor.set_helper(Some(Prompter::NonEmpty));
-            let version = editor.readline_with_initial(&prompt("Enter version"), (&version, ""))?;
+            let version = flag_or_prompt!(opts, opts.version, version.clone(), {
+                editor.readline_with_initial(&prompt("Enter version"), (&version, ""))?
+            });
 
             (
                 Some(pname),
@@ -215,7 +217,9 @@ async fn run() -> Result<()> {
                 editor.readline(&prompt("Enter tag or revision"))?
             });
             let version = get_version(&rev);
-            let version = editor.readline_with_initial(&prompt("Enter version"), (version, ""))?;
+            let version = flag_or_prompt!(opts, opts.version, version.to_string(), {
+                editor.readline_with_initial(&prompt("Enter version"), (version, ""))?
+            });
             (pname, rev, version, "".into(), None, Default::default())
         };
 
