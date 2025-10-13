@@ -22,6 +22,12 @@ pub struct Opts {
     #[arg(short = 'p', long)]
     pub pname: Option<String>,
 
+    /// Specify the build type
+    ///
+    /// Options: {n}  go-mod (buildGoModule) {n}  python-app (buildPythonApplication) {n}  python-pkg (buildPythonPackage) {n}  rust-pkg (buildRustPackage) {n}  drv (stdenv.mkDerivation)
+    #[arg(short, long)]
+    pub build: Option<String>,
+
     /// Path to nixpkgs (in nix)
     ///
     /// Examples:
