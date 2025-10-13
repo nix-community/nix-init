@@ -14,6 +14,10 @@ pub struct Opts {
     #[arg(short, long)]
     pub url: Option<String>,
 
+    /// Specify the git revision, tag, or commit hash
+    #[arg(short, long)]
+    pub rev: Option<String>,
+
     /// Path to nixpkgs (in nix)
     ///
     /// Examples:

@@ -145,21 +145,23 @@ async fn run() -> Result<()> {
                 licenses.insert(license, 1.0);
             }
 
-            let rev_msg = prompt(format_args!(
-                "Enter tag or revision (defaults to {})",
-                revisions.latest
-            ));
+            let default_rev = revisions.latest.clone();
             editor.set_helper(Some(Prompter::Revision(revisions)));
-
-            let rev = editor.readline(&rev_msg)?;
+            let rev = flag_or_prompt!(opts, opts.rev, default_rev.clone(), {
+                let rev_msg = prompt(format_args!(
+                    "Enter tag or revision (defaults to {})",
+                    default_rev
+                ));
+                let rev = editor.readline(&rev_msg)?;
+                if rev.is_empty() {
+                    default_rev
+                } else {
+                    rev
+                }
+            });
 
             let Some(Prompter::Revision(revisions)) = editor.helper_mut() else {
                 unreachable!();
-            };
-            let rev = if rev.is_empty() {
-                revisions.latest.clone()
-            } else {
-                rev
             };
 
             let version = match revisions.versions.remove(&rev) {
@@ -208,8 +210,10 @@ async fn run() -> Result<()> {
                     .map(|pname| pname.strip_suffix(".git").unwrap_or(pname).into())
             });
 
-            editor.set_helper(Some(Prompter::NonEmpty));
-            let rev = editor.readline(&prompt("Enter tag or revision"))?;
+            let rev = flag_or_prompt!(opts, opts.rev, String::new(), {
+                editor.set_helper(Some(Prompter::NonEmpty));
+                editor.readline(&prompt("Enter tag or revision"))?
+            });
             let version = get_version(&rev);
             let version = editor.readline_with_initial(&prompt("Enter version"), (version, ""))?;
             (pname, rev, version, "".into(), None, Default::default())
