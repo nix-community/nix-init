@@ -1,4 +1,4 @@
-use std::fs::{copy, create_dir, File};
+use std::fs::{File, copy, create_dir};
 
 use heck::AsKebabCase;
 use insta::assert_debug_snapshot;

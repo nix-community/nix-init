@@ -2,11 +2,11 @@ use std::{fmt::Display, path::Path};
 
 use owo_colors::{OwoColorize, Style};
 use rustyline::{
+    Context, Editor, Helper, Highlighter,
     completion::{Completer, FilenameCompleter, Pair},
     hint::{Hint, Hinter},
     history::History,
     validate::{ValidationContext, ValidationResult, Validator},
-    Context, Editor, Helper, Highlighter,
 };
 
 use crate::{
