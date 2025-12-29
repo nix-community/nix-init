@@ -14,8 +14,8 @@ use std::{
     cmp::Ordering,
     collections::{BTreeMap, BTreeSet},
     fmt::Write as _,
-    fs::{create_dir_all, metadata, read_dir, read_to_string, File},
-    io::{stderr, BufRead, BufReader, Write as _},
+    fs::{File, create_dir_all, metadata, read_dir, read_to_string},
+    io::{BufRead, BufReader, Write as _, stderr},
     path::{Component, Path, PathBuf},
 };
 
@@ -31,7 +31,7 @@ use indoc::{formatdoc, writedoc};
 use is_terminal::IsTerminal;
 use itertools::Itertools;
 use once_cell::sync::Lazy;
-use rustyline::{completion::FilenameCompleter, config::Configurer, CompletionType, Editor};
+use rustyline::{CompletionType, Editor, completion::FilenameCompleter, config::Configurer};
 use serde::Deserialize;
 use tempfile::tempdir;
 use tokio::process::Command;
@@ -45,15 +45,15 @@ use crate::{
     cli::Opts,
     cmd::{NIX, NURL},
     fetcher::{Fetcher, PackageInfo, PypiFormat, Revisions, Version},
-    inputs::{write_all_lambda_inputs, write_inputs, write_lambda_input, AllInputs},
+    inputs::{AllInputs, write_all_lambda_inputs, write_inputs, write_lambda_input},
     lang::{
         go::{load_go_dependencies, write_ldflags},
-        python::{parse_requirements_txt, Pyproject},
+        python::{Pyproject, parse_requirements_txt},
         rust::{cargo_deps_hash, load_cargo_lock, write_cargo_lock},
     },
-    license::{get_nix_license, LICENSE_STORE},
-    prompt::{ask, ask_overwrite, prompt, Prompter},
-    utils::{fod_hash, CommandExt, ResultExt, FAKE_HASH},
+    license::{LICENSE_STORE, get_nix_license},
+    prompt::{Prompter, ask, ask_overwrite, prompt},
+    utils::{CommandExt, FAKE_HASH, ResultExt, fod_hash},
 };
 
 #[derive(Debug, Deserialize)]
@@ -115,7 +115,7 @@ async fn run() -> Result<()> {
     let mut licenses = BTreeMap::new();
     let mut pypi_format = PypiFormat::TarGz;
     let (pname, rev, version, desc, prefix, mut python_deps) =
-        if let MaybeFetcher::Known(ref mut fetcher) = &mut fetcher {
+        if let MaybeFetcher::Known(fetcher) = &mut fetcher {
             let cl = fetcher.create_client(cfg.access_tokens).await?;
 
             let PackageInfo {
@@ -158,7 +158,7 @@ async fn run() -> Result<()> {
                     pname: pypi_pname,
                     format,
                 }) => {
-                    if let Fetcher::FetchPypi { ref mut pname } = fetcher {
+                    if let Fetcher::FetchPypi { pname } = fetcher {
                         *pname = pypi_pname;
                     }
                     pypi_format = format;

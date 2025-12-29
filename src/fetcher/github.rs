@@ -3,7 +3,7 @@ use rustc_hash::FxHashMap;
 use rustyline::completion::Pair;
 use serde::Deserialize;
 
-use crate::fetcher::{json, success, PackageInfo, Revisions, Version};
+use crate::fetcher::{PackageInfo, Revisions, Version, json, success};
 
 #[derive(Deserialize)]
 struct Repo {

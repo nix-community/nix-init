@@ -4,7 +4,7 @@ use serde::Deserialize;
 use tracing::error;
 
 use crate::{
-    fetcher::{json, PackageInfo, Revisions, Version},
+    fetcher::{PackageInfo, Revisions, Version, json},
     license::parse_spdx_expression,
 };
 

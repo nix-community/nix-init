@@ -6,11 +6,11 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use chumsky::{error::EmptyErr, extra::Err, primitive::end, Parser};
+use chumsky::{Parser, error::EmptyErr, extra::Err, primitive::end};
 use heck::{AsKebabCase, ToKebabCase};
 use pep_508::{Comparator, Dependency, Marker, Operator, Variable};
 use serde::Deserialize;
-use serde_with::{serde_as, DefaultOnError};
+use serde_with::{DefaultOnError, serde_as};
 
 use crate::{inputs::AllInputs, license::parse_spdx_expression, utils::ResultExt};
 

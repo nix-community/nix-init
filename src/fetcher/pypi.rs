@@ -2,12 +2,12 @@ use itertools::Itertools;
 use reqwest::Client;
 use rustyline::completion::Pair;
 use serde::Deserialize;
-use serde_with::{serde_as, DefaultOnNull, Map};
+use serde_with::{DefaultOnNull, Map, serde_as};
 use time::OffsetDateTime;
 use tracing::error;
 
 use crate::{
-    fetcher::{json, PackageInfo, PypiFormat, Revisions, Version},
+    fetcher::{PackageInfo, PypiFormat, Revisions, Version, json},
     lang::python::get_python_dependencies,
     license::parse_spdx_expression,
 };
@@ -129,7 +129,7 @@ fn get_pname<'a>(release: &'a Release, version: &str, ext: &'static str) -> Opti
 mod tests {
     use time::OffsetDateTime;
 
-    use super::{get_pname, Release};
+    use super::{Release, get_pname};
 
     #[test]
     fn basic() {

@@ -1,6 +1,6 @@
 use std::{fmt::Display, future::Future, io::BufRead, pin::Pin, process::Output};
 
-use anyhow::{bail, Result};
+use anyhow::{Result, bail};
 use tokio::process::Command;
 use tracing::{error, info, warn};
 

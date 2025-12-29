@@ -4,8 +4,8 @@ use rustyline::completion::Pair;
 use serde::Deserialize;
 
 use crate::{
-    fetcher::{json, success, PackageInfo, Version},
     Revisions,
+    fetcher::{PackageInfo, Version, json, success},
 };
 
 #[derive(Deserialize)]

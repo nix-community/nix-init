@@ -59,7 +59,7 @@ mod tests {
 
     use crate::{
         inputs::AllInputs,
-        lang::go::{load_go_dependencies, GoPackage},
+        lang::go::{GoPackage, load_go_dependencies},
     };
 
     #[test]

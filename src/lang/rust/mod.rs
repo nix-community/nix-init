@@ -11,12 +11,12 @@ use std::{
     process::Command,
 };
 
-use anyhow::{anyhow, Context, Result};
+use anyhow::{Context, Result, anyhow};
 use cargo::{
     core::{
+        Resolve, Shell, Workspace,
         registry::PackageRegistry,
         resolver::{CliFeatures, HasDevUnits},
-        Resolve, Shell, Workspace,
     },
     ops::{load_pkg_lockfile, resolve_to_string, resolve_with_previous},
     sources::SourceConfigMap,
@@ -25,15 +25,15 @@ use cargo::{
 use indoc::writedoc;
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use rustc_hash::FxHashMap;
-use rustyline::{history::History, Editor};
+use rustyline::{Editor, history::History};
 use tracing::error;
 
 use crate::{
     cmd::NURL,
     inputs::AllInputs,
     lang::rust::deps::load_rust_dependency,
-    prompt::{ask_overwrite, Prompter},
-    utils::{fod_hash, CommandExt, ResultExt, FAKE_HASH},
+    prompt::{Prompter, ask_overwrite},
+    utils::{CommandExt, FAKE_HASH, ResultExt, fod_hash},
 };
 
 // &mut is required, clippy incorrectly warns about it

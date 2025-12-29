@@ -4,7 +4,7 @@ members = ["license-store-cache"]
 [workspace.package]
 version = "0.3.2"
 authors = ["figsoda <figsoda@pm.me>"]
-edition = "2021"
+edition = "2024"
 license = "MPL-2.0"
 
 [workspace.dependencies]
@@ -28,7 +28,7 @@ include = ["data", "src", "Cargo.lock", "Cargo.toml", "build.rs"]
 anyhow = "1.0.95"
 askalono.workspace = true
 bstr = "1.10.0"
-cargo = { git = "https://github.com/rust-lang/cargo.git", rev = "d585829270c758468b9fd20b2b7fd3d4f4557763" }
+cargo = "0.93.0"
 chumsky = "=1.0.0-alpha.6"
 expand = "0.3.0"
 flate2 = "1.0.34"
