@@ -151,7 +151,7 @@ async fn run() -> Result<()> {
             let version = match revisions.versions.remove(&rev) {
                 Some(version) => Some(version),
                 None => fetcher.get_version(&cl, &rev).await,
-            } ;
+            };
             let version = match version {
                 Some(Version::Latest | Version::Tag) => get_version_number(&rev).into(),
                 Some(Version::Pypi {
@@ -889,7 +889,7 @@ async fn run() -> Result<()> {
     }
 
     let mut desc = desc.trim_matches(|c: char| !c.is_alphanumeric()).to_owned();
-    desc.get_mut(0..1).map(str::make_ascii_uppercase);
+    desc.get_mut(0 .. 1).map(str::make_ascii_uppercase);
     write!(out, "  ")?;
     writedoc! {out, r"
         meta = {{
@@ -1072,5 +1072,5 @@ fn get_version(rev: &str) -> &str {
 }
 
 fn get_version_number(rev: &str) -> &str {
-    &rev[rev.find(char::is_numeric).unwrap_or_default()..]
+    &rev[rev.find(char::is_numeric).unwrap_or_default() ..]
 }

@@ -115,7 +115,7 @@ pub async fn get_package_info(
                 latest = sha.clone();
             }
 
-            let date = &commit.committer.date[0..10];
+            let date = &commit.committer.date[0 .. 10];
             let msg = commit.message.lines().next().unwrap_or_default();
 
             completions.push(Pair {
@@ -132,7 +132,7 @@ pub async fn get_package_info(
         }
 
         for Commit { sha, commit } in commits {
-            let date = &commit.committer.date[0..10];
+            let date = &commit.committer.date[0 .. 10];
             let msg = commit.message.lines().next().unwrap_or_default();
             completions.push(Pair {
                 display: format!("{sha} ({date}) {msg}"),
@@ -179,7 +179,7 @@ pub async fn get_version(
 
     Some(if sha.starts_with(rev) {
         Version::Commit {
-            date: commit.committer.date[0..10].into(),
+            date: commit.committer.date[0 .. 10].into(),
             msg: "".into(),
         }
     } else {

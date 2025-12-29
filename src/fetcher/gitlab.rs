@@ -101,7 +101,7 @@ pub async fn get_package_info(
                 latest = id.clone();
             }
 
-            let date = &committed_date[0..10];
+            let date = &committed_date[0 .. 10];
 
             completions.push(Pair {
                 display: format!("{id} ({date} - HEAD) {title}"),
@@ -122,7 +122,7 @@ pub async fn get_package_info(
             title,
         } in commits
         {
-            let date = &committed_date[0..10];
+            let date = &committed_date[0 .. 10];
             completions.push(Pair {
                 display: format!("{id} ({date}) {title}"),
                 replacement: id.clone(),
@@ -174,7 +174,7 @@ pub async fn get_version(
 
     Some(if id.starts_with(rev) {
         Version::Commit {
-            date: committed_date[0..10].into(),
+            date: committed_date[0 .. 10].into(),
             msg: "".into(),
         }
     } else {
