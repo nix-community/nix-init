@@ -357,9 +357,9 @@ async fn run() -> Result<()> {
                 .map_while(Result::ok)
                 .any(|line| line.starts_with(r#"source = "git+"#))
         }) {
-            &[RustVendor::ImportCargoLock, RustVendor::FetchCargoTarball]
+            &[RustVendor::ImportCargoLock, RustVendor::FetchCargoVendor]
         } else {
-            &[RustVendor::FetchCargoTarball, RustVendor::ImportCargoLock]
+            &[RustVendor::FetchCargoVendor, RustVendor::ImportCargoLock]
         }
     } else {
         &[] as &[_]
@@ -579,7 +579,7 @@ async fn run() -> Result<()> {
                 None,
             }
             let rust = match rust {
-                Some(RustVendor::FetchCargoTarball) => RustVendorData::Hash(
+                Some(RustVendor::FetchCargoVendor) => RustVendorData::Hash(
                     cargo_deps_hash(
                         &mut inputs,
                         &pname,
@@ -678,7 +678,7 @@ async fn run() -> Result<()> {
         }
 
         BuildType::BuildRustPackage {
-            vendor: RustVendor::FetchCargoTarball,
+            vendor: RustVendor::FetchCargoVendor,
         } => {
             let hash = cargo_deps_hash(
                 &mut inputs,
@@ -750,7 +750,7 @@ async fn run() -> Result<()> {
         }
 
         BuildType::MkDerivation {
-            rust: Some(RustVendor::FetchCargoTarball),
+            rust: Some(RustVendor::FetchCargoVendor),
         } => {
             let hash = cargo_deps_hash(
                 &mut inputs,
