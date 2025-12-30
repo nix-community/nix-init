@@ -70,10 +70,10 @@ pub async fn get_package_info(
     };
 
     if let Some(tags) = tags {
-        if latest.is_empty() {
-            if let Some(Tag { name }) = tags.first() {
-                latest = name.clone();
-            }
+        if latest.is_empty()
+            && let Some(Tag { name }) = tags.first()
+        {
+            latest = name.clone();
         }
 
         for Tag { name } in tags {

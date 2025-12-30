@@ -188,7 +188,7 @@ async fn run() -> Result<()> {
         } else {
             let pname = url.parse::<url::Url>().ok_warn().and_then(|url| {
                 url.path_segments()
-                    .and_then(|xs| xs.last())
+                    .and_then(|mut xs| xs.next_back())
                     .map(|pname| pname.strip_suffix(".git").unwrap_or(pname).into())
             });
 
@@ -451,7 +451,7 @@ async fn run() -> Result<()> {
             (output.parent(), output.clone())
         }
     } else if <[u8] as ByteSlice>::from_path(&output)
-        .map_or(false, |out_path| out_path.ends_with_str(b"/"))
+        .is_some_and(|out_path| out_path.ends_with_str(b"/"))
     {
         let _ = create_dir_all(&output);
         (Some(output.as_ref()), output.join("default.nix"))
@@ -545,7 +545,7 @@ async fn run() -> Result<()> {
 
             let hash = if src_dir.join("vendor").is_dir()
                 || go_sum.and_then(|go_sum| go_sum.metadata().ok_warn())
-                    .map_or(true, |metadata| metadata.len() == 0)
+                    .is_none_or(|metadata| metadata.len() == 0)
             {
                 "null".into()
             } else if let Some(hash) = fod_hash(format!(
@@ -575,7 +575,7 @@ async fn run() -> Result<()> {
         BuildType::BuildPythonPackage { application, rust } => {
             enum RustVendorData {
                 Hash(String),
-                Lock(Option<Resolve>),
+                Lock(Box<Option<Resolve>>),
                 None,
             }
             let rust = match rust {
@@ -596,9 +596,9 @@ async fn run() -> Result<()> {
                         editor.set_helper(None);
                         let resolve =
                             load_cargo_lock(&mut editor, out_dir, &mut inputs, &src_dir).await?;
-                        RustVendorData::Lock(resolve)
+                        RustVendorData::Lock(Box::new(resolve))
                     } else {
-                        RustVendorData::Lock(None)
+                        RustVendorData::Lock(Box::new(None))
                     }
                 }
                 None => RustVendorData::None,
@@ -617,10 +617,11 @@ async fn run() -> Result<()> {
                 python_deps = deps;
             }
 
-            if python_deps.always.is_empty() && python_deps.optional.is_empty() {
-                if let Some(deps) = parse_requirements_txt(&src_dir) {
-                    python_deps = deps;
-                }
+            if python_deps.always.is_empty()
+                && python_deps.optional.is_empty()
+                && let Some(deps) = parse_requirements_txt(&src_dir)
+            {
+                python_deps = deps;
             }
 
             let mut written = BTreeSet::new();
@@ -669,7 +670,7 @@ async fn run() -> Result<()> {
                 }
                 RustVendorData::Lock(resolve) => {
                     write!(out, "  cargoDeps = rustPlatform.importCargoLock ")?;
-                    write_cargo_lock(&mut out, has_cargo_lock, resolve).await?;
+                    write_cargo_lock(&mut out, has_cargo_lock, *resolve).await?;
                 }
                 RustVendorData::None => {}
             }
@@ -895,29 +896,29 @@ async fn run() -> Result<()> {
             homepage = {url:?};
     "}?;
 
-    if let Some(prefix) = prefix {
-        if let Some(walk) = read_dir(&src_dir).ok_warn() {
-            for entry in walk {
-                let Ok(entry) = entry else {
-                    continue;
-                };
-                let path = entry.path();
+    if let Some(prefix) = prefix
+        && let Some(walk) = read_dir(&src_dir).ok_warn()
+    {
+        for entry in walk {
+            let Ok(entry) = entry else {
+                continue;
+            };
+            let path = entry.path();
 
-                if !path.is_file() {
-                    continue;
-                }
+            if !path.is_file() {
+                continue;
+            }
 
-                let name = entry.file_name();
-                let Some(name) = name.to_str() else {
-                    continue;
-                };
-                if matches!(
-                    name.to_ascii_lowercase().as_bytes(),
-                    expand!([@b"changelog", ..] | [@b"changes", ..] | [@b"news"] | [@b"releases", ..]),
-                ) {
-                    writeln!(out, r#"    changelog = "{prefix}{name}";"#)?;
-                    break;
-                }
+            let name = entry.file_name();
+            let Some(name) = name.to_str() else {
+                continue;
+            };
+            if matches!(
+                name.to_ascii_lowercase().as_bytes(),
+                expand!([@b"changelog", ..] | [@b"changes", ..] | [@b"news"] | [@b"releases", ..]),
+            ) {
+                writeln!(out, r#"    changelog = "{prefix}{name}";"#)?;
+                break;
             }
         }
     }

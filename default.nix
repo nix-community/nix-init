@@ -9,7 +9,6 @@
   openssl,
   zlib,
   zstd,
-  spdx-license-list-data,
   nix,
   nurl,
   get-nix-license,
@@ -19,9 +18,10 @@
 
 rustPlatform.buildRustPackage rec {
   pname = "nix-init";
-  version = (builtins.fromTOML (builtins.readFile ./Cargo.toml)).workspace.package.version;
+  inherit ((lib.importTOML ./Cargo.toml).workspace.package) version;
 
   src = ./.;
+
   cargoLock = {
     lockFile = ./Cargo.lock;
   };
@@ -53,16 +53,8 @@ rustPlatform.buildRustPackage rec {
     ln -s ${get-nix-license} data/get_nix_license.rs
   '';
 
-  shellHook = ''
-    mkdir -p data
-    ln -sf ${get-nix-license} data/get_nix_license.rs
-    ln -sf ${license-store-cache} data/license-store-cache.zstd
-  '';
-
   preBuild = ''
-    cargo run -p license-store-cache \
-      -j $NIX_BUILD_CORES --frozen \
-      data/license-store-cache.zstd ${spdx-license-list-data.json}/json/details
+    ln -s ${license-store-cache} data/license-store-cache.zstd
   '';
 
   postInstall = ''
@@ -72,7 +64,7 @@ rustPlatform.buildRustPackage rec {
 
   env = {
     GEN_ARTIFACTS = "artifacts";
-    LIBGIT2_NO_VENDOR = 1;
+    LIBGIT2_NO_VENDOR = true;
     NIX = lib.getExe nix;
     NURL = lib.getExe nurl;
     ZSTD_SYS_USE_PKG_CONFIG = true;

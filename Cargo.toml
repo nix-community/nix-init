@@ -8,7 +8,7 @@ edition = "2024"
 license = "MPL-2.0"
 
 [workspace.dependencies]
-askalono = "0.4.6"
+askalono = "0.5.0"
 
 [package]
 name = "nix-init"
@@ -25,65 +25,65 @@ categories = ["command-line-utilities"]
 include = ["data", "src", "Cargo.lock", "Cargo.toml", "build.rs"]
 
 [dependencies]
-anyhow = "1.0.95"
+anyhow = "1.0.100"
 askalono.workspace = true
-bstr = "1.10.0"
+bstr = "1.12.1"
 cargo = "0.93.0"
-chumsky = "=1.0.0-alpha.6"
+chumsky = "=1.0.0-alpha.8"
 expand = "0.3.0"
-flate2 = "1.0.34"
+flate2 = "1.1.5"
 heck = "0.5.0"
-indoc = "2.0.5"
-is-terminal = "0.4.13"
+indoc = "2.0.7"
+is-terminal = "0.4.17"
 itertools = "0.14.0"
-once_cell = "1.20.2"
-owo-colors = "4.1.0"
+once_cell = "1.21.3"
+owo-colors = "4.2.3"
 parse-display = "0.10.0"
-pep-508 = "0.4.0"
-rayon = "1.10.0"
-regex = "1.11.1"
-reqwest = { version = "0.12.9", features = ["json"] }
+pep-508 = "0.5.0"
+rayon = "1.11.0"
+regex = "1.12.2"
+reqwest = { version = "0.13.1", features = ["json"] }
 rustc-hash = "2.1.1"
 secrecy = { version = "0.10.3", features = ["serde"] }
-semver = "1.0.23"
-serde = { version = "1.0.214", features = ["derive"] }
-serde_json = "1.0.132"
-serde_with = "3.11.0"
+semver = "1.0.27"
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = "1.0.148"
+serde_with = "3.16.1"
 serde_yaml = "0.9.34"
 shlex = "1.3.0"
-spdx = "0.10.8"
-tar = "0.4.43"
-tempfile = "3.15.0"
-time = { version = "0.3.36", features = ["parsing", "serde"] }
-toml = { version = "0.8.19", default-features = false, features = ["parse"] }
-tracing = "0.1.40"
-tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
-url = "2.5.4"
-xdg = "2.5.2"
-zip = "2.4.2"
+spdx = "0.13.3"
+tar = "0.4.44"
+tempfile = "3.24.0"
+time = { version = "0.3.44", features = ["parsing", "serde"] }
+toml = { version = "0.9.10", default-features = false, features = ["parse"] }
+tracing = "0.1.44"
+tracing-subscriber = { version = "0.3.22", features = ["env-filter"] }
+url = "2.5.7"
+xdg = "3.0.0"
+zip = "7.0.0"
 
 [dependencies.clap]
-version = "4.5.37"
+version = "4.5.53"
 features = ["cargo", "derive", "unicode", "wrap_help"]
 
 [dependencies.rustyline]
-version = "14.0.0"
+version = "17.0.2"
 default-features = false
 features = ["derive", "with-fuzzy"]
 
 [dependencies.tokio]
-version = "1.44.2"
+version = "1.48.0"
 features = ["macros", "process", "rt-multi-thread"]
 
 [build-dependencies]
-clap = { version = "4.5.37", features = ["derive"] }
-clap_complete = "4.5.42"
-clap_mangen = "0.2.24"
+clap = { version = "4.5.53", features = ["derive"] }
+clap_complete = "4.5.64"
+clap_mangen = "0.2.31"
 
 [dev-dependencies]
 heck = "0.5.0"
-insta = "1.41.1"
-tempfile = "3.15.0"
+insta = "1.45.1"
+tempfile = "3.24.0"
 
 [features]
 default = ["vendored"]

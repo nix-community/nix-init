@@ -3,7 +3,7 @@
   imports = [ inputs.treefmt-nix.flakeModule ];
 
   perSystem =
-    { inputs', pkgs, ... }:
+    { inputs', ... }:
     {
       treefmt = {
         # Used to find the project root
@@ -12,7 +12,6 @@
         programs = {
           rustfmt.enable = true;
           nixfmt.enable = true;
-          nixfmt.package = pkgs.nixfmt-rfc-style;
           deno.enable = true;
           deadnix.enable = true;
           actionlint.enable = true;

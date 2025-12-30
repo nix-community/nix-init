@@ -69,11 +69,7 @@ enum AccessToken {
 
 pub fn load_config(cfg: Option<PathBuf>) -> Result<Config> {
     Ok(cfg
-        .or_else(|| {
-            BaseDirectories::with_prefix("nix-init")
-                .ok()
-                .and_then(|dirs| dirs.find_config_file("config.toml"))
-        })
+        .or_else(|| BaseDirectories::with_prefix("nix-init").find_config_file("config.toml"))
         .map(|cfg| {
             anyhow::Ok(
                 toml::from_str(&fs::read_to_string(cfg).context("failed to read config file")?)
