@@ -1,23 +1,21 @@
 {
-  rustPlatform,
-  stdenv,
-  libiconv,
   lib,
+  rustPlatform,
   spdx-license-list-data,
 }:
 rustPlatform.buildRustPackage {
-  name = "license-store-cache";
+  pname = "license-store-cache";
+  inherit ((lib.importTOML ../Cargo.toml).workspace.package) version;
 
-  src = ./.;
+  src = ../.;
 
   cargoLock = {
-    lockFile = ./Cargo.lock;
+    lockFile = ../Cargo.lock;
   };
 
-  buildInputs = lib.optionals stdenv.isDarwin [ libiconv ];
   doCheck = false;
 
-  cargoBuildFlags = [ "-p license-store-cache" ];
+  cargoBuildFlags = [ "-p=license-store-cache" ];
 
   postInstall = ''
     cache=$(mktemp)

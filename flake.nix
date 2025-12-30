@@ -51,12 +51,14 @@
             '';
           };
 
-          packages.nix-init = pkgs.callPackage ./default.nix {
-            inherit (config.packages) get-nix-license license-store-cache;
+          packages = {
+            nix-init = pkgs.callPackage ./. {
+              inherit (config.packages) get-nix-license license-store-cache;
+            };
+            get-nix-license = pkgs.callPackage ./src/get_nix_license.nix { };
+            license-store-cache = pkgs.callPackage ./license-store-cache { };
+            default = config.packages.nix-init;
           };
-          packages.get-nix-license = pkgs.callPackage ./src/get_nix_license.nix { };
-          packages.license-store-cache = pkgs.callPackage ./license-store-cache.nix { };
-          packages.default = config.packages.nix-init;
 
           checks =
             let
