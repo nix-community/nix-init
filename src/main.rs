@@ -660,9 +660,8 @@ async fn run() -> Result<()> {
                 RustVendorData::Hash(hash) => {
                     write!(out, "  ")?;
                     writedoc! {out, r#"
-                        cargoDeps = rustPlatform.fetchCargoTarball {{
-                            inherit src;
-                            name = "${{pname}}-${{version}}";
+                        cargoDeps = rustPlatform.fetchCargoVendor {{
+                            inherit pname version src;
                             hash = "{hash}";
                           }};
 
@@ -773,9 +772,8 @@ async fn run() -> Result<()> {
 
                   src = {src_expr};
 
-                  cargoDeps = rustPlatform.fetchCargoTarball {{
-                    inherit src;
-                    name = "${{pname}}-${{version}}";
+                  cargoDeps = rustPlatform.fetchCargoVendor {{
+                    inherit pname version src;
                     hash = "{hash}";
                   }};
 
