@@ -50,7 +50,7 @@ pub async fn cargo_deps_hash(
     if has_cargo_lock {
         let (hash, _) = tokio::join!(
             fod_hash(format!(
-                r#"(import({nixpkgs}){{}}).rustPlatform.fetchCargoTarball{{name="{pname}-{version}";src={src};hash="{FAKE_HASH}";}}"#,
+                r#"(import({nixpkgs}){{}}).rustPlatform.fetchCargoVendor{{pname="{pname}";version="{version}";src={src};hash="{FAKE_HASH}";}}"#,
             )),
             async {
                 if let Some(lock) = resolve_workspace(src_dir) {
