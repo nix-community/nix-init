@@ -71,7 +71,7 @@ pub async fn get_package_info(cl: &Client, pname: &str) -> PackageInfo {
             (
                 version
                     .parse::<semver::Version>()
-                    .map_or(false, |version| version.pre.is_empty()),
+                    .is_ok_and(|version| version.pre.is_empty()),
                 version,
                 Some(license),
             )
@@ -83,7 +83,7 @@ pub async fn get_package_info(cl: &Client, pname: &str) -> PackageInfo {
         if !found_latest
             && version
                 .parse::<semver::Version>()
-                .map_or(false, |version| version.pre.is_empty())
+                .is_ok_and(|version| version.pre.is_empty())
         {
             found_latest = true;
             latest = version.clone();

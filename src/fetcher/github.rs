@@ -84,15 +84,15 @@ pub async fn get_package_info(
             })
             .take(12);
 
-        if latest.is_empty() {
-            if let Some(tag) = tags.next() {
-                latest = tag.clone();
-                completions.push(Pair {
-                    display: format!("{tag} (tag)"),
-                    replacement: tag.clone(),
-                });
-                versions.insert(tag, Version::Tag);
-            }
+        if latest.is_empty()
+            && let Some(tag) = tags.next()
+        {
+            latest = tag.clone();
+            completions.push(Pair {
+                display: format!("{tag} (tag)"),
+                replacement: tag.clone(),
+            });
+            versions.insert(tag, Version::Tag);
         }
 
         for tag in tags {

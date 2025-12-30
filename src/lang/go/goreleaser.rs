@@ -34,11 +34,11 @@ pub fn write_ldflags(out: &mut impl Write, src_dir: &Path) -> Result<()> {
     let mut len = 0;
     let mut processed = Vec::new();
     while let Some(mut flag) = raw.next() {
-        if flag == "-X" {
-            if let Some(xflag) = raw.next() {
-                flag.push('=');
-                flag.push_str(&xflag);
-            }
+        if flag == "-X"
+            && let Some(xflag) = raw.next()
+        {
+            flag.push('=');
+            flag.push_str(&xflag);
         }
         len += flag.len();
         processed.push(flag);

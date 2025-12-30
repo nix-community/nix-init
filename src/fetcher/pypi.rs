@@ -75,10 +75,10 @@ pub async fn get_package_info(cl: &Client, pname: &str) -> PackageInfo {
                         PypiFormat::TarGz,
                     ));
                 }
-                if zip.is_none() {
-                    if let Some(pname) = get_pname(&release, &version, ".zip") {
-                        zip = Some((pname.into(), release.upload_time));
-                    }
+                if zip.is_none()
+                    && let Some(pname) = get_pname(&release, &version, ".zip")
+                {
+                    zip = Some((pname.into(), release.upload_time));
                 }
             }
             zip.map(|(pname, time)| (pname, version, time, PypiFormat::Zip))

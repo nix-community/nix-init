@@ -201,5 +201,5 @@ pub async fn success(cl: &Client, url: impl IntoUrl) -> bool {
     cl.get(url)
         .send()
         .await
-        .map_or(false, |resp| resp.status().is_success())
+        .is_ok_and(|resp| resp.status().is_success())
 }

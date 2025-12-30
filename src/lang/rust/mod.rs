@@ -36,8 +36,6 @@ use crate::{
     utils::{CommandExt, FAKE_HASH, ResultExt, fod_hash},
 };
 
-// &mut is required, clippy incorrectly warns about it
-#[allow(clippy::needless_pass_by_ref_mut)]
 pub async fn cargo_deps_hash(
     inputs: &mut AllInputs,
     pname: impl Display,
@@ -92,7 +90,7 @@ pub async fn load_cargo_lock(
                     .and_then(|mut target| {
                         let cfg = cargo_config(src_dir)?;
                         let ws = Workspace::new(&src_dir.join("Cargo.toml"), &cfg)?;
-                        let mut resolve = resolve_with_previous(
+                        let resolve = resolve_with_previous(
                             &mut PackageRegistry::new_with_source_config(
                                 &cfg,
                                 SourceConfigMap::new(&cfg)?,
@@ -105,7 +103,7 @@ pub async fn load_cargo_lock(
                             &[],
                             true,
                         )?;
-                        write!(target, "{}", resolve_to_string(&ws, &mut resolve)?)?;
+                        write!(target, "{}", resolve_to_string(&ws, &resolve)?)?;
                         Ok(resolve)
                     })
                     .map_err(|e| {
