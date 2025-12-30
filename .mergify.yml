@@ -4,7 +4,7 @@ queue_rules:
       - check-success=check (macos-latest)
       - check-success=check (ubuntu-latest)
       - check-success=buildbot/nix-build
-    batch_size: 5
+    batch_size: 5 # make batch wait time longer
     merge_method: rebase
 pull_request_rules:
   - name: merge using the merge queue
