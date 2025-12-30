@@ -20,7 +20,7 @@ pub enum BuildType {
 #[derive(Clone, Copy, Display)]
 #[display(style = "camelCase")]
 pub enum RustVendor {
-    FetchCargoTarball,
+    FetchCargoVendor,
     ImportCargoLock,
 }
 
@@ -51,7 +51,7 @@ impl Display for BuildType {
                     f,
                     "buildRustPackage - {}",
                     match vendor {
-                        RustVendor::FetchCargoTarball => "cargoHash",
+                        RustVendor::FetchCargoVendor => "cargoHash",
                         RustVendor::ImportCargoLock => "cargoLock",
                     }
                 )?;
