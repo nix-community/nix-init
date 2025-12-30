@@ -3,7 +3,7 @@ use rustc_hash::FxHashMap;
 use rustyline::completion::Pair;
 use serde::Deserialize;
 
-use crate::fetcher::{json, success, PackageInfo, Revisions, Version};
+use crate::fetcher::{PackageInfo, Revisions, Version, json, success};
 
 #[derive(Deserialize)]
 struct Repo {
@@ -96,7 +96,7 @@ pub async fn get_package_info(cl: &Client, domain: &str, owner: &str, repo: &str
                 latest = sha.clone();
             }
 
-            let date = &commit.committer.date[0..10];
+            let date = &commit.committer.date[0 .. 10];
             let msg = commit.message.lines().next().unwrap_or_default();
 
             completions.push(Pair {
@@ -113,7 +113,7 @@ pub async fn get_package_info(cl: &Client, domain: &str, owner: &str, repo: &str
         }
 
         for Commit { sha, commit } in commits {
-            let date = &commit.committer.date[0..10];
+            let date = &commit.committer.date[0 .. 10];
             let msg = commit.message.lines().next().unwrap_or_default();
             completions.push(Pair {
                 display: format!("{sha} ({date}) {msg}"),
@@ -158,7 +158,7 @@ pub async fn get_version(
 
     Some(if sha.starts_with(rev) {
         Version::Commit {
-            date: commit.committer.date[0..10].into(),
+            date: commit.committer.date[0 .. 10].into(),
             msg: "".into(),
         }
     } else {

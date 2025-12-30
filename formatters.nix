@@ -3,7 +3,7 @@
   imports = [ inputs.treefmt-nix.flakeModule ];
 
   perSystem =
-    { pkgs, ... }:
+    { inputs', pkgs, ... }:
     {
       treefmt = {
         # Used to find the project root
@@ -17,17 +17,20 @@
           deadnix.enable = true;
           actionlint.enable = true;
         };
-        settings.global.excludes = [
-          "*.toml"
-          "*.snap"
-          "*/go.mod"
-          "*/go.sum"
-          "*.go"
-          ".github/dependabot.yml"
-          ".mergify.yml"
-          "assets/*"
-          "LICENSE"
-        ];
+        settings = {
+          formatter.rustfmt.command = "${inputs'.fenix.packages.latest.rustfmt}/bin/rustfmt";
+          global.excludes = [
+            "*.toml"
+            "*.snap"
+            "*/go.mod"
+            "*/go.sum"
+            "*.go"
+            ".github/dependabot.yml"
+            ".mergify.yml"
+            "assets/*"
+            "LICENSE"
+          ];
+        };
       };
     };
 }

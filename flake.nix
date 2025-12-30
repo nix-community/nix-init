@@ -3,6 +3,11 @@
 
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
+    fenix = {
+      url = "github:nix-community/fenix";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.rust-analyzer-src.follows = "";
+    };
     flake-parts = {
       url = "github:hercules-ci/flake-parts";
       inputs.nixpkgs-lib.follows = "nixpkgs";
@@ -33,6 +38,19 @@
           ...
         }:
         {
+          devShells.default = pkgs.mkShell {
+            env = {
+              NIX_INIT_LOG = "nix_init=trace";
+              RUST_BACKTRACE = true;
+            };
+
+            shellHook = ''
+              mkdir -p data
+              ln -sf ${config.packages.get-nix-license} data/get_nix_license.rs
+              ln -sf ${config.packages.license-store-cache} data/license-store-cache.zstd
+            '';
+          };
+
           packages.nix-init = pkgs.callPackage ./default.nix {
             inherit (config.packages) get-nix-license license-store-cache;
           };

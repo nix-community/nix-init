@@ -4,7 +4,7 @@ use anyhow::Result;
 use heck::ToLowerCamelCase;
 use regex::{Captures, Regex};
 use serde::Deserialize;
-use serde_with::{serde_as, OneOrMany};
+use serde_with::{OneOrMany, serde_as};
 
 use crate::utils::ResultExt;
 

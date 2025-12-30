@@ -6,7 +6,7 @@ mod pypi;
 
 use anyhow::Result;
 use parse_display::Display;
-use reqwest::{header::HeaderMap, Client, IntoUrl};
+use reqwest::{Client, IntoUrl, header::HeaderMap};
 use rustc_hash::FxHashMap;
 use rustyline::completion::Pair;
 use serde::{Deserialize, Serialize};
@@ -143,7 +143,7 @@ impl Fetcher {
                 owner,
                 repo,
             } => gitea::get_package_info(cl, domain, owner, repo).await,
-            Fetcher::FetchPypi { ref mut pname } => pypi::get_package_info(cl, pname).await,
+            Fetcher::FetchPypi { pname } => pypi::get_package_info(cl, pname).await,
         }
     }
 
