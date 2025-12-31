@@ -4,7 +4,7 @@ use anyhow::{Result, bail};
 use tokio::process::Command;
 use tracing::{error, info, warn};
 
-use crate::cmd::NIX;
+use crate::{builder::Builder, cmd::NIX};
 
 pub const FAKE_HASH: &str = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
 

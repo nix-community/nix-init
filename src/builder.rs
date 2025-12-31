@@ -3,7 +3,7 @@ use std::fmt::{self, Display, Formatter};
 use parse_display::Display;
 
 #[derive(Clone, Copy)]
-pub enum BuildType {
+pub enum Builder {
     BuildGoModule,
     BuildPythonPackage {
         application: bool,
@@ -24,14 +24,14 @@ pub enum RustVendor {
     ImportCargoLock,
 }
 
-impl Display for BuildType {
+impl Display for Builder {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
-            BuildType::BuildGoModule => {
+            Builder::BuildGoModule => {
                 write!(f, "buildGoModule")?;
             }
 
-            BuildType::BuildPythonPackage { application, rust } => {
+            Builder::BuildPythonPackage { application, rust } => {
                 write!(
                     f,
                     "buildPython{}",
@@ -46,7 +46,7 @@ impl Display for BuildType {
                 }
             }
 
-            BuildType::BuildRustPackage { vendor } => {
+            Builder::BuildRustPackage { vendor } => {
                 write!(
                     f,
                     "buildRustPackage - {}",
@@ -57,7 +57,7 @@ impl Display for BuildType {
                 )?;
             }
 
-            BuildType::MkDerivation { rust } => {
+            Builder::MkDerivation { rust } => {
                 write!(f, "stdenv.mkDerivation")?;
                 if let Some(rust) = rust {
                     write!(f, " + {rust}")?;

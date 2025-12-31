@@ -25,14 +25,13 @@ use cargo::{
 use indoc::writedoc;
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use rustc_hash::FxHashMap;
-use rustyline::{Editor, history::History};
 use tracing::error;
 
 use crate::{
     cmd::NURL,
+    frontend::Frontend,
     inputs::AllInputs,
     lang::rust::deps::load_rust_dependency,
-    prompt::{Prompter, ask_overwrite},
     utils::{CommandExt, FAKE_HASH, ResultExt, fod_hash},
 };
 
@@ -63,14 +62,14 @@ pub async fn cargo_deps_hash(
 }
 
 pub async fn load_cargo_lock(
-    editor: &mut Editor<Prompter, impl History>,
+    frontend: &mut impl Frontend,
     out_dir: &Path,
     inputs: &mut AllInputs,
     src_dir: &Path,
 ) -> Result<Option<Resolve>> {
     let target = &out_dir.join("Cargo.lock");
     let resolve = match File::open(target) {
-        Ok(_) if ask_overwrite(editor, target)? => resolve_workspace(src_dir),
+        Ok(_) if !frontend.overwrite(target)? => resolve_workspace(src_dir),
         _ => {
             if let Ok(mut lock) = File::open(src_dir.join("Cargo.lock")) {
                 if let Err(e) =
