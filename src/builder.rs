@@ -1,27 +1,20 @@
 use std::fmt::{self, Display, Formatter};
 
-use parse_display::Display;
+use crate::cli::CargoVendor;
 
 #[derive(Clone, Copy)]
 pub enum Builder {
     BuildGoModule,
     BuildPythonPackage {
         application: bool,
-        rust: Option<RustVendor>,
+        rust: Option<CargoVendor>,
     },
     BuildRustPackage {
-        vendor: RustVendor,
+        vendor: CargoVendor,
     },
     MkDerivation {
-        rust: Option<RustVendor>,
+        rust: Option<CargoVendor>,
     },
-}
-
-#[derive(Clone, Copy, Display)]
-#[display(style = "camelCase")]
-pub enum RustVendor {
-    FetchCargoVendor,
-    ImportCargoLock,
 }
 
 impl Display for Builder {
@@ -51,8 +44,8 @@ impl Display for Builder {
                     f,
                     "buildRustPackage - {}",
                     match vendor {
-                        RustVendor::FetchCargoVendor => "cargoHash",
-                        RustVendor::ImportCargoLock => "cargoLock",
+                        CargoVendor::FetchCargoVendor => "cargoHash",
+                        CargoVendor::ImportCargoLock => "cargoLock",
                     }
                 )?;
             }

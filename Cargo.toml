@@ -94,3 +94,6 @@ vendored = ["cargo/vendored-libgit2", "cargo/vendored-openssl"]
 lto = true
 panic = "abort"
 codegen-units = 1
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ["cfg(not_build)"] }

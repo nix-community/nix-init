@@ -15,7 +15,7 @@ use std::{
     collections::{BTreeMap, BTreeSet},
     fmt::Write as _,
     fs::{File, create_dir_all, metadata, read_dir, read_to_string},
-    io::{BufRead, BufReader, Write as _, stderr},
+    io::{Write as _, stderr},
     path::{Component, Path, PathBuf},
 };
 
@@ -39,9 +39,9 @@ use tracing_subscriber::EnvFilter;
 use zip::ZipArchive;
 
 use crate::{
-    builder::{Builder, RustVendor},
+    builder::Builder,
     cfg::load_config,
-    cli::Opts,
+    cli::{BuilderFunction, CargoVendor, Opts},
     cmd::{NIX, NURL},
     fetcher::{Fetcher, PackageInfo, PypiFormat, Revisions, Version},
     frontend::{Frontend, headless, readline},
@@ -350,7 +350,6 @@ async fn run() -> Result<()> {
         PathBuf::from(&src)
     };
 
-    let mut builders = Vec::new();
     let has_cargo = src_dir.join("Cargo.toml").is_file();
     let cargo_lock = File::open(src_dir.join("Cargo.lock"));
     let has_cargo_lock = cargo_lock.is_ok();
@@ -361,47 +360,77 @@ async fn run() -> Result<()> {
     let pyproject_toml = src_dir.join("pyproject.toml");
     let has_python = pyproject_toml.is_file() || src_dir.join("setup.py").is_file();
 
-    let rust_vendors = if has_cargo {
-        if cargo_lock.map_or(true, |file| {
-            BufReader::new(file)
-                .lines()
-                .map_while(Result::ok)
-                .any(|line| line.starts_with(r#"source = "git+"#))
-        }) {
-            &[RustVendor::ImportCargoLock, RustVendor::FetchCargoVendor]
-        } else {
-            &[RustVendor::FetchCargoVendor, RustVendor::ImportCargoLock]
-        }
-    } else {
-        &[] as &[_]
-    };
-
-    if has_go {
-        builders.push(Builder::BuildGoModule);
-    }
-
-    if has_python {
-        for rust in rust_vendors.iter().map(Some).chain(Some(None)) {
-            for application in [true, false] {
-                builders.push(Builder::BuildPythonPackage {
-                    application,
-                    rust: rust.copied(),
-                });
+    let builder = match (opts.builder, opts.cargo_vendor) {
+        (Some(builder), rust @ Some(vendor)) if has_cargo => match builder {
+            BuilderFunction::BuildGoModule => Builder::BuildGoModule,
+            BuilderFunction::BuildPythonApplication => Builder::BuildPythonPackage {
+                application: true,
+                rust,
+            },
+            BuilderFunction::BuildPythonPackage => Builder::BuildPythonPackage {
+                application: false,
+                rust,
+            },
+            BuilderFunction::BuildRustPackage => Builder::BuildRustPackage { vendor },
+            BuilderFunction::MkDerivation => Builder::MkDerivation { rust },
+        },
+        (Some(builder), _) => {
+            let rust = has_cargo.then_some(CargoVendor::FetchCargoVendor);
+            match builder {
+                BuilderFunction::BuildGoModule => Builder::BuildGoModule,
+                BuilderFunction::BuildPythonApplication => Builder::BuildPythonPackage {
+                    application: true,
+                    rust,
+                },
+                BuilderFunction::BuildPythonPackage => Builder::BuildPythonPackage {
+                    application: false,
+                    rust,
+                },
+                BuilderFunction::BuildRustPackage => Builder::BuildRustPackage {
+                    vendor: CargoVendor::FetchCargoVendor,
+                },
+                BuilderFunction::MkDerivation => Builder::MkDerivation { rust },
             }
         }
-    }
+        (None, rust) => {
+            let mut builders = Vec::new();
+            let cargo_vendors = if has_cargo {
+                match rust {
+                    Some(vendor) => &[vendor] as &[_],
+                    None => &[CargoVendor::FetchCargoVendor, CargoVendor::ImportCargoLock],
+                }
+            } else {
+                &[]
+            };
 
-    if has_cargo {
-        for &vendor in rust_vendors {
-            let drv = Builder::MkDerivation { rust: Some(vendor) };
-            let rust = Builder::BuildRustPackage { vendor };
-            builders.extend(if has_meson { [drv, rust] } else { [rust, drv] });
+            if has_go {
+                builders.push(Builder::BuildGoModule);
+            }
+
+            if has_python {
+                for rust in cargo_vendors.iter().map(Some).chain(Some(None)) {
+                    for application in [true, false] {
+                        builders.push(Builder::BuildPythonPackage {
+                            application,
+                            rust: rust.copied(),
+                        });
+                    }
+                }
+            }
+
+            if has_cargo {
+                for &vendor in cargo_vendors {
+                    let drv = Builder::MkDerivation { rust: Some(vendor) };
+                    let rust = Builder::BuildRustPackage { vendor };
+                    builders.extend(if has_meson { [drv, rust] } else { [rust, drv] });
+                }
+            }
+
+            builders.push(Builder::MkDerivation { rust: None });
+
+            frontend.builder(builders)?
         }
-    }
-
-    builders.push(Builder::MkDerivation { rust: None });
-
-    let builder = frontend.builder(builders)?;
+    };
 
     let output = if let Some(output) = opts.output {
         output
@@ -544,13 +573,13 @@ async fn run() -> Result<()> {
         }
 
         Builder::BuildPythonPackage { application, rust } => {
-            enum RustVendorData {
+            enum CargoVendorData {
                 Hash(String),
                 Lock(Box<Option<Resolve>>),
                 None,
             }
             let rust = match rust {
-                Some(RustVendor::FetchCargoVendor) => RustVendorData::Hash(
+                Some(CargoVendor::FetchCargoVendor) => CargoVendorData::Hash(
                     cargo_deps_hash(
                         &mut inputs,
                         &pname,
@@ -562,7 +591,7 @@ async fn run() -> Result<()> {
                     )
                     .await,
                 ),
-                Some(RustVendor::ImportCargoLock) => {
+                Some(CargoVendor::ImportCargoLock) => {
                     if let Some(out_dir) = out_dir {
                         let resolve = load_cargo_lock(
                             &mut frontend,
@@ -572,12 +601,12 @@ async fn run() -> Result<()> {
                             opts.overwrite,
                         )
                         .await?;
-                        RustVendorData::Lock(Box::new(resolve))
+                        CargoVendorData::Lock(Box::new(resolve))
                     } else {
-                        RustVendorData::Lock(Box::new(None))
+                        CargoVendorData::Lock(Box::new(None))
                     }
                 }
-                None => RustVendorData::None,
+                None => CargoVendorData::None,
             };
 
             let mut pyproject = Pyproject::from_path(pyproject_toml);
@@ -634,7 +663,7 @@ async fn run() -> Result<()> {
             }?;
 
             match rust {
-                RustVendorData::Hash(hash) => {
+                CargoVendorData::Hash(hash) => {
                     write!(out, "  ")?;
                     writedoc! {out, r#"
                         cargoDeps = rustPlatform.fetchCargoVendor {{
@@ -644,18 +673,18 @@ async fn run() -> Result<()> {
 
                     "#}?;
                 }
-                RustVendorData::Lock(resolve) => {
+                CargoVendorData::Lock(resolve) => {
                     write!(out, "  cargoDeps = rustPlatform.importCargoLock ")?;
                     write_cargo_lock(&mut out, has_cargo_lock, *resolve).await?;
                 }
-                RustVendorData::None => {}
+                CargoVendorData::None => {}
             }
 
             res
         }
 
         Builder::BuildRustPackage {
-            vendor: RustVendor::FetchCargoVendor,
+            vendor: CargoVendor::FetchCargoVendor,
         } => {
             let hash = cargo_deps_hash(
                 &mut inputs,
@@ -685,7 +714,7 @@ async fn run() -> Result<()> {
         }
 
         Builder::BuildRustPackage {
-            vendor: RustVendor::ImportCargoLock,
+            vendor: CargoVendor::ImportCargoLock,
         } => {
             let resolve = if let Some(out_dir) = out_dir {
                 load_cargo_lock(
@@ -733,7 +762,7 @@ async fn run() -> Result<()> {
         }
 
         Builder::MkDerivation {
-            rust: Some(RustVendor::FetchCargoVendor),
+            rust: Some(CargoVendor::FetchCargoVendor),
         } => {
             let hash = cargo_deps_hash(
                 &mut inputs,
@@ -765,7 +794,7 @@ async fn run() -> Result<()> {
         }
 
         Builder::MkDerivation {
-            rust: Some(RustVendor::ImportCargoLock),
+            rust: Some(CargoVendor::ImportCargoLock),
         } => {
             let resolve = if let Some(out_dir) = out_dir {
                 load_cargo_lock(

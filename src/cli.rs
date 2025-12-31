@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use clap::Parser;
+use clap::{Parser, ValueEnum};
 
 /// Generate Nix packages with hash prefetching, license detection, and more
 /// https://github.com/nix-community/nix-init
@@ -32,6 +32,14 @@ pub struct Opts {
     #[arg(long)]
     pub pname: Option<String>,
 
+    /// Specify the builder
+    #[arg(long)]
+    pub builder: Option<BuilderFunction>,
+
+    /// Specify how the cargo dependencies are vendored
+    #[arg(long)]
+    pub cargo_vendor: Option<CargoVendor>,
+
     /// Always overwrite files
     ///
     /// use --overwrite=false to never overwrite files
@@ -60,4 +68,26 @@ pub struct Opts {
     /// Specify the config file
     #[arg(short, long)]
     pub config: Option<PathBuf>,
+}
+
+#[derive(Clone, ValueEnum)]
+#[clap(rename_all = "camelCase")]
+pub enum BuilderFunction {
+    BuildGoModule,
+    BuildPythonApplication,
+    BuildPythonPackage,
+    BuildRustPackage,
+    MkDerivation,
+}
+
+#[derive(Clone, Copy, ValueEnum)]
+#[clap(rename_all = "camelCase")]
+#[cfg_attr(
+    not_build,
+    derive(parse_display::Display),
+    display(style = "camelCase")
+)]
+pub enum CargoVendor {
+    FetchCargoVendor,
+    ImportCargoLock,
 }
