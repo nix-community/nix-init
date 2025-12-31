@@ -1,3 +1,4 @@
+mod headless;
 mod readline;
 
 use std::path::{Path, PathBuf};
@@ -8,7 +9,7 @@ use enum_dispatch::enum_dispatch;
 use crate::{
     builder::Builder,
     fetcher::{Revisions, Version},
-    frontend::readline::Readline,
+    frontend::{headless::Headless, readline::Readline},
 };
 
 #[enum_dispatch]
@@ -32,7 +33,12 @@ pub trait Frontend {
 
 #[enum_dispatch(Frontend)]
 pub enum FrontendDispatch {
+    Headless(Headless),
     Readline(Readline),
+}
+
+pub fn headless() -> FrontendDispatch {
+    Headless.into()
 }
 
 pub fn readline() -> Result<FrontendDispatch> {

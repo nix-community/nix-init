@@ -44,7 +44,7 @@ use crate::{
     cli::Opts,
     cmd::{NIX, NURL},
     fetcher::{Fetcher, PackageInfo, PypiFormat, Revisions, Version},
-    frontend::{Frontend, readline},
+    frontend::{Frontend, headless, readline},
     inputs::{AllInputs, write_all_lambda_inputs, write_inputs, write_lambda_input},
     lang::{
         go::{load_go_dependencies, write_ldflags},
@@ -91,7 +91,12 @@ async fn run() -> Result<()> {
     });
 
     let cfg = load_config(opts.config)?;
-    let mut frontend = readline()?;
+
+    let mut frontend = if opts.headless {
+        headless()
+    } else {
+        readline()?
+    };
 
     let mut out = String::new();
     writeln!(out, "{{\n  lib,")?;

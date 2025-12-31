@@ -19,10 +19,11 @@ use crate::{
     builder::Builder,
     fetcher::{Revisions, Version},
     frontend::Frontend,
+    utils::by_name_path,
 };
 
 pub struct Readline {
-    editor: Editor<Prompter, MemHistory>,
+    editor: Box<Editor<Prompter, MemHistory>>,
 }
 
 #[derive(Helper, Highlighter)]
@@ -39,7 +40,9 @@ impl Readline {
         let mut editor = Editor::new()?;
         editor.set_completion_type(CompletionType::Fuzzy);
         editor.set_max_history_size(0)?;
-        Ok(Self { editor })
+        Ok(Self {
+            editor: Box::new(editor),
+        })
     }
 
     fn ask(&mut self, msg: impl Display) -> Result<bool, anyhow::Error> {
@@ -128,26 +131,9 @@ impl Frontend for Readline {
             .set_helper(Some(Prompter::Path(FilenameCompleter::new())));
 
         let msg = &prompt("Enter output path (leave as empty for the current directory)");
-        let output = if !matches!(
-            builder,
-            Builder::BuildPythonPackage {
-                application: false,
-                ..
-            }
-        ) && Path::new("pkgs/by-name").is_dir()
-        {
-            let attr = if pname.starts_with(|c| matches!(c, 'A'..='Z' | 'a'..='z' | '_')) {
-                pname.to_owned()
-            } else {
-                format!("_{pname}")
-            };
-            let path = &format!(
-                "pkgs/by-name/{}/{attr}/package.nix",
-                attr.chars().take(2).collect::<String>(),
-            );
-            self.editor.readline_with_initial(msg, (path, ""))
-        } else {
-            self.editor.readline(msg)
+        let output = match by_name_path(pname, builder) {
+            Some(path) => self.editor.readline_with_initial(msg, (&path, "")),
+            None => self.editor.readline(msg),
         }?;
         self.editor.set_helper(None);
 

@@ -14,6 +14,10 @@ pub struct Opts {
     #[arg(short, long)]
     pub url: Option<String>,
 
+    /// Don't prompt for anything (requires --url)
+    #[arg(long)]
+    pub headless: bool,
+
     /// Path to nixpkgs (in nix)
     ///
     /// Examples:
