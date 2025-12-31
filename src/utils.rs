@@ -1,10 +1,10 @@
-use std::{fmt::Display, future::Future, io::BufRead, pin::Pin, process::Output};
+use std::{fmt::Display, future::Future, io::BufRead, path::Path, pin::Pin, process::Output};
 
 use anyhow::{Result, bail};
 use tokio::process::Command;
 use tracing::{error, info, warn};
 
-use crate::cmd::NIX;
+use crate::{builder::Builder, cmd::NIX};
 
 pub const FAKE_HASH: &str = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
 
@@ -123,4 +123,31 @@ pub async fn fod_hash(expr: String) -> Option<String> {
         };
         return Some(hash.trim().to_owned());
     }
+}
+
+pub fn by_name_path(pname: &str, builder: &Builder) -> Option<String> {
+    if matches!(
+        builder,
+        Builder::BuildPythonPackage {
+            application: false,
+            ..
+        }
+    ) {
+        return None;
+    }
+
+    if !Path::new("pkgs/by-name").is_dir() {
+        return None;
+    }
+
+    let attr = if pname.starts_with(|c| matches!(c, 'A'..='Z' | 'a'..='z' | '_')) {
+        pname.to_owned()
+    } else {
+        format!("_{pname}")
+    };
+
+    Some(format!(
+        "pkgs/by-name/{}/{attr}/package.nix",
+        attr.chars().take(2).collect::<String>(),
+    ))
 }
