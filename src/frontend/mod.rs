@@ -37,6 +37,15 @@ pub enum FrontendDispatch {
     Readline(Readline),
 }
 
+impl FrontendDispatch {
+    pub fn should_overwrite(&mut self, path: &Path, opt_overwrite: Option<bool>) -> Result<bool> {
+        match opt_overwrite {
+            Some(b) => Ok(b),
+            None => self.overwrite(path),
+        }
+    }
+}
+
 pub fn headless() -> FrontendDispatch {
     Headless.into()
 }

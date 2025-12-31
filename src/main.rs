@@ -23,7 +23,7 @@ use anyhow::{Context, Result};
 use askalono::{IdentifiedLicense, ScanResult, ScanStrategy, TextData};
 use bstr::{ByteSlice, ByteVec};
 use cargo::core::Resolve;
-use clap::Parser;
+use clap::{Parser, crate_version};
 use expand::expand;
 use flate2::read::GzDecoder;
 use heck::{AsSnakeCase, ToKebabCase};
@@ -85,6 +85,14 @@ async fn run() -> Result<()> {
         .init();
 
     let opts = Opts::parse();
+    let opt_version = match opts.version {
+        Some(Some(version)) => Some(version),
+        Some(None) => {
+            println!("nix-init {}", crate_version!());
+            return Ok(());
+        }
+        None => None,
+    };
 
     tokio::spawn(async {
         Lazy::force(&LICENSE_STORE);
@@ -123,42 +131,57 @@ async fn run() -> Result<()> {
                 file_url_prefix,
                 license,
                 python_dependencies,
-                revisions,
+                mut revisions,
             } = fetcher.get_package_info(&cl).await;
 
             for license in license {
                 licenses.insert(license, 1.0);
             }
 
-            let (rev, version) = frontend.rev(Some(revisions))?;
-
-            let version = match version {
-                Some(version) => Some(version),
-                None => fetcher.get_version(&cl, &rev).await,
-            };
-            let version = match version {
-                Some(Version::Latest | Version::Tag) => get_version_number(&rev).into(),
-                Some(Version::Pypi {
-                    pname: pypi_pname,
-                    format,
-                }) => {
-                    if let Fetcher::FetchPypi { pname } = fetcher {
-                        *pname = pypi_pname;
-                    }
-                    pypi_format = format;
-                    rev.clone()
+            let (rev, version) = match opts.rev {
+                Some(rev) => {
+                    let version = revisions.versions.remove(&rev);
+                    (rev, version)
                 }
-                Some(Version::Head { date, .. } | Version::Commit { date, .. }) => {
-                    format!("0-unstable-{date}")
-                }
-                None => get_version(&rev).into(),
+                None => frontend.rev(Some(revisions))?,
             };
 
-            if fetcher.has_submodules(&cl, &rev).await && frontend.fetch_submodules()? {
+            let submodules = match opts.submodules {
+                Some(true) => fetcher.has_submodules(&cl, &rev).await,
+                Some(false) => false,
+                None => fetcher.has_submodules(&cl, &rev).await && frontend.fetch_submodules()?,
+            };
+            if submodules {
                 cmd.arg("-S");
             }
 
-            let version = frontend.version(&version)?;
+            let version = if let Some(version) = opt_version {
+                version
+            } else {
+                let version = match version {
+                    Some(version) => Some(version),
+                    None => fetcher.get_version(&cl, &rev).await,
+                };
+                let version = match version {
+                    Some(Version::Latest | Version::Tag) => get_version_number(&rev).into(),
+                    Some(Version::Pypi {
+                        pname: pypi_pname,
+                        format,
+                    }) => {
+                        if let Fetcher::FetchPypi { pname } = fetcher {
+                            *pname = pypi_pname;
+                        }
+                        pypi_format = format;
+                        rev.clone()
+                    }
+                    Some(Version::Head { date, .. } | Version::Commit { date, .. }) => {
+                        format!("0-unstable-{date}")
+                    }
+                    None => get_version(&rev).into(),
+                };
+
+                frontend.version(&version)?
+            };
 
             (
                 Some(pname),
@@ -175,12 +198,23 @@ async fn run() -> Result<()> {
                     .map(|pname| pname.strip_suffix(".git").unwrap_or(pname).into())
             });
 
-            let rev = frontend.rev(None)?.0;
-            let version = frontend.version(get_version(&rev))?;
+            let rev = match opts.rev {
+                Some(rev) => rev,
+                None => frontend.rev(None)?.0,
+            };
+
+            let version = match opt_version {
+                Some(version) => version,
+                None => frontend.version(get_version(&rev))?,
+            };
+
             (pname, rev, version, "".into(), None, Default::default())
         };
 
-    let pname = frontend.pname(pname)?;
+    let pname = match opts.pname {
+        Some(rev) => rev,
+        None => frontend.pname(pname)?,
+    };
 
     let nixpkgs = opts
         .nixpkgs
@@ -378,11 +412,11 @@ async fn run() -> Result<()> {
     let (out_dir, out_path) = if let Ok(metadata) = metadata(&output) {
         if metadata.is_dir() {
             let out_path = output.join("default.nix");
-            if out_path.exists() && !frontend.overwrite(&out_path)? {
+            if out_path.exists() && !frontend.should_overwrite(&out_path, opts.overwrite)? {
                 return Ok(());
             }
             (Some(output.as_path()), out_path)
-        } else if !frontend.overwrite(&output)? {
+        } else if !frontend.should_overwrite(&output, opts.overwrite)? {
             return Ok(());
         } else {
             (output.parent(), output.clone())
@@ -530,8 +564,14 @@ async fn run() -> Result<()> {
                 ),
                 Some(RustVendor::ImportCargoLock) => {
                     if let Some(out_dir) = out_dir {
-                        let resolve =
-                            load_cargo_lock(&mut frontend, out_dir, &mut inputs, &src_dir).await?;
+                        let resolve = load_cargo_lock(
+                            &mut frontend,
+                            out_dir,
+                            &mut inputs,
+                            &src_dir,
+                            opts.overwrite,
+                        )
+                        .await?;
                         RustVendorData::Lock(Box::new(resolve))
                     } else {
                         RustVendorData::Lock(Box::new(None))
@@ -648,7 +688,14 @@ async fn run() -> Result<()> {
             vendor: RustVendor::ImportCargoLock,
         } => {
             let resolve = if let Some(out_dir) = out_dir {
-                load_cargo_lock(&mut frontend, out_dir, &mut inputs, &src_dir).await?
+                load_cargo_lock(
+                    &mut frontend,
+                    out_dir,
+                    &mut inputs,
+                    &src_dir,
+                    opts.overwrite,
+                )
+                .await?
             } else {
                 None
             };
@@ -721,7 +768,14 @@ async fn run() -> Result<()> {
             rust: Some(RustVendor::ImportCargoLock),
         } => {
             let resolve = if let Some(out_dir) = out_dir {
-                load_cargo_lock(&mut frontend, out_dir, &mut inputs, &src_dir).await?
+                load_cargo_lock(
+                    &mut frontend,
+                    out_dir,
+                    &mut inputs,
+                    &src_dir,
+                    opts.overwrite,
+                )
+                .await?
             } else {
                 None
             };
