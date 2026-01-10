@@ -1,13 +1,13 @@
-mod build;
+mod builder;
 mod cfg;
 mod cli;
 mod cmd;
 mod fetcher;
+mod frontend;
 mod inputs;
 mod lang;
 mod license;
 mod macros;
-mod prompt;
 mod utils;
 
 use std::{
@@ -15,7 +15,7 @@ use std::{
     collections::{BTreeMap, BTreeSet},
     fmt::Write as _,
     fs::{File, create_dir_all, metadata, read_dir, read_to_string},
-    io::{BufRead, BufReader, Write as _, stderr},
+    io::{Write as _, stderr},
     path::{Component, Path, PathBuf},
 };
 
@@ -23,7 +23,7 @@ use anyhow::{Context, Result};
 use askalono::{IdentifiedLicense, ScanResult, ScanStrategy, TextData};
 use bstr::{ByteSlice, ByteVec};
 use cargo::core::Resolve;
-use clap::Parser;
+use clap::{Parser, crate_version};
 use expand::expand;
 use flate2::read::GzDecoder;
 use heck::{AsSnakeCase, ToKebabCase};
@@ -31,7 +31,6 @@ use indoc::{formatdoc, writedoc};
 use is_terminal::IsTerminal;
 use itertools::Itertools;
 use once_cell::sync::Lazy;
-use rustyline::{CompletionType, Editor, completion::FilenameCompleter, config::Configurer};
 use serde::Deserialize;
 use tempfile::tempdir;
 use tokio::process::Command;
@@ -40,11 +39,12 @@ use tracing_subscriber::EnvFilter;
 use zip::ZipArchive;
 
 use crate::{
-    build::{BuildType, RustVendor},
+    builder::Builder,
     cfg::load_config,
-    cli::Opts,
+    cli::{BuilderFunction, CargoVendor, Opts},
     cmd::{NIX, NURL},
     fetcher::{Fetcher, PackageInfo, PypiFormat, Revisions, Version},
+    frontend::{Frontend, headless, readline},
     inputs::{AllInputs, write_all_lambda_inputs, write_inputs, write_lambda_input},
     lang::{
         go::{load_go_dependencies, write_ldflags},
@@ -52,7 +52,6 @@ use crate::{
         rust::{cargo_deps_hash, load_cargo_lock, write_cargo_lock},
     },
     license::{LICENSE_STORE, get_nix_license},
-    prompt::{Prompter, ask, ask_overwrite, prompt},
     utils::{CommandExt, FAKE_HASH, ResultExt, fod_hash},
 };
 
@@ -86,25 +85,33 @@ async fn run() -> Result<()> {
         .init();
 
     let opts = Opts::parse();
+    let opt_version = match opts.version {
+        Some(Some(version)) => Some(version),
+        Some(None) => {
+            println!("nix-init {}", crate_version!());
+            return Ok(());
+        }
+        None => None,
+    };
 
     tokio::spawn(async {
         Lazy::force(&LICENSE_STORE);
     });
 
     let cfg = load_config(opts.config)?;
-    let mut editor = Editor::new()?;
-    editor.set_completion_type(CompletionType::Fuzzy);
-    editor.set_max_history_size(0)?;
+
+    let mut frontend = if opts.headless {
+        headless()
+    } else {
+        readline()?
+    };
 
     let mut out = String::new();
     writeln!(out, "{{\n  lib,")?;
 
     let url = match opts.url {
         Some(url) => url,
-        None => {
-            editor.set_helper(Some(Prompter::NonEmpty));
-            editor.readline(&prompt("Enter url"))?
-        }
+        None => frontend.url()?,
     };
 
     let mut fetcher =
@@ -124,58 +131,57 @@ async fn run() -> Result<()> {
                 file_url_prefix,
                 license,
                 python_dependencies,
-                revisions,
+                mut revisions,
             } = fetcher.get_package_info(&cl).await;
 
             for license in license {
                 licenses.insert(license, 1.0);
             }
 
-            let rev_msg = prompt(format_args!(
-                "Enter tag or revision (defaults to {})",
-                revisions.latest
-            ));
-            editor.set_helper(Some(Prompter::Revision(revisions)));
-
-            let rev = editor.readline(&rev_msg)?;
-
-            let Some(Prompter::Revision(revisions)) = editor.helper_mut() else {
-                unreachable!();
-            };
-            let rev = if rev.is_empty() {
-                revisions.latest.clone()
-            } else {
-                rev
-            };
-
-            let version = match revisions.versions.remove(&rev) {
-                Some(version) => Some(version),
-                None => fetcher.get_version(&cl, &rev).await,
-            };
-            let version = match version {
-                Some(Version::Latest | Version::Tag) => get_version_number(&rev).into(),
-                Some(Version::Pypi {
-                    pname: pypi_pname,
-                    format,
-                }) => {
-                    if let Fetcher::FetchPypi { pname } = fetcher {
-                        *pname = pypi_pname;
-                    }
-                    pypi_format = format;
-                    rev.clone()
+            let (rev, version) = match opts.rev {
+                Some(rev) => {
+                    let version = revisions.versions.remove(&rev);
+                    (rev, version)
                 }
-                Some(Version::Head { date, .. } | Version::Commit { date, .. }) => {
-                    format!("0-unstable-{date}")
-                }
-                None => get_version(&rev).into(),
+                None => frontend.rev(Some(revisions))?,
             };
 
-            if fetcher.has_submodules(&cl, &rev).await && !ask(&mut editor, "Fetch submodules")? {
+            let submodules = match opts.submodules {
+                Some(true) => fetcher.has_submodules(&cl, &rev).await,
+                Some(false) => false,
+                None => fetcher.has_submodules(&cl, &rev).await && frontend.fetch_submodules()?,
+            };
+            if submodules {
                 cmd.arg("-S");
             }
 
-            editor.set_helper(Some(Prompter::NonEmpty));
-            let version = editor.readline_with_initial(&prompt("Enter version"), (&version, ""))?;
+            let version = if let Some(version) = opt_version {
+                version
+            } else {
+                let version = match version {
+                    Some(version) => Some(version),
+                    None => fetcher.get_version(&cl, &rev).await,
+                };
+                let version = match version {
+                    Some(Version::Latest | Version::Tag) => get_version_number(&rev).into(),
+                    Some(Version::Pypi {
+                        pname: pypi_pname,
+                        format,
+                    }) => {
+                        if let Fetcher::FetchPypi { pname } = fetcher {
+                            *pname = pypi_pname;
+                        }
+                        pypi_format = format;
+                        rev.clone()
+                    }
+                    Some(Version::Head { date, .. } | Version::Commit { date, .. }) => {
+                        format!("0-unstable-{date}")
+                    }
+                    None => get_version(&rev).into(),
+                };
+
+                frontend.version(&version)?
+            };
 
             (
                 Some(pname),
@@ -192,17 +198,22 @@ async fn run() -> Result<()> {
                     .map(|pname| pname.strip_suffix(".git").unwrap_or(pname).into())
             });
 
-            editor.set_helper(Some(Prompter::NonEmpty));
-            let rev = editor.readline(&prompt("Enter tag or revision"))?;
-            let version = get_version(&rev);
-            let version = editor.readline_with_initial(&prompt("Enter version"), (version, ""))?;
+            let rev = match opts.rev {
+                Some(rev) => rev,
+                None => frontend.rev(None)?.0,
+            };
+
+            let version = match opt_version {
+                Some(version) => version,
+                None => frontend.version(get_version(&rev))?,
+            };
+
             (pname, rev, version, "".into(), None, Default::default())
         };
 
-    let pname = if let Some(pname) = pname {
-        editor.readline_with_initial(&prompt("Enter pname"), (&pname.to_kebab_case(), ""))?
-    } else {
-        editor.readline(&prompt("Enter pname"))?
+    let pname = match opts.pname {
+        Some(rev) => rev,
+        None => frontend.pname(pname)?,
     };
 
     let nixpkgs = opts
@@ -339,7 +350,6 @@ async fn run() -> Result<()> {
         PathBuf::from(&src)
     };
 
-    let mut choices = Vec::new();
     let has_cargo = src_dir.join("Cargo.toml").is_file();
     let cargo_lock = File::open(src_dir.join("Cargo.lock"));
     let has_cargo_lock = cargo_lock.is_ok();
@@ -350,102 +360,92 @@ async fn run() -> Result<()> {
     let pyproject_toml = src_dir.join("pyproject.toml");
     let has_python = pyproject_toml.is_file() || src_dir.join("setup.py").is_file();
 
-    let rust_vendors = if has_cargo {
-        if cargo_lock.map_or(true, |file| {
-            BufReader::new(file)
-                .lines()
-                .map_while(Result::ok)
-                .any(|line| line.starts_with(r#"source = "git+"#))
-        }) {
-            &[RustVendor::ImportCargoLock, RustVendor::FetchCargoVendor]
-        } else {
-            &[RustVendor::FetchCargoVendor, RustVendor::ImportCargoLock]
-        }
-    } else {
-        &[] as &[_]
-    };
-
-    if has_go {
-        choices.push(BuildType::BuildGoModule);
-    }
-
-    if has_python {
-        for rust in rust_vendors.iter().map(Some).chain(Some(None)) {
-            for application in [true, false] {
-                choices.push(BuildType::BuildPythonPackage {
-                    application,
-                    rust: rust.copied(),
-                });
+    let builder = match (opts.builder, opts.cargo_vendor) {
+        (Some(builder), rust @ Some(vendor)) if has_cargo => match builder {
+            BuilderFunction::BuildGoModule => Builder::BuildGoModule,
+            BuilderFunction::BuildPythonApplication => Builder::BuildPythonPackage {
+                application: true,
+                rust,
+            },
+            BuilderFunction::BuildPythonPackage => Builder::BuildPythonPackage {
+                application: false,
+                rust,
+            },
+            BuilderFunction::BuildRustPackage => Builder::BuildRustPackage { vendor },
+            BuilderFunction::MkDerivation => Builder::MkDerivation { rust },
+        },
+        (Some(builder), _) => {
+            let rust = has_cargo.then_some(CargoVendor::FetchCargoVendor);
+            match builder {
+                BuilderFunction::BuildGoModule => Builder::BuildGoModule,
+                BuilderFunction::BuildPythonApplication => Builder::BuildPythonPackage {
+                    application: true,
+                    rust,
+                },
+                BuilderFunction::BuildPythonPackage => Builder::BuildPythonPackage {
+                    application: false,
+                    rust,
+                },
+                BuilderFunction::BuildRustPackage => Builder::BuildRustPackage {
+                    vendor: CargoVendor::FetchCargoVendor,
+                },
+                BuilderFunction::MkDerivation => Builder::MkDerivation { rust },
             }
         }
-    }
+        (None, rust) => {
+            let mut builders = Vec::new();
+            let cargo_vendors = if has_cargo {
+                match rust {
+                    Some(vendor) => &[vendor] as &[_],
+                    None => &[CargoVendor::FetchCargoVendor, CargoVendor::ImportCargoLock],
+                }
+            } else {
+                &[]
+            };
 
-    if has_cargo {
-        for &vendor in rust_vendors {
-            let drv = BuildType::MkDerivation { rust: Some(vendor) };
-            let rust = BuildType::BuildRustPackage { vendor };
-            choices.extend(if has_meson { [drv, rust] } else { [rust, drv] });
+            if has_go {
+                builders.push(Builder::BuildGoModule);
+            }
+
+            if has_python {
+                for rust in cargo_vendors.iter().map(Some).chain(Some(None)) {
+                    for application in [true, false] {
+                        builders.push(Builder::BuildPythonPackage {
+                            application,
+                            rust: rust.copied(),
+                        });
+                    }
+                }
+            }
+
+            if has_cargo {
+                for &vendor in cargo_vendors {
+                    let drv = Builder::MkDerivation { rust: Some(vendor) };
+                    let rust = Builder::BuildRustPackage { vendor };
+                    builders.extend(if has_meson { [drv, rust] } else { [rust, drv] });
+                }
+            }
+
+            builders.push(Builder::MkDerivation { rust: None });
+
+            frontend.builder(builders)?
         }
-    }
-
-    choices.push(BuildType::MkDerivation { rust: None });
-
-    editor.set_helper(Some(Prompter::Build(choices)));
-    let choice = editor.readline(&prompt("How should this package be built?"))?;
-    let Some(Prompter::Build(choices)) = editor.helper_mut() else {
-        unreachable!();
     };
-    let choice = *choice
-        .parse()
-        .ok()
-        .and_then(|i: usize| choices.get(i))
-        .unwrap_or_else(|| &choices[0]);
 
     let output = if let Some(output) = opts.output {
         output
     } else {
-        editor.set_helper(Some(Prompter::Path(FilenameCompleter::new())));
-
-        let attr = if pname.starts_with(|c| matches!(c, 'A'..='Z' | 'a'..='z' | '_')) {
-            pname.clone()
-        } else {
-            format!("_{pname}")
-        };
-
-        let msg = &prompt("Enter output path (leave as empty for the current directory)");
-        let output = if !matches!(
-            choice,
-            BuildType::BuildPythonPackage {
-                application: false,
-                ..
-            }
-        ) && Path::new("pkgs/by-name").is_dir()
-        {
-            let path = &format!(
-                "pkgs/by-name/{}/{attr}/package.nix",
-                attr.chars().take(2).collect::<String>(),
-            );
-            editor.readline_with_initial(msg, (path, ""))
-        } else {
-            editor.readline(msg)
-        }?;
-        editor.set_helper(None);
-
-        if output.is_empty() {
-            PathBuf::from(".")
-        } else {
-            PathBuf::from(output)
-        }
+        frontend.output(&pname, &builder)?
     };
 
     let (out_dir, out_path) = if let Ok(metadata) = metadata(&output) {
         if metadata.is_dir() {
             let out_path = output.join("default.nix");
-            if out_path.exists() && ask_overwrite(&mut editor, &out_path)? {
+            if out_path.exists() && !frontend.should_overwrite(&out_path, opts.overwrite)? {
                 return Ok(());
             }
             (Some(output.as_path()), out_path)
-        } else if ask_overwrite(&mut editor, &output)? {
+        } else if !frontend.should_overwrite(&output, opts.overwrite)? {
             return Ok(());
         } else {
             (output.parent(), output.clone())
@@ -464,11 +464,11 @@ async fn run() -> Result<()> {
     };
 
     let mut inputs = AllInputs::default();
-    match choice {
-        BuildType::BuildGoModule => {
+    match builder {
+        Builder::BuildGoModule => {
             writeln!(out, "  buildGoModule,")?;
         }
-        BuildType::BuildPythonPackage { application, rust } => {
+        Builder::BuildPythonPackage { application, rust } => {
             writeln!(
                 out,
                 "  {},",
@@ -498,10 +498,10 @@ async fn run() -> Result<()> {
                 ]);
             }
         }
-        BuildType::BuildRustPackage { .. } => {
+        Builder::BuildRustPackage { .. } => {
             writeln!(out, "  rustPlatform,")?;
         }
-        BuildType::MkDerivation { rust } => {
+        Builder::MkDerivation { rust } => {
             writeln!(out, "  stdenv,")?;
             if has_cmake {
                 inputs.native_build_inputs.always.insert("cmake".into());
@@ -535,8 +535,8 @@ async fn run() -> Result<()> {
     }
 
     let mut python_import = None;
-    let (native_build_inputs, build_inputs) = match choice {
-        BuildType::BuildGoModule => {
+    let (native_build_inputs, build_inputs) = match builder {
+        Builder::BuildGoModule => {
             let go_sum = File::open(src_dir.join("go.sum")).ok_warn();
 
             if let Some(go_sum) = &go_sum {
@@ -572,14 +572,14 @@ async fn run() -> Result<()> {
             res
         }
 
-        BuildType::BuildPythonPackage { application, rust } => {
-            enum RustVendorData {
+        Builder::BuildPythonPackage { application, rust } => {
+            enum CargoVendorData {
                 Hash(String),
                 Lock(Box<Option<Resolve>>),
                 None,
             }
             let rust = match rust {
-                Some(RustVendor::FetchCargoVendor) => RustVendorData::Hash(
+                Some(CargoVendor::FetchCargoVendor) => CargoVendorData::Hash(
                     cargo_deps_hash(
                         &mut inputs,
                         &pname,
@@ -591,17 +591,22 @@ async fn run() -> Result<()> {
                     )
                     .await,
                 ),
-                Some(RustVendor::ImportCargoLock) => {
+                Some(CargoVendor::ImportCargoLock) => {
                     if let Some(out_dir) = out_dir {
-                        editor.set_helper(None);
-                        let resolve =
-                            load_cargo_lock(&mut editor, out_dir, &mut inputs, &src_dir).await?;
-                        RustVendorData::Lock(Box::new(resolve))
+                        let resolve = load_cargo_lock(
+                            &mut frontend,
+                            out_dir,
+                            &mut inputs,
+                            &src_dir,
+                            opts.overwrite,
+                        )
+                        .await?;
+                        CargoVendorData::Lock(Box::new(resolve))
                     } else {
-                        RustVendorData::Lock(Box::new(None))
+                        CargoVendorData::Lock(Box::new(None))
                     }
                 }
-                None => RustVendorData::None,
+                None => CargoVendorData::None,
             };
 
             let mut pyproject = Pyproject::from_path(pyproject_toml);
@@ -658,7 +663,7 @@ async fn run() -> Result<()> {
             }?;
 
             match rust {
-                RustVendorData::Hash(hash) => {
+                CargoVendorData::Hash(hash) => {
                     write!(out, "  ")?;
                     writedoc! {out, r#"
                         cargoDeps = rustPlatform.fetchCargoVendor {{
@@ -668,18 +673,18 @@ async fn run() -> Result<()> {
 
                     "#}?;
                 }
-                RustVendorData::Lock(resolve) => {
+                CargoVendorData::Lock(resolve) => {
                     write!(out, "  cargoDeps = rustPlatform.importCargoLock ")?;
                     write_cargo_lock(&mut out, has_cargo_lock, *resolve).await?;
                 }
-                RustVendorData::None => {}
+                CargoVendorData::None => {}
             }
 
             res
         }
 
-        BuildType::BuildRustPackage {
-            vendor: RustVendor::FetchCargoVendor,
+        Builder::BuildRustPackage {
+            vendor: CargoVendor::FetchCargoVendor,
         } => {
             let hash = cargo_deps_hash(
                 &mut inputs,
@@ -708,12 +713,18 @@ async fn run() -> Result<()> {
             res
         }
 
-        BuildType::BuildRustPackage {
-            vendor: RustVendor::ImportCargoLock,
+        Builder::BuildRustPackage {
+            vendor: CargoVendor::ImportCargoLock,
         } => {
             let resolve = if let Some(out_dir) = out_dir {
-                editor.set_helper(None);
-                load_cargo_lock(&mut editor, out_dir, &mut inputs, &src_dir).await?
+                load_cargo_lock(
+                    &mut frontend,
+                    out_dir,
+                    &mut inputs,
+                    &src_dir,
+                    opts.overwrite,
+                )
+                .await?
             } else {
                 None
             };
@@ -735,7 +746,7 @@ async fn run() -> Result<()> {
             res
         }
 
-        BuildType::MkDerivation { rust: None } => {
+        Builder::MkDerivation { rust: None } => {
             let res = write_all_lambda_inputs(&mut out, &inputs, &mut ["stdenv".into()].into())?;
             writedoc! { out, r#"
                 }}:
@@ -750,8 +761,8 @@ async fn run() -> Result<()> {
             res
         }
 
-        BuildType::MkDerivation {
-            rust: Some(RustVendor::FetchCargoVendor),
+        Builder::MkDerivation {
+            rust: Some(CargoVendor::FetchCargoVendor),
         } => {
             let hash = cargo_deps_hash(
                 &mut inputs,
@@ -782,12 +793,18 @@ async fn run() -> Result<()> {
             res
         }
 
-        BuildType::MkDerivation {
-            rust: Some(RustVendor::ImportCargoLock),
+        Builder::MkDerivation {
+            rust: Some(CargoVendor::ImportCargoLock),
         } => {
             let resolve = if let Some(out_dir) = out_dir {
-                editor.set_helper(None);
-                load_cargo_lock(&mut editor, out_dir, &mut inputs, &src_dir).await?
+                load_cargo_lock(
+                    &mut frontend,
+                    out_dir,
+                    &mut inputs,
+                    &src_dir,
+                    opts.overwrite,
+                )
+                .await?
             } else {
                 None
             };
@@ -810,8 +827,8 @@ async fn run() -> Result<()> {
     };
 
     if native_build_inputs {
-        match choice {
-            BuildType::BuildPythonPackage { .. } => {
+        match builder {
+            Builder::BuildPythonPackage { .. } => {
                 write_inputs(&mut out, &inputs.native_build_inputs, "build-system")?;
             }
             _ => {
@@ -823,12 +840,12 @@ async fn run() -> Result<()> {
         write_inputs(&mut out, &inputs.build_inputs, "buildInputs")?;
     }
 
-    match choice {
-        BuildType::BuildGoModule => {
+    match builder {
+        Builder::BuildGoModule => {
             write_ldflags(&mut out, &src_dir)?;
         }
 
-        BuildType::BuildPythonPackage { application, .. } => {
+        Builder::BuildPythonPackage { application, .. } => {
             if !python_deps.always.is_empty() {
                 write!(out, "  dependencies = ")?;
                 if application {
@@ -998,11 +1015,11 @@ async fn run() -> Result<()> {
     }
     writeln!(out, "];")?;
 
-    if !matches!(choice, BuildType::BuildPythonPackage { application, .. } if !application) {
+    if !matches!(builder, Builder::BuildPythonPackage { application, .. } if !application) {
         writeln!(out, "    mainProgram = {pname:?};")?;
     }
 
-    if matches!(choice, BuildType::MkDerivation { .. }) {
+    if matches!(builder, Builder::MkDerivation { .. }) {
         if has_zig {
             writeln!(out, "    inherit (zig.meta) platforms;")?;
         } else {

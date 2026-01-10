@@ -30,6 +30,7 @@ askalono.workspace = true
 bstr = "1.12.1"
 cargo = "0.93.0"
 chumsky = "=1.0.0-alpha.8"
+enum_dispatch = "0.3.13"
 expand = "0.3.0"
 flate2 = "1.1.5"
 heck = "0.5.0"
@@ -93,3 +94,6 @@ vendored = ["cargo/vendored-libgit2", "cargo/vendored-openssl"]
 lto = true
 panic = "abort"
 codegen-units = 1
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ["cfg(not_build)"] }
