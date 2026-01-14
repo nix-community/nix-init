@@ -92,18 +92,18 @@ fn regex() -> Option<Regex> {
 fn parse_ldflags<'a>(re: &Regex, ldflags: &'a str) -> Cow<'a, str> {
     re.replace_all(ldflags, |caps: &Captures| match &caps[1] {
         // https://goreleaser.com/customization/templates
-        ".ProjectName" => "${pname}".into(),
-        ".Version" | ".RawVersion" => "${version}".into(),
+        ".ProjectName" => "${finalAttrs.pname}".into(),
+        ".Version" | ".RawVersion" => "${finalAttrs.version}".into(),
         ".Branch" | ".PrefixedTag" | ".Tag" | ".ShortCommit" | ".FullCommit" | ".Commit" => {
-            "${src.rev}".into()
+            "${finalAttrs.src.rev}".into()
         }
         ".IsGitDirty" => "false".into(),
-        ".Major" => "${lib.versions.major version}".into(),
-        ".Minor" => "${lib.versions.minor version}".into(),
-        ".Patch" => "${lib.versions.patch version}".into(),
+        ".Major" => "${lib.versions.major finalAttrs.version}".into(),
+        ".Minor" => "${lib.versions.minor finalAttrs.version}".into(),
+        ".Patch" => "${lib.versions.patch finalAttrs.version}".into(),
         ".Date" | ".CommitDate" => "1970-01-01T00:00:00Z".into(),
         ".Timestamp" | ".CommitTimestamp" => "0".into(),
-        ".Summary" | ".PrefixedSummary" => "${src.rev}".into(),
+        ".Summary" | ".PrefixedSummary" => "${finalAttrs.src.rev}".into(),
         x => format!("${{{}}}", x.to_lower_camel_case()),
     })
 }
@@ -118,14 +118,14 @@ mod tests {
         assert_eq!(parse_ldflags(&re, "-s -w"), "-s -w");
         assert_eq!(
             parse_ldflags(&re, "-X=main.Version={{ .Version }}"),
-            "-X=main.Version=${version}",
+            "-X=main.Version=${finalAttrs.version}",
         );
         assert_eq!(
             parse_ldflags(
                 &re,
                 "-s -w -X main.Version={{ .Version }} -X main.Tag={{ .Tag }}",
             ),
-            "-s -w -X main.Version=${version} -X main.Tag=${src.rev}",
+            "-s -w -X main.Version=${finalAttrs.version} -X main.Tag=${finalAttrs.src.rev}",
         );
 
         assert_eq!(

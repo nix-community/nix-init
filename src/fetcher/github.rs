@@ -152,7 +152,7 @@ pub async fn get_package_info(
         pname: repo.into(),
         description,
         file_url_prefix: Some(format!(
-            "https://{github_base}/{owner}/{repo}/blob/${{src.rev}}/",
+            "https://{github_base}/{owner}/{repo}/blob/${{finalAttrs.src.rev}}/",
         )),
         license: Vec::new(),
         python_dependencies: Default::default(),
