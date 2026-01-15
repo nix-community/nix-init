@@ -6,6 +6,7 @@ use rustc_hash::FxHashMap;
 use secrecy::{ExposeSecret, SecretString};
 use serde::Deserialize;
 use tokio::process::Command;
+use tracing::warn;
 use xdg::BaseDirectories;
 
 use crate::utils::{CommandExt, ResultExt};
@@ -32,17 +33,24 @@ impl AccessTokens {
                 let Some(cmd) = args.next() else {
                     return;
                 };
-                let Some(stdout) = Command::new(cmd).args(args).get_stdout().await.ok_warn() else {
+
+                let Some(stdout) = Command::new(cmd)
+                    .args(args)
+                    .get_stdout()
+                    .await
+                    .ok_inspect(|e| warn!("{e}"))
+                else {
                     return;
                 };
-                let Some(token) = String::from_utf8(stdout).ok_warn() else {
+
+                let Some(token) = String::from_utf8(stdout).ok_inspect(|e| warn!("{e}")) else {
                     return;
                 };
                 format!("Bearer {}", token.trim())
             }
 
             Some(AccessToken::File { file }) => {
-                let Some(token) = fs::read_to_string(file).ok_warn() else {
+                let Some(token) = fs::read_to_string(file).ok_inspect(|e| warn!("{e}")) else {
                     return;
                 };
                 format!("Bearer {}", token.trim())
@@ -51,7 +59,7 @@ impl AccessTokens {
             None => return,
         };
 
-        let Some(mut value) = HeaderValue::from_str(&value).ok_warn() else {
+        let Some(mut value) = HeaderValue::from_str(&value).ok_inspect(|e| warn!("{e}")) else {
             return;
         };
         value.set_sensitive(true);

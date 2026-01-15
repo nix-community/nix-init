@@ -10,6 +10,7 @@ use reqwest::{Client, IntoUrl, header::HeaderMap};
 use rustc_hash::FxHashMap;
 use rustyline::completion::Pair;
 use serde::{Deserialize, Serialize};
+use tracing::{error, warn};
 
 use crate::{cfg::AccessTokens, lang::python::PythonDependencies, utils::ResultExt};
 
@@ -194,7 +195,13 @@ impl Fetcher {
 }
 
 pub async fn json<T: for<'a> Deserialize<'a>>(cl: &Client, url: impl IntoUrl) -> Option<T> {
-    cl.get(url).send().await.ok_error()?.json().await.ok_warn()
+    cl.get(url)
+        .send()
+        .await
+        .ok_inspect(|e| error!("{e}"))?
+        .json()
+        .await
+        .ok_inspect(|e| warn!("{e}"))
 }
 
 pub async fn success(cl: &Client, url: impl IntoUrl) -> bool {

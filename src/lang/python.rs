@@ -11,6 +11,7 @@ use heck::{AsKebabCase, ToKebabCase};
 use pep_508::{Comparator, Dependency, Marker, Operator, Variable};
 use serde::Deserialize;
 use serde_with::{DefaultOnError, serde_as};
+use tracing::warn;
 
 use crate::{inputs::AllInputs, license::parse_spdx_expression, utils::ResultExt};
 
@@ -76,7 +77,9 @@ impl Pyproject {
         let Ok(content) = &fs::read_to_string(path) else {
             return Default::default();
         };
-        toml::from_str(content).ok_warn().unwrap_or_default()
+        toml::from_str(content)
+            .ok_inspect(|e| warn!("{e}"))
+            .unwrap_or_default()
     }
 
     pub fn get_name(&mut self) -> Option<String> {
@@ -176,7 +179,7 @@ pub fn parse_requirements_txt(src: &Path) -> Option<PythonDependencies> {
         get_python_dependencies(
             BufReader::new(file)
                 .lines()
-                .filter_map(|line| line.ok_warn()),
+                .filter_map(|line| line.ok_inspect(|e| warn!("{e}"))),
         )
     })
 }

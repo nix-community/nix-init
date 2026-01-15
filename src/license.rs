@@ -1,19 +1,20 @@
 use askalono::Store;
 use once_cell::sync::Lazy;
 use spdx::{Expression, ParseMode};
-use tracing::debug;
+use tracing::{debug, warn};
 
 use crate::utils::ResultExt;
 
 pub static LICENSE_STORE: Lazy<Option<Store>> = Lazy::new(|| {
-    Store::from_cache(include_bytes!("../data/license-store-cache.zstd") as &[_]).ok_warn()
+    Store::from_cache(include_bytes!("../data/license-store-cache.zstd") as &[_])
+        .ok_inspect(|e| warn!("{e}"))
 });
 
 include!("../data/get_nix_license.rs");
 
 pub fn parse_spdx_expression(license: &str, source: &'static str) -> Vec<&'static str> {
     Expression::parse_mode(license, ParseMode::LAX)
-        .ok_warn()
+        .ok_inspect(|e| warn!("{e}"))
         .map_or_else(Vec::new, |expr| {
             expr.requirements()
                 .filter_map(|req| {

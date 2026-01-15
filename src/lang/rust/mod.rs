@@ -25,7 +25,7 @@ use cargo::{
 use indoc::writedoc;
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use rustc_hash::FxHashMap;
-use tracing::error;
+use tracing::{error, warn};
 
 use crate::{
     cmd::NURL,
@@ -152,8 +152,8 @@ pub async fn write_cargo_lock(
                     .arg("-Hf")
                     .arg("fetchgit")
                     .get_stdout()
-                    .ok_error()?;
-                let hash = String::from_utf8(hash).ok_warn()?;
+                    .ok_inspect(|e| error!("{e}"))?;
+                let hash = String::from_utf8(hash).ok_inspect(|e| warn!("{e}"))?;
                 Some((format!("{}-{}", pkg.name(), pkg.version()), hash))
             })
             .collect();
@@ -183,15 +183,16 @@ pub async fn write_cargo_lock(
 }
 
 fn resolve_workspace(src_dir: &Path) -> Option<Resolve> {
-    let mut cfg = cargo_config(src_dir).ok_error()?;
+    let mut cfg = cargo_config(src_dir).ok_inspect(|e| error!("{e}"))?;
     cfg.configure(0, false, None, false, true, false, &None, &[], &[])
-        .ok_error()?;
+        .ok_inspect(|e| error!("{e}"))?;
 
-    let ws = Workspace::new(&src_dir.join("Cargo.toml"), &cfg).ok_error()?;
-    let lock = load_pkg_lockfile(&ws).ok_error()?;
+    let ws = Workspace::new(&src_dir.join("Cargo.toml"), &cfg).ok_inspect(|e| error!("{e}"))?;
+    let lock = load_pkg_lockfile(&ws).ok_inspect(|e| error!("{e}"))?;
+
     let mut registry =
         PackageRegistry::new_with_source_config(&cfg, SourceConfigMap::new(&cfg).ok()?)
-            .ok_error()?;
+            .ok_inspect(|e| error!("{e}"))?;
 
     resolve_with_previous(
         &mut registry,
@@ -203,7 +204,7 @@ fn resolve_workspace(src_dir: &Path) -> Option<Resolve> {
         &[],
         true,
     )
-    .ok_error()
+    .ok_inspect(|e| error!("{e}"))
 }
 
 fn cargo_config(src_dir: &Path) -> Result<GlobalContext> {
