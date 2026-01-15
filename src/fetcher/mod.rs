@@ -88,7 +88,7 @@ impl Fetcher {
     pub async fn create_client(&self, mut tokens: AccessTokens) -> Result<Client> {
         match self {
             Fetcher::FetchCrate { .. } => Client::builder()
-                .user_agent("Mozilla/5.0")
+                .user_agent("https://github.com/nix-community/nix-init")
                 .build()
                 .map_err(Into::into),
 
