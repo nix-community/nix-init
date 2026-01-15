@@ -15,7 +15,7 @@ use std::{
     collections::{BTreeMap, BTreeSet},
     fmt::Write as _,
     fs::{File, create_dir_all, metadata, read_dir, read_to_string},
-    io::{Write as _, stderr},
+    io::{IsTerminal, Write as _, stderr},
     path::{Component, Path, PathBuf},
 };
 
@@ -28,13 +28,12 @@ use expand::expand;
 use flate2::read::GzDecoder;
 use heck::{AsSnakeCase, ToKebabCase};
 use indoc::{formatdoc, writedoc};
-use is_terminal::IsTerminal;
 use itertools::Itertools;
 use once_cell::sync::Lazy;
 use serde::Deserialize;
 use tempfile::tempdir;
 use tokio::process::Command;
-use tracing::debug;
+use tracing::{debug, warn};
 use tracing_subscriber::EnvFilter;
 use zip::ZipArchive;
 
@@ -81,6 +80,8 @@ async fn run() -> Result<()> {
     tracing_subscriber::fmt()
         .with_ansi(stderr().is_terminal())
         .with_env_filter(EnvFilter::from_env("NIX_INIT_LOG"))
+        .with_file(true)
+        .with_line_number(true)
         .with_writer(stderr)
         .init();
 
@@ -192,11 +193,14 @@ async fn run() -> Result<()> {
                 python_dependencies,
             )
         } else {
-            let pname = url.parse::<url::Url>().ok_warn().and_then(|url| {
-                url.path_segments()
-                    .and_then(|mut xs| xs.next_back())
-                    .map(|pname| pname.strip_suffix(".git").unwrap_or(pname).into())
-            });
+            let pname = url
+                .parse::<url::Url>()
+                .ok_inspect(|e| warn!("{e}"))
+                .and_then(|url| {
+                    url.path_segments()
+                        .and_then(|mut xs| xs.next_back())
+                        .map(|pname| pname.strip_suffix(".git").unwrap_or(pname).into())
+                });
 
             let rev = match opts.rev {
                 Some(rev) => rev,
@@ -536,14 +540,14 @@ async fn run() -> Result<()> {
     let mut python_import = None;
     let (native_build_inputs, build_inputs) = match builder {
         Builder::BuildGoModule => {
-            let go_sum = File::open(src_dir.join("go.sum")).ok_warn();
+            let go_sum = File::open(src_dir.join("go.sum")).ok_inspect(|e| warn!("{e}"));
 
             if let Some(go_sum) = &go_sum {
                 load_go_dependencies(&mut inputs, go_sum);
             }
 
             let hash = if src_dir.join("vendor").is_dir()
-                || go_sum.and_then(|go_sum| go_sum.metadata().ok_warn())
+                || go_sum.and_then(|go_sum| go_sum.metadata().ok_inspect(|e| warn!("{e}")))
                     .is_none_or(|metadata| metadata.len() == 0)
             {
                 "null".into()
@@ -913,7 +917,7 @@ async fn run() -> Result<()> {
     "}?;
 
     if let Some(prefix) = prefix
-        && let Some(walk) = read_dir(&src_dir).ok_warn()
+        && let Some(walk) = read_dir(&src_dir).ok_inspect(|e| warn!("{e}"))
     {
         for entry in walk {
             let Ok(entry) = entry else {
@@ -939,7 +943,10 @@ async fn run() -> Result<()> {
         }
     }
 
-    if let (Some(store), Some(walk)) = (&*LICENSE_STORE, read_dir(src_dir).ok_warn()) {
+    if let (Some(store), Some(walk)) = (
+        &*LICENSE_STORE,
+        read_dir(src_dir).ok_inspect(|e| warn!("{e}")),
+    ) {
         let strategy = ScanStrategy::new(store).confidence_threshold(0.8);
 
         for entry in walk {
@@ -961,14 +968,16 @@ async fn run() -> Result<()> {
                 continue;
             }
 
-            let Some(text) = read_to_string(&path).ok_warn() else {
+            let Some(text) = read_to_string(&path).ok_inspect(|e| warn!("{e}")) else {
                 continue;
             };
             let Some(ScanResult {
                 score,
                 license: Some(IdentifiedLicense { name, .. }),
                 ..
-            }) = strategy.scan(&TextData::from(text)).ok_warn()
+            }) = strategy
+                .scan(&TextData::from(text))
+                .ok_inspect(|e| warn!("{e}"))
             else {
                 continue;
             };

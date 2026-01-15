@@ -5,6 +5,7 @@ use heck::ToLowerCamelCase;
 use regex::{Captures, Regex};
 use serde::Deserialize;
 use serde_with::{OneOrMany, serde_as};
+use tracing::warn;
 
 use crate::utils::ResultExt;
 
@@ -78,7 +79,7 @@ fn get_ldflags(src_dir: &Path) -> Option<Vec<String>> {
         .find_map(|name| File::open(src_dir.join(name)).ok())?;
 
     serde_yaml::from_reader::<_, GoReleaser>(file)
-        .ok_warn()?
+        .ok_inspect(|e| warn!("{e}"))?
         .builds
         .into_iter()
         .next()?
@@ -86,7 +87,7 @@ fn get_ldflags(src_dir: &Path) -> Option<Vec<String>> {
 }
 
 fn regex() -> Option<Regex> {
-    Regex::new(r"\{\{\s*(.*?)\s*}}").ok_warn()
+    Regex::new(r"\{\{\s*(.*?)\s*}}").ok_inspect(|e| warn!("{e}"))
 }
 
 fn parse_ldflags<'a>(re: &Regex, ldflags: &'a str) -> Cow<'a, str> {
