@@ -55,7 +55,6 @@ spdx = "0.13.3"
 tar = "0.4.44"
 tempfile = "3.24.0"
 time = { version = "0.3.44", features = ["parsing", "serde"] }
-toml = { version = "0.9.10", default-features = false, features = ["parse"] }
 tracing = "0.1.44"
 tracing-subscriber = { version = "0.3.22", features = ["env-filter"] }
 url = "2.5.7"
@@ -74,6 +73,11 @@ features = ["derive", "with-fuzzy"]
 [dependencies.tokio]
 version = "1.48.0"
 features = ["macros", "process", "rt-multi-thread"]
+
+[dependencies.toml]
+version = "0.9.11"
+default-features = false
+features = ["parse", "serde", "std"]
 
 [build-dependencies]
 clap = { version = "4.5.53", features = ["derive"] }
