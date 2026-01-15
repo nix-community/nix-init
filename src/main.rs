@@ -230,7 +230,7 @@ async fn run() -> Result<()> {
             if &pname == name {
                 formatdoc! {r#"
                     fetchCrate {{
-                        inherit pname version;
+                        inherit (finalAttrs) pname version;
                         hash = "{hash}";
                       }}"#,
                 }
@@ -238,7 +238,7 @@ async fn run() -> Result<()> {
                 formatdoc! {r#"
                     fetchCrate {{
                         pname = {name:?};
-                        inherit version;
+                        inherit (finalAttrs) version;
                         hash = "{hash}";
                       }}"#,
                 }
@@ -263,7 +263,7 @@ async fn run() -> Result<()> {
                 .context("failed to parse nurl output")?;
                 formatdoc! {r#"
                     fetchPypi {{
-                        inherit pname version;
+                        inherit (finalAttrs) pname version;
                         hash = "{hash}";{ext}
                       }}"#,
                 }
@@ -278,7 +278,7 @@ async fn run() -> Result<()> {
                 formatdoc! {r#"
                     fetchPypi {{
                         pname = {name:?};
-                        inherit version;
+                        inherit (finalAttrs) version;
                         hash = "{hash}";{ext}
                       }}"#,
                 }
@@ -287,11 +287,11 @@ async fn run() -> Result<()> {
 
         _ => {
             if rev == version {
-                cmd.arg("-o").arg("rev").arg("version");
+                cmd.arg("-o").arg("rev").arg("finalAttrs.version");
             } else if rev.contains(&version) {
                 cmd.arg("-O")
                     .arg("rev")
-                    .arg(rev.replacen(&version, "${version}", 1));
+                    .arg(rev.replacen(&version, "${finalAttrs.version}", 1));
             }
 
             String::from_utf8(
@@ -315,7 +315,7 @@ async fn run() -> Result<()> {
         .arg("--json")
         .arg("--expr")
         .arg(format!(
-            "let pname={pname:?};version={version:?};in(import({nixpkgs}){{}}).{src_expr}",
+            "let finalAttrs={{pname={pname:?};version={version:?};}};in(import({nixpkgs}){{}}).{src_expr}",
         ))
         .get_stdout()
         .await?;
@@ -560,7 +560,7 @@ async fn run() -> Result<()> {
             writedoc! {out, r#"
                 }}:
 
-                buildGoModule rec {{
+                buildGoModule (finalAttrs: {{
                   pname = {pname:?};
                   version = {version:?};
 
@@ -647,7 +647,7 @@ async fn run() -> Result<()> {
             writedoc! {out, r#"
                 }}:
 
-                {} rec {{
+                {} (finalAttrs: {{
                   pname = {pname:?};
                   version = {version:?};
                   pyproject = true;
@@ -667,7 +667,7 @@ async fn run() -> Result<()> {
                     write!(out, "  ")?;
                     writedoc! {out, r#"
                         cargoDeps = rustPlatform.fetchCargoVendor {{
-                            inherit pname version src;
+                            inherit (finalAttrs) pname version src;
                             hash = "{hash}";
                           }};
 
@@ -701,7 +701,7 @@ async fn run() -> Result<()> {
             writedoc! {out, r#"
                 }}:
 
-                rustPlatform.buildRustPackage rec {{
+                rustPlatform.buildRustPackage (finalAttrs: {{
                   pname = {pname:?};
                   version = {version:?};
 
@@ -734,7 +734,7 @@ async fn run() -> Result<()> {
             writedoc! {out, r#"
                 }}:
 
-                rustPlatform.buildRustPackage rec {{
+                rustPlatform.buildRustPackage (finalAttrs: {{
                   pname = "{pname}";
                   version = "{version}";
 
@@ -751,7 +751,7 @@ async fn run() -> Result<()> {
             writedoc! { out, r#"
                 }}:
 
-                stdenv.mkDerivation rec {{
+                stdenv.mkDerivation (finalAttrs: {{
                   pname = {pname:?};
                   version = {version:?};
 
@@ -778,14 +778,14 @@ async fn run() -> Result<()> {
             writedoc! {out, r#"
                 }}:
 
-                stdenv.mkDerivation rec {{
+                stdenv.mkDerivation (finalAttrs: {{
                   pname = {pname:?};
                   version = {version:?};
 
                   src = {src_expr};
 
                   cargoDeps = rustPlatform.fetchCargoVendor {{
-                    inherit pname version src;
+                    inherit (finalAttrs) pname version src;
                     hash = "{hash}";
                   }};
 
@@ -813,7 +813,7 @@ async fn run() -> Result<()> {
             writedoc! {out, r#"
                 }}:
 
-                stdenv.mkDerivation rec {{
+                stdenv.mkDerivation (finalAttrs: {{
                   pname = "{pname}";
                   version = "{version}";
 
@@ -1027,7 +1027,7 @@ async fn run() -> Result<()> {
         }
     }
 
-    writeln!(out, "  }};\n}}")?;
+    writeln!(out, "  }};\n}})")?;
 
     let mut out_file = File::create(&out_path).context("failed to create output file")?;
     write!(out_file, "{out}")?;
