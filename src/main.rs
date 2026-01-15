@@ -15,7 +15,7 @@ use std::{
     collections::{BTreeMap, BTreeSet},
     fmt::Write as _,
     fs::{File, create_dir_all, metadata, read_dir, read_to_string},
-    io::{Write as _, stderr},
+    io::{IsTerminal, Write as _, stderr},
     path::{Component, Path, PathBuf},
 };
 
@@ -28,7 +28,6 @@ use expand::expand;
 use flate2::read::GzDecoder;
 use heck::{AsSnakeCase, ToKebabCase};
 use indoc::{formatdoc, writedoc};
-use is_terminal::IsTerminal;
 use itertools::Itertools;
 use once_cell::sync::Lazy;
 use serde::Deserialize;
