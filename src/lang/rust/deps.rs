@@ -64,7 +64,12 @@ pub(super) fn load_rust_dependency(inputs: &mut AllInputs, resolve: &Resolve, pk
         "jemalloc-sys" => build!("rust-jemalloc-sys"),
         "libadwaita-sys" => build!("libadwaita"),
         "libdbus-sys" => build!("dbus"),
-        "libgit2-sys" => build!("libgit2"),
+        "libgit2-sys" => {
+            build!("libgit2");
+            if resolve.features(pkg).iter().any(|feat| feat == "vendored") {
+                environ!("LIBGIT2_NO_VENDOR", "true");
+            }
+        }
         "libgpg-error-sys" => {
             native_build!("libgpg-error");
             build!("libgpg-error")
