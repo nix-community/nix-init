@@ -224,7 +224,13 @@ async fn run() -> Result<()> {
 
     let src_expr = match fetcher {
         MaybeFetcher::Known(Fetcher::FetchCrate { pname: ref name }) => {
-            let hash = String::from_utf8(cmd.arg(&url).arg(&rev).arg("-H").get_stdout().await?)
+            let hash: String = cmd
+                .arg(&url)
+                .arg(&rev)
+                .arg("-H")
+                .get_stdout()
+                .await?
+                .try_into()
                 .context("failed to parse nurl output")?;
 
             if &pname == name {
@@ -288,15 +294,14 @@ async fn run() -> Result<()> {
                     .arg(rev.replacen(&version, "${finalAttrs.version}", 1));
             }
 
-            String::from_utf8(
-                cmd.arg(&url)
-                    .arg(&rev)
-                    .arg("-i")
-                    .arg("2")
-                    .get_stdout()
-                    .await?,
-            )
-            .context("failed to parse nurl output")?
+            cmd.arg(&url)
+                .arg(&rev)
+                .arg("-i")
+                .arg("2")
+                .get_stdout()
+                .await?
+                .try_into()
+                .context("failed to parse nurl output")?
         }
     };
 
