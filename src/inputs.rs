@@ -121,7 +121,7 @@ pub fn write_inputs(out: &mut impl Write, inputs: &Inputs, name: &'static str) -
     }
 
     for (prefix, inputs) in inputs {
-        write!(out, " ++ {prefix}")?;
+        write!(out, "\n  ++ {prefix}")?;
         write_input_list(out, inputs)?;
     }
 
