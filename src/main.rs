@@ -14,13 +14,13 @@ use std::{
     cmp::Ordering,
     collections::{BTreeMap, BTreeSet},
     fmt::Write as _,
-    fs::{File, create_dir_all, metadata, read_dir, read_to_string},
+    fs::{File, create_dir_all, metadata, read_dir},
     io::{IsTerminal, Write as _, stderr},
     path::{Component, Path, PathBuf},
 };
 
 use anyhow::{Context, Result};
-use askalono::{IdentifiedLicense, ScanResult, ScanStrategy, TextData};
+use askalono::ScanStrategy;
 use bstr::{ByteSlice, ByteVec};
 use cargo::core::Resolve;
 use clap::{Parser, crate_version};
@@ -50,7 +50,7 @@ use crate::{
         python::{Pyproject, parse_requirements_txt},
         rust::{cargo_deps_hash, load_cargo_lock, write_cargo_lock},
     },
-    license::{LICENSE_STORE, get_nix_license},
+    license::{LICENSE_STORE, load_license},
     utils::{CommandExt, FAKE_HASH, ResultExt, fod_hash},
 };
 
@@ -943,51 +943,45 @@ async fn run() -> Result<()> {
         }
     }
 
-    if let (Some(store), Some(walk)) = (
+    if let (Some(store), Some(entries)) = (
         &*LICENSE_STORE,
         read_dir(src_dir).ok_inspect(|e| warn!("{e}")),
     ) {
         let strategy = ScanStrategy::new(store).confidence_threshold(0.8);
 
-        for entry in walk {
-            let Ok(entry) = entry else {
-                continue;
-            };
+        for entry in entries.flatten() {
             let path = entry.path();
+            let name = entry.file_name();
 
-            if !path.is_file() {
-                continue;
-            }
-
-            let file_name = entry.file_name();
-            let name = <Vec<u8> as ByteVec>::from_os_str_lossy(&file_name);
             if !matches!(
-                name.to_ascii_lowercase()[..],
+                Vec::from_os_str_lossy(&name).to_ascii_lowercase()[..],
                 expand!([@b"license", ..] | [@b"licence", ..] | [@b"copying", ..]),
             ) {
                 continue;
             }
 
-            let Some(text) = read_to_string(&path).ok_inspect(|e| warn!("{e}")) else {
-                continue;
-            };
-            let Some(ScanResult {
-                score,
-                license: Some(IdentifiedLicense { name, .. }),
-                ..
-            }) = strategy
-                .scan(&TextData::from(text))
-                .ok_inspect(|e| warn!("{e}"))
-            else {
+            let Ok(metadata) = path.metadata() else {
                 continue;
             };
 
-            if let Some(license) = get_nix_license(name) {
-                debug!(
-                    "license found in {}: {license}",
-                    file_name.to_string_lossy(),
-                );
-                licenses.entry(license).or_insert(score);
+            if metadata.is_dir() {
+                let Some(entries) = path.read_dir().ok_inspect(|e| warn!("{e}")) else {
+                    continue;
+                };
+
+                for entry in entries.flatten() {
+                    let path = entry.path();
+                    if path.is_file() {
+                        load_license(
+                            &mut licenses,
+                            PathBuf::from(&name).join(entry.file_name()).display(),
+                            &strategy,
+                            &path,
+                        );
+                    }
+                }
+            } else if metadata.is_file() {
+                load_license(&mut licenses, name.display(), &strategy, &path);
             }
         }
     }
