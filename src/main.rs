@@ -1010,18 +1010,26 @@ async fn run() -> Result<()> {
     } else if let [license] = &licenses[..] {
         writeln!(out, "lib.licenses.{license};")?;
     } else {
-        write!(out, "with lib.licenses; [ ")?;
+        writeln!(out, "with lib.licenses; [")?;
         for license in licenses {
-            write!(out, "{license} ")?;
+            writeln!(out, "      {license}")?;
         }
-        writeln!(out, "];")?;
+        writeln!(out, "    ];")?;
     }
 
-    write!(out, "    maintainers = with lib.maintainers; [ ")?;
-    for maintainer in cfg.maintainers {
-        write!(out, "{maintainer} ")?;
+    if cfg.maintainers.len() < 2 {
+        write!(out, "    maintainers = with lib.maintainers; [ ")?;
+        for maintainer in cfg.maintainers {
+            write!(out, "{maintainer} ")?;
+        }
+        writeln!(out, "];")?;
+    } else {
+        writeln!(out, "    maintainers = with lib.maintainers; [")?;
+        for maintainer in cfg.maintainers {
+            writeln!(out, "      {maintainer}")?;
+        }
+        writeln!(out, "    ];")?;
     }
-    writeln!(out, "];")?;
 
     if !matches!(builder, Builder::BuildPythonPackage { application, .. } if !application) {
         writeln!(out, "    mainProgram = {pname:?};")?;
