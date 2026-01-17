@@ -18,10 +18,16 @@ pub struct Config {
     pub maintainers: Vec<String>,
     pub nixpkgs: Option<String>,
     pub access_tokens: AccessTokens,
+    pub format: Option<Format>,
 }
 
 #[derive(Default, Deserialize)]
 pub struct AccessTokens(FxHashMap<String, AccessToken>);
+
+#[derive(Deserialize)]
+pub struct Format {
+    pub command: Vec<String>,
+}
 
 impl AccessTokens {
     pub async fn insert_header(&mut self, headers: &mut HeaderMap, host: &str) {
