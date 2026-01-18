@@ -58,6 +58,7 @@ time = { version = "0.3.44", features = ["parsing", "serde"] }
 tracing = "0.1.44"
 tracing-subscriber = { version = "0.3.22", features = ["env-filter"] }
 url = "2.5.7"
+which = "8.0.0"
 xdg = "3.0.0"
 zip = "7.0.0"
 

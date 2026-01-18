@@ -15,11 +15,12 @@ use std::{
     collections::{BTreeMap, BTreeSet},
     fmt::Write as _,
     fs::{File, create_dir_all, metadata, read_dir},
-    io::{IsTerminal, Write as _, stderr},
+    io::{IsTerminal, Seek, Write as _, pipe, stderr},
     path::{Component, Path, PathBuf},
+    process::Stdio,
 };
 
-use anyhow::{Context, Result};
+use anyhow::{Context, Result, bail};
 use askalono::ScanStrategy;
 use bstr::{ByteSlice, ByteVec};
 use cargo::core::Resolve;
@@ -33,8 +34,9 @@ use once_cell::sync::Lazy;
 use serde::Deserialize;
 use tempfile::tempdir;
 use tokio::process::Command;
-use tracing::{debug, warn};
+use tracing::{debug, error, info, warn};
 use tracing_subscriber::EnvFilter;
+use which::which;
 use zip::ZipArchive;
 
 use crate::{
@@ -1040,7 +1042,21 @@ async fn run() -> Result<()> {
     writeln!(out, "  }};\n}})")?;
 
     let mut out_file = File::create(&out_path).context("failed to create output file")?;
-    write!(out_file, "{out}")?;
+    if let Some(fmt) = cfg.format {
+        let mut args = fmt.command.into_iter();
+        if let Some(cmd) = args.next() {
+            let mut cmd = Command::new(cmd);
+            cmd.args(args);
+            maybe_format(&out, out_file, cmd).await?;
+        } else {
+            error!("format.command should contain at least 1 element");
+            write!(out_file, "{out}")?;
+        }
+    } else if which("nixfmt").is_ok() {
+        maybe_format(&out, out_file, Command::new("nixfmt")).await?;
+    } else {
+        write!(out_file, "{out}")?;
+    }
 
     if !opts.commit.unwrap_or(cfg.commit) || !Path::new(".git").is_dir() {
         return Ok(());
@@ -1099,4 +1115,35 @@ fn get_version(rev: &str) -> &str {
 
 fn get_version_number(rev: &str) -> &str {
     &rev[rev.find(char::is_numeric).unwrap_or_default() ..]
+}
+
+async fn maybe_format(content: &str, mut file: File, cmd: Command) -> Result<()> {
+    if let Err(e) = try_format(content, &file, cmd).await {
+        error!("{e}");
+        file.rewind()?;
+        file.set_len(0)?;
+        write!(file, "{content}")?;
+    }
+    Ok(())
+}
+
+async fn try_format(content: &str, file: &File, mut cmd: Command) -> Result<()> {
+    let (reader, mut writer) = pipe()?;
+    info!("{cmd:?}");
+
+    let mut child = cmd
+        .stdin(reader)
+        .stdout(file.try_clone()?)
+        .stderr(Stdio::inherit())
+        .spawn()?;
+
+    write!(writer, "{content}")?;
+    drop(writer);
+
+    let status = child.wait().await?;
+    if !status.success() {
+        bail!("formatter failed with {status}");
+    }
+
+    Ok(())
 }

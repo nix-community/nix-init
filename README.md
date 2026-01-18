@@ -100,6 +100,11 @@ commit = true
 "github.com" = "ghp_blahblahblah..."
 "gitlab.com".command = ["secret-tool", "or", "whatever", "you", "use"]
 "gitlab.gnome.org".file = "/path/to/api/token"
+
+# if unspecified, nix-init tries to format the output file with nixfmt if it's found in PATH
+# the formatter should take a Nix file from stdin and output the formatted file to stdout
+[format]
+command = ["alejandra"]
 ```
 
 ## Changelog
