@@ -12,7 +12,7 @@ use xdg::BaseDirectories;
 use crate::utils::{CommandExt, ResultExt};
 
 #[derive(Default, Deserialize)]
-#[serde(default, rename_all = "kebab-case")]
+#[serde(default, deny_unknown_fields, rename_all = "kebab-case")]
 pub struct Config {
     pub commit: bool,
     pub maintainers: Vec<String>,
@@ -25,6 +25,7 @@ pub struct Config {
 pub struct AccessTokens(FxHashMap<String, AccessToken>);
 
 #[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct Format {
     pub command: Vec<String>,
 }
