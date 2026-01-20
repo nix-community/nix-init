@@ -57,11 +57,32 @@
         "type": "github"
       }
     },
+    "nurl": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1768854580,
+        "narHash": "sha256-a5NIbJh2mraGbOilI6gvfnnjZMjhu44JiGq3UaYzC9Y=",
+        "owner": "nix-community",
+        "repo": "nurl",
+        "rev": "651c1c06fc5ab47fb20486e08efe2423661b038a",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nix-community",
+        "repo": "nurl",
+        "type": "github"
+      }
+    },
     "root": {
       "inputs": {
         "fenix": "fenix",
         "flake-parts": "flake-parts",
         "nixpkgs": "nixpkgs",
+        "nurl": "nurl",
         "treefmt-nix": "treefmt-nix"
       }
     },

@@ -12,6 +12,11 @@
       url = "github:hercules-ci/flake-parts";
       inputs.nixpkgs-lib.follows = "nixpkgs";
     };
+    # remove when nurl 0.4.0 is in nixpkgs
+    nurl = {
+      url = "github:nix-community/nurl";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
     treefmt-nix = {
       url = "github:numtide/treefmt-nix";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -32,13 +37,18 @@
       perSystem =
         {
           config,
-          self',
-          pkgs,
+          inputs',
           lib,
+          pkgs,
+          self',
           ...
         }:
         {
           devShells.default = pkgs.mkShell {
+            packages = [
+              inputs'.nurl.packages.default
+            ];
+
             env = {
               NIX_INIT_LOG = "nix_init=trace";
               RUST_BACKTRACE = true;
@@ -53,6 +63,7 @@
 
           packages = {
             nix-init = pkgs.callPackage ./. {
+              nurl = inputs'.nurl.packages.default;
               inherit (config.packages) get-nix-license license-store-cache;
             };
             get-nix-license = pkgs.callPackage ./src/get_nix_license.nix { };
