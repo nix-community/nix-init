@@ -65,7 +65,51 @@
               packages = lib.mapAttrs' (n: lib.nameValuePair "package-${n}") self'.packages;
               devShells = lib.mapAttrs' (n: lib.nameValuePair "devShell-${n}") self'.devShells;
               otherChecks = {
-                clippy = config.packages.nix-init.override { enableClippy = true; };
+                clippy = config.packages.nix-init.overrideAttrs (old: {
+                  pname = "nix-init-clippy";
+
+                  nativeBuildInputs = old.nativeBuildInputs ++ [ pkgs.clippy ];
+
+                  buildPhase = ''
+                    runHook preBuild
+                    cargo clippy --target ${pkgs.stdenv.targetPlatform.rust.rustcTarget} \
+                      --offline --no-default-features -- -D warnings
+                    runHook postBuild
+                  '';
+
+                  installPhase = ''
+                    touch $out
+                  '';
+                });
+
+                tests = config.packages.nix-init.overrideAttrs {
+                  pname = "nix-init-tests";
+
+                  cargoDeps =
+                    let
+                      fixtures = ./src/lang/rust/fixtures;
+                    in
+                    pkgs.symlinkJoin {
+                      name = "cargo-vendor-dir";
+                      paths = lib.pipe fixtures [
+                        builtins.readDir
+                        lib.attrNames
+                        (lib.filter (lib.hasSuffix "-lock.toml"))
+                        (map (lib.path.append fixtures))
+                        (lib.concat [ ./Cargo.lock ])
+                        (map (lockFile: pkgs.rustPlatform.importCargoLock { inherit lockFile; }))
+                      ];
+                    };
+
+                  dontCargoBuild = true;
+
+                  doCheck = true;
+                  cargoCheckType = "debug";
+
+                  installPhase = ''
+                    touch $out
+                  '';
+                };
               };
             in
             packages // devShells // otherChecks;

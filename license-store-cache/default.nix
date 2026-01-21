@@ -3,11 +3,15 @@
   rustPlatform,
   spdx-license-list-data,
 }:
+
 rustPlatform.buildRustPackage {
   pname = "license-store-cache";
   inherit ((lib.importTOML ../Cargo.toml).workspace.package) version;
 
-  src = ../.;
+  src = lib.sourceByRegex ../. [
+    "(license-store-cache)(/.*)?"
+    ''Cargo\.(toml|lock)''
+  ];
 
   cargoLock = {
     lockFile = ../Cargo.lock;
@@ -16,6 +20,11 @@ rustPlatform.buildRustPackage {
   doCheck = false;
 
   cargoBuildFlags = [ "-p=license-store-cache" ];
+
+  postPatch = ''
+    mkdir src
+    touch src/main.rs
+  '';
 
   postInstall = ''
     cache=$(mktemp)

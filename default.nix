@@ -13,14 +13,17 @@
   nurl,
   get-nix-license,
   license-store-cache,
-  enableClippy ? false,
 }:
 
 rustPlatform.buildRustPackage rec {
   pname = "nix-init";
   inherit ((lib.importTOML ./Cargo.toml).workspace.package) version;
 
-  src = ./.;
+  src = lib.sourceByRegex ./. [
+    "(license-store-cache|src)(/.*)?"
+    "build.rs"
+    ''Cargo\.(toml|lock)''
+  ];
 
   cargoLock = {
     lockFile = ./Cargo.lock;
@@ -43,10 +46,8 @@ rustPlatform.buildRustPackage rec {
 
   buildNoDefaultFeatures = true;
 
-  checkFlags = [
-    # requires internet access
-    "--skip=lang::rust::tests"
-  ];
+  # lang::rust::tests needs additional cargo dependencies
+  doCheck = false;
 
   postPatch = ''
     mkdir -p data
@@ -78,12 +79,4 @@ rustPlatform.buildRustPackage rec {
     license = lib.licenses.mpl20;
     maintainers = with lib.maintainers; [ figsoda ];
   };
-}
-// lib.optionalAttrs enableClippy {
-  buildPhase = ''
-    cargo clippy --all-targets --all-features -- -D warnings
-  '';
-  installPhase = ''
-    touch $out
-  '';
 }
