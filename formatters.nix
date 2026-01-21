@@ -25,7 +25,6 @@
             "*/go.sum"
             "*.go"
             ".github/dependabot.yml"
-            ".mergify.yml"
             "assets/*"
             "LICENSE"
           ];
