@@ -19,7 +19,11 @@ rustPlatform.buildRustPackage rec {
   pname = "nix-init";
   inherit ((lib.importTOML ./Cargo.toml).workspace.package) version;
 
-  src = ./.;
+  src = lib.sourceByRegex ./. [
+    "(license-store-cache|src)(/.*)?"
+    "build.rs"
+    ''Cargo\.(toml|lock)''
+  ];
 
   cargoLock = {
     lockFile = ./Cargo.lock;
