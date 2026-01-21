@@ -9,7 +9,7 @@ rustPlatform.buildRustPackage {
   inherit ((lib.importTOML ../Cargo.toml).workspace.package) version;
 
   src = lib.sourceByRegex ../. [
-    "(license-store-cache|src)(/.*)?"
+    "(license-store-cache)(/.*)?"
     ''Cargo\.(toml|lock)''
   ];
 
@@ -20,6 +20,11 @@ rustPlatform.buildRustPackage {
   doCheck = false;
 
   cargoBuildFlags = [ "-p=license-store-cache" ];
+
+  postPatch = ''
+    mkdir src
+    touch src/main.rs
+  '';
 
   postInstall = ''
     cache=$(mktemp)
