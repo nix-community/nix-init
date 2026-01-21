@@ -65,7 +65,22 @@
               packages = lib.mapAttrs' (n: lib.nameValuePair "package-${n}") self'.packages;
               devShells = lib.mapAttrs' (n: lib.nameValuePair "devShell-${n}") self'.devShells;
               otherChecks = {
-                clippy = config.packages.nix-init.override { enableClippy = true; };
+                clippy = config.packages.nix-init.overrideAttrs (old: {
+                  pname = "nix-init-clippy";
+
+                  nativeBuildInputs = old.nativeBuildInputs ++ [ pkgs.clippy ];
+
+                  buildPhase = ''
+                    runHook preBuild
+                    cargo clippy --target ${pkgs.stdenv.targetPlatform.rust.rustcTarget} \
+                      --offline --no-default-features -- -D warnings
+                    runHook postBuild
+                  '';
+
+                  installPhase = ''
+                    touch $out
+                  '';
+                });
               };
             in
             packages // devShells // otherChecks;

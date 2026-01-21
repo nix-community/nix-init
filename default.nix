@@ -13,7 +13,6 @@
   nurl,
   get-nix-license,
   license-store-cache,
-  enableClippy ? false,
 }:
 
 rustPlatform.buildRustPackage rec {
@@ -78,12 +77,4 @@ rustPlatform.buildRustPackage rec {
     license = lib.licenses.mpl20;
     maintainers = with lib.maintainers; [ figsoda ];
   };
-}
-// lib.optionalAttrs enableClippy {
-  buildPhase = ''
-    cargo clippy --all-targets --all-features -- -D warnings
-  '';
-  installPhase = ''
-    touch $out
-  '';
 }
