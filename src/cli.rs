@@ -79,6 +79,8 @@ pub enum BuilderFunction {
     BuildRustPackage,
     #[value(name = "stdenv.mkDerivation", alias = "mkDerivation")]
     MkDerivation,
+    #[value(name = "stdenvNoCC.mkDerivation")]
+    MkDerivationNoCC,
 }
 
 #[derive(Clone, Copy, ValueEnum)]

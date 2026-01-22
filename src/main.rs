@@ -387,6 +387,7 @@ async fn run() -> Result<()> {
             },
             BuilderFunction::BuildRustPackage => Builder::BuildRustPackage { vendor },
             BuilderFunction::MkDerivation => Builder::MkDerivation { rust },
+            BuilderFunction::MkDerivationNoCC => Builder::MkDerivationNoCC,
         },
         (Some(builder), _) => {
             let rust = has_cargo.then_some(CargoVendor::FetchCargoVendor);
@@ -404,6 +405,7 @@ async fn run() -> Result<()> {
                     vendor: CargoVendor::FetchCargoVendor,
                 },
                 BuilderFunction::MkDerivation => Builder::MkDerivation { rust },
+                BuilderFunction::MkDerivationNoCC => Builder::MkDerivationNoCC,
             }
         }
         (None, rust) => {
@@ -441,6 +443,7 @@ async fn run() -> Result<()> {
             }
 
             builders.push(Builder::MkDerivation { rust: None });
+            builders.push(Builder::MkDerivationNoCC);
 
             frontend.builder(builders)?
         }
@@ -535,6 +538,21 @@ async fn run() -> Result<()> {
                     "rustPlatform.cargoSetupHook".into(),
                     "rustc".into(),
                 ]);
+            }
+        }
+        Builder::MkDerivationNoCC => {
+            writeln!(out, "  stdenvNoCC,")?;
+            if has_cmake {
+                inputs.native_build_inputs.always.insert("cmake".into());
+            }
+            if has_meson {
+                inputs
+                    .native_build_inputs
+                    .always
+                    .extend(["meson".into(), "ninja".into()]);
+            }
+            if has_zig {
+                inputs.native_build_inputs.always.insert("zig.hook".into());
             }
         }
     }
@@ -838,6 +856,22 @@ async fn run() -> Result<()> {
             write_cargo_lock(&mut out, has_cargo_lock, resolve).await?;
             res
         }
+
+        Builder::MkDerivationNoCC => {
+            let res =
+                write_all_lambda_inputs(&mut out, &inputs, &mut ["stdenvNoCC".into()].into())?;
+            writedoc! { out, r#"
+                }}:
+
+                stdenvNoCC.mkDerivation (finalAttrs: {{
+                  pname = {pname:?};
+                  version = {version:?};
+
+                  src = {src_expr};
+
+            "#}?;
+            res
+        }
     };
 
     if native_build_inputs {
@@ -1040,12 +1074,14 @@ async fn run() -> Result<()> {
         writeln!(out, "    mainProgram = {pname:?};")?;
     }
 
-    if matches!(builder, Builder::MkDerivation { .. }) {
-        if has_zig {
+    match builder {
+        Builder::MkDerivation { .. } if has_zig => {
             writeln!(out, "    inherit (zig.meta) platforms;")?;
-        } else {
+        }
+        Builder::MkDerivation { .. } | Builder::MkDerivationNoCC => {
             writeln!(out, "    platforms = lib.platforms.all;")?;
         }
+        _ => {}
     }
 
     writeln!(out, "  }};\n}})")?;
