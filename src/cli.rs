@@ -77,6 +77,7 @@ pub enum BuilderFunction {
     BuildPythonApplication,
     BuildPythonPackage,
     BuildRustPackage,
+    #[value(name = "stdenv.mkDerivation", alias = "mkDerivation")]
     MkDerivation,
 }
 
