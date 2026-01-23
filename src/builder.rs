@@ -15,6 +15,7 @@ pub enum Builder {
     MkDerivation {
         rust: Option<CargoVendor>,
     },
+    MkDerivationNoCC,
 }
 
 impl Display for Builder {
@@ -55,6 +56,10 @@ impl Display for Builder {
                 if let Some(rust) = rust {
                     write!(f, " + {rust}")?;
                 }
+            }
+
+            Builder::MkDerivationNoCC => {
+                write!(f, "stdenvNoCC.mkDerivation")?;
             }
         }
 
