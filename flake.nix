@@ -32,7 +32,8 @@
         "x86_64-darwin"
         "x86_64-linux"
       ];
-      imports = [ ./formatters.nix ];
+
+      imports = [ inputs.treefmt-nix.flakeModule ];
 
       perSystem =
         {
@@ -124,6 +125,24 @@
               };
             in
             packages // devShells // otherChecks;
+
+          treefmt = {
+            programs = {
+              actionlint.enable = true;
+              deadnix.enable = true;
+              deno.enable = true;
+              nixfmt.enable = true;
+              rustfmt = {
+                enable = true;
+                package = inputs'.fenix.packages.latest.rustfmt;
+              };
+              statix.enable = true;
+              taplo.enable = true;
+            };
+            settings.global.excludes = [
+              "*-lock.toml"
+            ];
+          };
         };
     };
 }
