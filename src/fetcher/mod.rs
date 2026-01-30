@@ -5,53 +5,46 @@ mod gitlab;
 mod pypi;
 
 use anyhow::Result;
+use enum_dispatch::enum_dispatch;
 use parse_display::Display;
-use reqwest::{Client, IntoUrl, header::HeaderMap};
+use reqwest::{Client, IntoUrl};
 use rustc_hash::FxHashMap;
 use rustyline::completion::Pair;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use tracing::{error, warn};
 
-use crate::{cfg::AccessTokens, lang::python::PythonDependencies, utils::ResultExt};
+use crate::{
+    cfg::AccessTokens,
+    fetcher::{
+        crates_io::FetchCrate, gitea::FetchFromGitea, github::FetchFromGitHub,
+        gitlab::FetchFromGitLab, pypi::FetchPypi,
+    },
+    lang::python::PythonDependencies,
+    utils::ResultExt,
+};
+
+#[enum_dispatch]
+pub trait Fetcher {
+    async fn create_client(&self, tokens: AccessTokens) -> Result<Client>;
+
+    async fn get_package_info(&self, cl: &Client) -> PackageInfo;
+
+    async fn get_version(&self, cl: &Client, rev: &str) -> Option<Version>;
+
+    async fn has_submodules(&self, cl: &Client, rev: &str) -> bool;
+}
 
 #[allow(clippy::enum_variant_names)]
-#[derive(Debug, Deserialize, Display, Serialize)]
+#[derive(Debug, Deserialize, Display)]
 #[display("{}", style = "camelCase")]
+#[enum_dispatch(Fetcher)]
 #[serde(tag = "fetcher", content = "args", rename_all = "camelCase")]
-pub enum Fetcher {
-    FetchCrate {
-        pname: String,
-    },
-    #[serde(rename_all = "camelCase")]
-    FetchFromGitHub {
-        #[serde(default = "default_github_base")]
-        github_base: String,
-        owner: String,
-        repo: String,
-    },
-    FetchFromGitLab {
-        #[serde(default = "default_gitlab_domain")]
-        domain: String,
-        group: Option<String>,
-        owner: String,
-        repo: String,
-    },
-    FetchFromGitea {
-        domain: String,
-        owner: String,
-        repo: String,
-    },
-    FetchPypi {
-        pname: String,
-    },
-}
-
-fn default_github_base() -> String {
-    "github.com".into()
-}
-
-fn default_gitlab_domain() -> String {
-    "gitlab.com".into()
+pub enum FetcherDispatch {
+    FetchCrate(FetchCrate),
+    FetchFromGitHub(FetchFromGitHub),
+    FetchFromGitLab(FetchFromGitLab),
+    FetchFromGitea(FetchFromGitea),
+    FetchPypi(FetchPypi),
 }
 
 pub enum Version {
@@ -83,115 +76,6 @@ pub struct PackageInfo {
     pub license: Vec<&'static str>,
     pub python_dependencies: PythonDependencies,
     pub revisions: Revisions,
-}
-
-impl Fetcher {
-    pub async fn create_client(&self, mut tokens: AccessTokens) -> Result<Client> {
-        match self {
-            Fetcher::FetchCrate { .. } => Client::builder()
-                .user_agent("https://github.com/nix-community/nix-init")
-                .build()
-                .map_err(Into::into),
-
-            Fetcher::FetchFromGitHub { github_base, .. } => {
-                let mut headers = HeaderMap::new();
-                tokens.insert_header(&mut headers, github_base).await;
-                Client::builder()
-                    .user_agent("Mozilla/5.0")
-                    .default_headers(headers)
-                    .build()
-                    .map_err(Into::into)
-            }
-
-            Fetcher::FetchFromGitLab { domain, .. } => {
-                let mut headers = HeaderMap::new();
-                tokens.insert_header(&mut headers, domain).await;
-                Client::builder()
-                    .default_headers(headers)
-                    .build()
-                    .map_err(Into::into)
-            }
-
-            Fetcher::FetchFromGitea { domain, .. } => {
-                let mut headers = HeaderMap::new();
-                tokens.insert_header(&mut headers, domain).await;
-                Client::builder()
-                    .default_headers(headers)
-                    .build()
-                    .map_err(Into::into)
-            }
-
-            Fetcher::FetchPypi { .. } => Ok(Client::new()),
-        }
-    }
-
-    pub async fn get_package_info(&mut self, cl: &Client) -> PackageInfo {
-        match self {
-            Fetcher::FetchCrate { pname } => crates_io::get_package_info(cl, pname).await,
-            Fetcher::FetchFromGitHub {
-                github_base,
-                owner,
-                repo,
-            } => github::get_package_info(cl, github_base, owner, repo).await,
-            Fetcher::FetchFromGitLab {
-                domain,
-                group,
-                owner,
-                repo,
-            } => gitlab::get_package_info(cl, domain, group, owner, repo).await,
-            Fetcher::FetchFromGitea {
-                domain,
-                owner,
-                repo,
-            } => gitea::get_package_info(cl, domain, owner, repo).await,
-            Fetcher::FetchPypi { pname } => pypi::get_package_info(cl, pname).await,
-        }
-    }
-
-    pub async fn get_version(&self, cl: &Client, rev: &str) -> Option<Version> {
-        match self {
-            Fetcher::FetchCrate { .. } => Some(Version::Tag),
-            Fetcher::FetchFromGitHub {
-                github_base,
-                owner,
-                repo,
-            } => github::get_version(cl, github_base, owner, repo, rev).await,
-            Fetcher::FetchFromGitLab {
-                domain,
-                group,
-                owner,
-                repo,
-            } => gitlab::get_version(cl, domain, group, owner, repo, rev).await,
-            Fetcher::FetchFromGitea {
-                domain,
-                owner,
-                repo,
-            } => gitea::get_version(cl, domain, owner, repo, rev).await,
-            Fetcher::FetchPypi { .. } => None,
-        }
-    }
-
-    pub async fn has_submodules(&self, cl: &Client, rev: &str) -> bool {
-        match self {
-            Fetcher::FetchFromGitHub {
-                github_base,
-                owner,
-                repo,
-            } => github::has_submodules(cl, github_base, owner, repo, rev).await,
-            Fetcher::FetchFromGitLab {
-                domain,
-                group,
-                owner,
-                repo,
-            } => gitlab::has_submodules(cl, domain, group, owner, repo, rev).await,
-            Fetcher::FetchFromGitea {
-                domain,
-                owner,
-                repo,
-            } => gitea::has_submodules(cl, domain, owner, repo, rev).await,
-            Fetcher::FetchCrate { .. } | Fetcher::FetchPypi { .. } => false,
-        }
-    }
 }
 
 pub async fn json<T: for<'a> Deserialize<'a>>(cl: &Client, url: impl IntoUrl) -> Option<T> {

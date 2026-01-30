@@ -44,7 +44,7 @@ use crate::{
     cfg::load_config,
     cli::{BuilderFunction, CargoVendor, Opts},
     cmd::{NIX, NURL},
-    fetcher::{Fetcher, PackageInfo, PypiFormat, Revisions, Version},
+    fetcher::{Fetcher, FetcherDispatch, PackageInfo, PypiFormat, Revisions, Version},
     frontend::{Frontend, headless, readline},
     inputs::{AllInputs, write_all_lambda_inputs, write_inputs, write_lambda_input},
     lang::{
@@ -59,7 +59,7 @@ use crate::{
 #[derive(Debug, Deserialize)]
 #[serde(untagged)]
 enum MaybeFetcher {
-    Known(Fetcher),
+    Known(FetcherDispatch),
     Unknown { fetcher: String },
 }
 
@@ -171,8 +171,8 @@ async fn run() -> Result<()> {
                         pname: pypi_pname,
                         format,
                     }) => {
-                        if let Fetcher::FetchPypi { pname } = fetcher {
-                            *pname = pypi_pname;
+                        if let FetcherDispatch::FetchPypi(fetcher) = fetcher {
+                            fetcher.pname = pypi_pname;
                         }
                         pypi_format = format;
                         rev.clone()
@@ -229,7 +229,7 @@ async fn run() -> Result<()> {
     cmd.arg("-n").arg(&nixpkgs);
 
     let src_expr = match fetcher {
-        MaybeFetcher::Known(Fetcher::FetchCrate { pname: ref name }) => {
+        MaybeFetcher::Known(FetcherDispatch::FetchCrate(ref fetcher)) => {
             let hash: String = cmd
                 .arg(&url)
                 .arg(&rev)
@@ -239,7 +239,7 @@ async fn run() -> Result<()> {
                 .try_into()
                 .context("failed to parse nurl output")?;
 
-            if &pname == name {
+            if pname == fetcher.pname {
                 formatdoc! {r#"
                     fetchCrate {{
                         inherit (finalAttrs) pname version;
@@ -249,15 +249,16 @@ async fn run() -> Result<()> {
             } else {
                 formatdoc! {r#"
                     fetchCrate {{
-                        pname = {name:?};
+                        pname = {:?};
                         inherit (finalAttrs) version;
                         hash = "{hash}";
                       }}"#,
+                    fetcher.pname,
                 }
             }
         }
 
-        MaybeFetcher::Known(Fetcher::FetchPypi { pname: ref name }) => {
+        MaybeFetcher::Known(FetcherDispatch::FetchPypi(ref fetcher)) => {
             cmd.arg("-H");
             let mut ext = String::new();
             if !matches!(pypi_format, PypiFormat::TarGz) {
@@ -266,14 +267,14 @@ async fn run() -> Result<()> {
             }
 
             let hash: String = cmd
-                .arg(format!("https://pypi.org/project/{name}"))
+                .arg(format!("https://pypi.org/project/{}", fetcher.pname))
                 .arg(&rev)
                 .get_stdout()
                 .await?
                 .try_into()
                 .context("failed to parse nurl output")?;
 
-            if &pname == name {
+            if pname == fetcher.pname {
                 formatdoc! {r#"
                     fetchPypi {{
                         inherit (finalAttrs) pname version;
@@ -283,10 +284,11 @@ async fn run() -> Result<()> {
             } else {
                 formatdoc! {r#"
                     fetchPypi {{
-                        pname = {name:?};
+                        pname = {:?};
                         inherit (finalAttrs) version;
                         hash = "{hash}";{ext}
                       }}"#,
+                    fetcher.pname,
                 }
             }
         }
@@ -342,7 +344,7 @@ async fn run() -> Result<()> {
         .out;
 
     let tmp;
-    let src_dir = if let MaybeFetcher::Known(Fetcher::FetchPypi { ref pname }) = fetcher {
+    let src_dir = if let MaybeFetcher::Known(FetcherDispatch::FetchPypi(ref fetcher)) = fetcher {
         let file = File::open(&src)?;
         tmp = tempdir().context("failed to create temporary directory")?;
         let tmp = tmp.path();
@@ -359,7 +361,7 @@ async fn run() -> Result<()> {
             }
         }
 
-        tmp.join(format!("{pname}-{version}"))
+        tmp.join(format!("{}-{version}", fetcher.pname))
     } else {
         PathBuf::from(&src)
     };
