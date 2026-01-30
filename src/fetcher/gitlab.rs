@@ -1,12 +1,25 @@
-use reqwest::Client;
+use std::fmt::Write;
+
+use anyhow::Result;
+use reqwest::{Client, header::HeaderMap};
 use rustc_hash::FxHashMap;
 use rustyline::completion::Pair;
 use serde::Deserialize;
 
 use crate::{
     Revisions,
-    fetcher::{PackageInfo, Version, json, success},
+    cfg::AccessTokens,
+    fetcher::{Fetcher, PackageInfo, Version, json, success},
 };
+
+#[derive(Debug, Deserialize)]
+pub struct FetchFromGitLab {
+    #[serde(default = "default_gitlab_domain")]
+    domain: String,
+    group: Option<String>,
+    owner: String,
+    repo: String,
+}
 
 #[derive(Deserialize)]
 struct Repo {
@@ -31,183 +44,182 @@ struct Commit {
     title: String,
 }
 
-pub async fn get_package_info(
-    cl: &Client,
-    domain: &str,
-    group: &Option<String>,
-    owner: &str,
-    repo: &str,
-) -> PackageInfo {
-    let root = get_api_root(domain, group, owner, repo);
-
-    let (description, latest_release, tags, commits) = tokio::join!(
-        async {
-            json(cl, &root)
-                .await
-                .map_or_else(String::new, |repo: Repo| repo.description)
-        },
-        async {
-            json(cl, format!("{root}/releases/permalink/latest"))
-                .await
-                .map(|latest_release: LatestRelease| latest_release.tag_name)
-        },
-        json::<Vec<_>>(cl, format!("{root}/repository/tags?per_page=12")),
-        json::<Vec<_>>(cl, format!("{root}/repository/commits?per_page=12")),
-    );
-
-    let mut completions = vec![];
-    let mut versions = FxHashMap::default();
-
-    let mut latest = if let Some(latest) = &latest_release {
-        versions.insert(latest.clone(), Version::Latest);
-        completions.push(Pair {
-            display: format!("{latest} (latest release)"),
-            replacement: latest.clone(),
-        });
-        latest.clone()
-    } else {
-        "".into()
-    };
-
-    if let Some(tags) = tags {
-        if latest.is_empty()
-            && let Some(Tag { name }) = tags.first()
-        {
-            latest = name.clone();
-        }
-
-        for Tag { name } in tags {
-            if matches!(&latest_release, Some(tag) if tag == &name) {
-                continue;
-            }
-            completions.push(Pair {
-                display: format!("{name} (tag)"),
-                replacement: name.clone(),
-            });
-            versions.insert(name, Version::Tag);
-        }
+impl Fetcher for FetchFromGitLab {
+    async fn create_client(&self, mut tokens: AccessTokens) -> Result<Client> {
+        let mut headers = HeaderMap::new();
+        tokens.insert_header(&mut headers, &self.domain).await;
+        Client::builder()
+            .default_headers(headers)
+            .build()
+            .map_err(Into::into)
     }
 
-    if let Some(commits) = commits {
-        let mut commits = commits.into_iter();
+    async fn get_package_info(&self, cl: &Client) -> PackageInfo {
+        let root = self.get_api_root();
 
-        if let Some(Commit {
-            id,
-            committed_date,
-            title,
-        }) = commits.next()
-        {
-            if latest.is_empty() {
-                latest = id.clone();
+        let (description, latest_release, tags, commits) = tokio::join!(
+            async {
+                json(cl, &root)
+                    .await
+                    .map_or_else(String::new, |repo: Repo| repo.description)
+            },
+            async {
+                json(cl, format!("{root}/releases/permalink/latest"))
+                    .await
+                    .map(|latest_release: LatestRelease| latest_release.tag_name)
+            },
+            json::<Vec<_>>(cl, format!("{root}/repository/tags?per_page=12")),
+            json::<Vec<_>>(cl, format!("{root}/repository/commits?per_page=12")),
+        );
+
+        let mut completions = vec![];
+        let mut versions = FxHashMap::default();
+
+        let mut latest = if let Some(latest) = &latest_release {
+            versions.insert(latest.clone(), Version::Latest);
+            completions.push(Pair {
+                display: format!("{latest} (latest release)"),
+                replacement: latest.clone(),
+            });
+            latest.clone()
+        } else {
+            "".into()
+        };
+
+        if let Some(tags) = tags {
+            if latest.is_empty()
+                && let Some(Tag { name }) = tags.first()
+            {
+                latest = name.clone();
             }
 
-            let date = &committed_date[0 .. 10];
-
-            completions.push(Pair {
-                display: format!("{id} ({date} - HEAD) {title}"),
-                replacement: id.clone(),
-            });
-            versions.insert(
-                id,
-                Version::Head {
-                    date: date.into(),
-                    msg: title,
-                },
-            );
+            for Tag { name } in tags {
+                if matches!(&latest_release, Some(tag) if tag == &name) {
+                    continue;
+                }
+                completions.push(Pair {
+                    display: format!("{name} (tag)"),
+                    replacement: name.clone(),
+                });
+                versions.insert(name, Version::Tag);
+            }
         }
 
-        for Commit {
-            id,
-            committed_date,
-            title,
-        } in commits
-        {
-            let date = &committed_date[0 .. 10];
-            completions.push(Pair {
-                display: format!("{id} ({date}) {title}"),
-                replacement: id.clone(),
-            });
-            versions.insert(
-                id,
-                Version::Commit {
-                    date: date.into(),
-                    msg: title,
-                },
-            );
-        }
-    };
+        if let Some(commits) = commits {
+            let mut commits = commits.into_iter();
 
-    PackageInfo {
-        pname: repo.into(),
-        description,
-        file_url_prefix: Some(format!(
-            "https://{domain}/{owner}/{repo}/-/blob/${{finalAttrs.src.rev}}/",
-        )),
-        license: Vec::new(),
-        python_dependencies: Default::default(),
-        revisions: Revisions {
-            latest,
-            completions,
-            versions,
-        },
+            if let Some(Commit {
+                id,
+                committed_date,
+                title,
+            }) = commits.next()
+            {
+                if latest.is_empty() {
+                    latest = id.clone();
+                }
+
+                let date = &committed_date[0 .. 10];
+
+                completions.push(Pair {
+                    display: format!("{id} ({date} - HEAD) {title}"),
+                    replacement: id.clone(),
+                });
+                versions.insert(
+                    id,
+                    Version::Head {
+                        date: date.into(),
+                        msg: title,
+                    },
+                );
+            }
+
+            for Commit {
+                id,
+                committed_date,
+                title,
+            } in commits
+            {
+                let date = &committed_date[0 .. 10];
+                completions.push(Pair {
+                    display: format!("{id} ({date}) {title}"),
+                    replacement: id.clone(),
+                });
+                versions.insert(
+                    id,
+                    Version::Commit {
+                        date: date.into(),
+                        msg: title,
+                    },
+                );
+            }
+        };
+
+        let mut file_url_prefix = format!("https://{}/", self.domain);
+        if let Some(group) = &self.group {
+            let _ = write!(file_url_prefix, "{group}/");
+        }
+        let _ = write!(
+            file_url_prefix,
+            "{}/{}/-/blob/${{finalAttrs.src.rev}}/",
+            self.owner, self.repo,
+        );
+
+        PackageInfo {
+            pname: self.repo.clone(),
+            description,
+            file_url_prefix: Some(file_url_prefix),
+            license: Vec::new(),
+            python_dependencies: Default::default(),
+            revisions: Revisions {
+                latest,
+                completions,
+                versions,
+            },
+        }
+    }
+
+    async fn get_version(&self, cl: &Client, rev: &str) -> Option<Version> {
+        let Commit {
+            id, committed_date, ..
+        } = json(
+            cl,
+            format!("{}/repository/commits/{rev}", self.get_api_root()),
+        )
+        .await?;
+
+        Some(if id.starts_with(rev) {
+            Version::Commit {
+                date: committed_date[0 .. 10].into(),
+                msg: "".into(),
+            }
+        } else {
+            Version::Tag
+        })
+    }
+
+    async fn has_submodules(&self, cl: &Client, rev: &str) -> bool {
+        success(
+            cl,
+            format!(
+                "{}/repository/files/.gitmodules/raw?ref={rev}",
+                self.get_api_root(),
+            ),
+        )
+        .await
     }
 }
 
-pub async fn get_version(
-    cl: &Client,
-    domain: &str,
-    group: &Option<String>,
-    owner: &str,
-    repo: &str,
-    rev: &str,
-) -> Option<Version> {
-    let Commit {
-        id, committed_date, ..
-    } = json(
-        cl,
-        format!(
-            "{}/repository/commits/{rev}",
-            get_api_root(domain, group, owner, repo),
-        ),
-    )
-    .await?;
-
-    Some(if id.starts_with(rev) {
-        Version::Commit {
-            date: committed_date[0 .. 10].into(),
-            msg: "".into(),
+impl FetchFromGitLab {
+    fn get_api_root(&self) -> String {
+        let mut root = format!("https://{}/api/v4/projects/", self.domain);
+        if let Some(group) = &self.group {
+            let _ = write!(root, "{}%2F", group.replace("/", "%2F"));
         }
-    } else {
-        Version::Tag
-    })
-}
-
-pub async fn has_submodules(
-    cl: &Client,
-    domain: &str,
-    group: &Option<String>,
-    owner: &str,
-    repo: &str,
-    rev: &str,
-) -> bool {
-    success(
-        cl,
-        format!(
-            "{}/repository/files/.gitmodules/raw?ref={rev}",
-            get_api_root(domain, group, owner, repo),
-        ),
-    )
-    .await
-}
-
-fn get_api_root(domain: &str, group: &Option<String>, owner: &str, repo: &str) -> String {
-    let mut root = format!("https://{domain}/api/v4/projects/");
-    if let Some(group) = group {
-        root.push_str(group);
-        root.push_str("%2F")
+        let _ = write!(root, "{}%2F{}", &self.owner, &self.repo);
+        root
     }
-    root.push_str(owner);
-    root.push_str("%2F");
-    root.push_str(repo);
-    root
+}
+
+fn default_gitlab_domain() -> String {
+    "gitlab.com".into()
 }
