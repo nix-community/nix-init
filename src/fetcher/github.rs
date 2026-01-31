@@ -170,13 +170,13 @@ impl Fetcher for FetchFromGitHub {
             }
         };
 
+        let homepage = format!("https://{}/{}/{}", self.github_base, self.owner, self.repo);
+
         PackageInfo {
             pname: self.repo.clone(),
             description,
-            file_url_prefix: Some(format!(
-                "https://{}/{}/{}/blob/${{finalAttrs.src.rev}}/",
-                self.github_base, self.owner, self.repo,
-            )),
+            file_url_prefix: Some(format!("{homepage}/blob/${{finalAttrs.src.rev}}/")),
+            homepage,
             license: Vec::new(),
             python_dependencies: Default::default(),
             revisions: Revisions {

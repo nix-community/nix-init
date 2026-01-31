@@ -112,7 +112,7 @@ async fn run() -> Result<()> {
     let mut out = String::new();
     writeln!(out, "{{\n  lib,")?;
 
-    let url = match opts.url {
+    let mut url = match opts.url {
         Some(url) => url,
         None => frontend.url()?,
     };
@@ -132,10 +132,13 @@ async fn run() -> Result<()> {
                 pname,
                 description,
                 file_url_prefix,
+                homepage,
                 license,
                 python_dependencies,
                 mut revisions,
             } = fetcher.get_package_info(&cl).await;
+
+            url = homepage;
 
             for license in license {
                 licenses.insert(license, 1.0);
