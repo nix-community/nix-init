@@ -117,13 +117,6 @@ impl Pyproject {
                         .always
                         .insert("rustPlatform.maturinBuildHook".into());
                 }
-                "setuptools" => {
-                    inputs.native_build_inputs.always.extend(if application {
-                        ["python3.pkgs.setuptools".into()]
-                    } else {
-                        ["setuptools".into()]
-                    });
-                }
                 name => {
                     inputs.native_build_inputs.always.insert(if application {
                         format!("python3.pkgs.{}", AsKebabCase(name.to_lowercase()))
@@ -237,7 +230,7 @@ pub fn parser<'a>() -> impl Parser<'a, &'a str, Dependency<'a>, Err<EmptyErr>> {
 
 impl BuildSystem {
     fn default_requires() -> Vec<String> {
-        vec!["setuptools".into(), "wheel".into()]
+        vec!["setuptools".into()]
     }
 }
 
