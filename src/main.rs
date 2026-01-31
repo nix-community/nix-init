@@ -297,21 +297,14 @@ async fn run() -> Result<()> {
         }
 
         _ => {
-            let rev_key = match &fetcher {
-                MaybeFetcher::Unknown { fetcher } => match fetcher.as_str() {
-                    "fetchhg" | "fetchFromRepoOrCz" | "fetchsvn" => "rev",
-                    "fetchHex" => "version",
-                    _ => "tag",
-                },
-                _ => "tag",
-            };
-
             if rev == version {
-                cmd.arg("-o").arg(rev_key).arg("finalAttrs.version");
+                cmd.arg("--overwrite-rev").arg("finalAttrs.version");
             } else if rev.contains(&version) {
-                cmd.arg("-O")
-                    .arg(rev_key)
-                    .arg(rev.replacen(&version, "${finalAttrs.version}", 1));
+                cmd.arg("--overwrite-rev-str").arg(rev.replacen(
+                    &version,
+                    "${finalAttrs.version}",
+                    1,
+                ));
             }
 
             cmd.arg(&url)
