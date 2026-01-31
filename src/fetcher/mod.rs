@@ -73,6 +73,7 @@ pub struct PackageInfo {
     pub pname: String,
     pub description: String,
     pub file_url_prefix: Option<String>,
+    pub homepage: String,
     pub license: Vec<&'static str>,
     pub python_dependencies: PythonDependencies,
     pub revisions: Revisions,

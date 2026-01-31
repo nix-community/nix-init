@@ -43,6 +43,8 @@ impl Fetcher for FetchCrate {
     }
 
     async fn get_package_info(&self, cl: &Client) -> PackageInfo {
+        let homepage = format!("https://crates.io/crates/{}", self.pname);
+
         let mut completions = Vec::new();
         let mut versions = Default::default();
 
@@ -56,6 +58,7 @@ impl Fetcher for FetchCrate {
                 pname: self.pname.clone(),
                 description: "".into(),
                 file_url_prefix: None,
+                homepage,
                 license: Vec::new(),
                 python_dependencies: Default::default(),
                 revisions: Revisions {
@@ -126,6 +129,7 @@ impl Fetcher for FetchCrate {
             license: latest_license.map_or_else(Vec::new, |license| {
                 parse_spdx_expression(&license, "crates.io")
             }),
+            homepage,
             python_dependencies: Default::default(),
             revisions: Revisions {
                 latest,

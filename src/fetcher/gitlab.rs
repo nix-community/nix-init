@@ -154,20 +154,17 @@ impl Fetcher for FetchFromGitLab {
             }
         };
 
-        let mut file_url_prefix = format!("https://{}/", self.domain);
+        let mut homepage = format!("https://{}/", self.domain);
         if let Some(group) = &self.group {
-            let _ = write!(file_url_prefix, "{group}/");
+            let _ = write!(homepage, "{group}/");
         }
-        let _ = write!(
-            file_url_prefix,
-            "{}/{}/-/blob/${{finalAttrs.src.rev}}/",
-            self.owner, self.repo,
-        );
+        let _ = write!(homepage, "{}/{}", self.owner, self.repo);
 
         PackageInfo {
             pname: self.repo.clone(),
             description,
-            file_url_prefix: Some(file_url_prefix),
+            file_url_prefix: Some(format!("{homepage}/-/blob/${{finalAttrs.src.rev}}/")),
+            homepage,
             license: Vec::new(),
             python_dependencies: Default::default(),
             revisions: Revisions {

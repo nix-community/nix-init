@@ -153,10 +153,13 @@ impl Fetcher for FetchFromGitea {
             }
         };
 
+        let homepage = format!("https://{}/{}/{}", self.domain, self.owner, self.repo);
+
         PackageInfo {
             pname: self.repo.clone(),
             description,
             file_url_prefix: None,
+            homepage,
             license: Vec::new(),
             python_dependencies: Default::default(),
             revisions: Revisions {

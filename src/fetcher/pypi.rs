@@ -51,6 +51,8 @@ impl Fetcher for FetchPypi {
     }
 
     async fn get_package_info(&self, cl: &Client) -> PackageInfo {
+        let homepage = format!("https://pypi.org/project/{}", self.pname);
+
         let mut completions = Vec::new();
         let mut versions = Default::default();
 
@@ -61,6 +63,7 @@ impl Fetcher for FetchPypi {
                 pname: self.pname.clone(),
                 description: "".into(),
                 file_url_prefix: None,
+                homepage,
                 license: Vec::new(),
                 python_dependencies: Default::default(),
                 revisions: Revisions {
@@ -118,6 +121,7 @@ impl Fetcher for FetchPypi {
             pname: self.pname.clone(),
             description: project.info.summary,
             file_url_prefix: None,
+            homepage,
             license: project
                 .info
                 .license
