@@ -4,35 +4,13 @@ on:
   push:
     tags:
       - v[0-9]+.[0-9]+.[0-9]+
-  workflow_dispatch:
-    inputs:
-      tag:
-        description: The existing tag to publish to FlakeHub
-        type: string
-        required: true
 
 jobs:
   release:
     runs-on: ubuntu-latest
-    if: github.event_name != 'workflow_dispatch'
     permissions:
       contents: write
     steps:
       - uses: softprops/action-gh-release@v2
         with:
           body: "[CHANGELOG.md](https://github.com/nix-community/nix-init/blob/main/CHANGELOG.md)"
-
-  flakehub:
-    runs-on: ubuntu-latest
-    permissions:
-      id-token: write
-      contents: read
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          ref: ${{ inputs.tag != null && format('refs/tags/{0}', inputs.tag) || '' }}
-      - uses: DeterminateSystems/nix-installer-action@v21
-      - uses: DeterminateSystems/flakehub-push@v6
-        with:
-          visibility: public
-          tag: ${{ inputs.tag }}
