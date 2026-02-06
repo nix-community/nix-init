@@ -51,17 +51,24 @@ Arguments:
   [OUTPUT]  The path or directory to output the generated file to
 
 Options:
-  -u, --url <URL>          Specify the URL
-  -n, --nixpkgs <NIXPKGS>  Path to nixpkgs (in nix)
-  -C, --commit[=<COMMIT>]  Commit the changes if the output path is name-based (RFC 140) [possible values: true, false]
-  -c, --config <CONFIG>    Specify the config file
-  -h, --help               Print help
-  -V, --version            Print version
+  -u, --url <URL>                    Specify the URL
+      --rev <REV>                    Specify the tag or revision
+  -S, --submodules[=<SUBMODULES>]    Always fetch submodules when possible [possible values: true, false]
+  -V, --version [<VERSION>]          Specify the version of the package, or print nix-init version if no arguments are present
+      --pname <PNAME>                Specify the pname
+      --builder <BUILDER>            Specify the builder
+      --cargo-vendor <CARGO_VENDOR>  Specify how the cargo dependencies are vendored [possible values: fetchCargoVendor, importCargoLock]
+  -y, --overwrite[=<OVERWRITE>]      Always overwrite files [possible values: true, false]
+      --headless                     Don't prompt for anything (requires --url)
+  -n, --nixpkgs <NIXPKGS>            Path to nixpkgs (in nix)
+  -C, --commit[=<COMMIT>]            Commit the changes if the output path is name-based (RFC 140) [possible values: true, false]
+  -c, --config <CONFIG>              Specify the config file
+  -h, --help                         Print help (see more with '--help')
 ```
 
 ### Supported builders
 
-- `stdenv.mkDerivation`
+- `stdenv.mkDerivation` and `stdenvNoCC.mkDerivation`
 - `buildRustPackage`
 - `buildPythonApplication` and `buildPythonPackage`
 - `buildGoModule`
