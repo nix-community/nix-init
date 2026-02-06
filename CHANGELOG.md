@@ -1,17 +1,61 @@
 # Changelog
 
+## v0.3.3 - 2026-02-06
+
+### Changes
+
+- Use `finalAttrs` pattern instead of `rec`
+  ([#639](https://github.com/nix-community/nix-init/pull/639))
+  ([#666](https://github.com/nix-community/nix-init/pull/666))
+- Drop compatibility with [nurl] < 0.4
+
+### Features
+
+- Rust: `fetchCargoVendor` support
+  ([#659](https://github.com/nix-community/nix-init/pull/659))
+- Headless mode ([#649](https://github.com/nix-community/nix-init/pull/649))
+  ([#665](https://github.com/nix-community/nix-init/pull/665))
+- `stdenvNoCC.mkDerivation` support
+  ([#684](https://github.com/nix-community/nix-init/pull/684))
+- Automatically format with [nixfmt] if it's found
+  ([#674](https://github.com/nix-community/nix-init/pull/674))
+- Better license detection
+  ([#672](https://github.com/nix-community/nix-init/pull/672))
+- Rust: emit `LIBGIT2_NO_VENDOR` when needed
+  ([#671](https://github.com/nix-community/nix-init/pull/671))
+- Improve error messages
+  ([#668](https://github.com/nix-community/nix-init/pull/668))
+
+### Fixes
+
+- Remove legacy darwin sdk
+  ([#627](https://github.com/nix-community/nix-init/pull/627))
+- Go: drop `-w` from default ldflags
+  ([#640](https://github.com/nix-community/nix-init/pull/640))
+- Prefix unstable versions with `0-`
+  ([#565](https://github.com/nix-community/nix-init/pull/565))
+- `fetchCrate` now works correctly
+  ([#669](https://github.com/nix-community/nix-init/pull/669))
+- GitHub: sort tags ([#698](https://github.com/nix-community/nix-init/pull/698))
+- Python: fully remove outdated behavior of adding wheel to dependencies
+  ([#695](https://github.com/nix-community/nix-init/pull/695))
+- Normalize homepage URLs
+  ([#694](https://github.com/nix-community/nix-init/pull/694))
+- More consistency with [nixfmt] formatting
+  ([#673](https://github.com/nix-community/nix-init/pull/673))
+
 ## v0.3.2 - 2024-08-16
 
 ### Changes
 
 - remove use of meta = with lib; by @eclairevoyant in
-  https://github.com/nix-community/nix-init/pull/292
+  ([#292](https://github.com/nix-community/nix-init/pull/292))
 
 ### Fixes
 
 - many crate updates
 - upgrade to Cargo 1.81 by @K900 in
-  https://github.com/nix-community/nix-init/pull/469
+  ([#469](https://github.com/nix-community/nix-init/pull/469))
 
 ## v0.3.1 - 2024-08-14
 
@@ -19,12 +63,12 @@
 
 - many crate updates
 - update dependencies by @figsoda in
-  https://github.com/nix-community/nix-init/pull/332,
-  https://github.com/nix-community/nix-init/pull/409
+  ([#332](https://github.com/nix-community/nix-init/pull/332)),
+  ([#409](https://github.com/nix-community/nix-init/pull/409))
 - Update python derivation template by @mweinelt in
-  https://github.com/nix-community/nix-init/pull/419
+  ([#419](https://github.com/nix-community/nix-init/pull/419))
 - Fix `time` compilation failure by @a-kenji in
-  https://github.com/nix-community/nix-init/pull/457
+  ([#457](https://github.com/nix-community/nix-init/pull/457))
 
 ## v0.3.0 - 2023-09-16
 
@@ -168,3 +212,6 @@
 ## v0.1.0 - 2023-01-28
 
 First release
+
+[nixfmt]: https://github.com/NixOS/nixfmt
+[nurl]: https://github.com/nix-community/nurl
