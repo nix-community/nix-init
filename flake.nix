@@ -14,7 +14,7 @@
     };
     # remove when nurl 0.4.0 is in nixpkgs
     nurl = {
-      url = "github:nix-community/nurl";
+      url = "github:nix-community/nurl/v0.4.0";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     treefmt-nix = {
