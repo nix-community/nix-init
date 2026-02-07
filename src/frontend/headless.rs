@@ -50,7 +50,7 @@ impl Frontend for Headless {
 
     fn overwrite(&mut self, path: &Path) -> Result<bool> {
         error!(
-            "path {} already exists, use --overwrite to overwrite to always overwrite files",
+            "path {} already exists, use --overwrite to always overwrite files",
             path.display()
         );
         Ok(false)
