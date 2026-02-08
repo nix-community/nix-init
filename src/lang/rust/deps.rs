@@ -56,6 +56,7 @@ pub(super) fn load_rust_dependency(inputs: &mut AllInputs, resolve: &Resolve, pk
             native_build!("wrapGAppsHook");
             build!("gtk3");
         }
+        "gtk4-layer-shell-sys" => build!("gtk4-layer-shell"),
         "gtk4-sys" => {
             native_build!("wrapGAppsHook4");
             build!("gtk4");
