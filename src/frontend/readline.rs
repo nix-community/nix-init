@@ -4,7 +4,6 @@ use std::{
 };
 
 use anyhow::Result;
-use heck::ToKebabCase;
 use owo_colors::{OwoColorize, Style};
 use rustyline::{
     CompletionType, Context, Editor, Helper, Highlighter,
@@ -105,7 +104,7 @@ impl Frontend for Readline {
     fn pname(&mut self, pname: Option<String>) -> Result<String> {
         Ok(if let Some(pname) = pname {
             self.editor
-                .readline_with_initial(&prompt("Enter pname"), (&pname.to_kebab_case(), ""))?
+                .readline_with_initial(&prompt("Enter pname"), (&pname, ""))?
         } else {
             self.editor.readline(&prompt("Enter pname"))?
         })
