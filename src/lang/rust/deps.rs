@@ -24,6 +24,10 @@ pub(super) fn load_rust_dependency(inputs: &mut AllInputs, resolve: &Resolve, pk
         "gdk-sys" => build!("gtk3"),
         "gdk4-sys" => build!("gtk4"),
         "glib-sys" => build!("glib"),
+        "glycin" => {
+            native_build!("libglycin.patchVendorHook");
+            build!("libglycin.setupHook", "glycin-loaders");
+        }
         "gpgme-sys" => {
             native_build!("gpgme");
             build!("gpgme")
