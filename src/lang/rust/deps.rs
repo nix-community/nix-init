@@ -68,6 +68,7 @@ pub(super) fn load_rust_dependency(inputs: &mut AllInputs, resolve: &Resolve, pk
         "gweather-sys" => build!("libgweather"),
         "input-sys" => build!("libinput"),
         "jemalloc-sys" => build!("rust-jemalloc-sys"),
+        "lcms2-sys" => build!("lcms2"),
         "libadwaita-sys" => build!("libadwaita"),
         "libdbus-sys" => build!("dbus"),
         "libgit2-sys" => {
