@@ -99,6 +99,7 @@ pub(super) fn load_rust_dependency(inputs: &mut AllInputs, resolve: &Resolve, pk
             }
         }
         "libseat-sys" => build!("seatd"),
+        "libseccomp-sys" => build!("libseccomp"),
         "libsecret-sys" => build!("libsecret"),
         "libshumate-sys" => build!("libshumate"),
         "libsodium-sys" | "libsodium-sys-stable" => {
