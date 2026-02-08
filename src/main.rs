@@ -18,6 +18,7 @@ use std::{
     io::{IsTerminal, Seek, Write as _, pipe, stderr},
     path::{Component, Path, PathBuf},
     process::Stdio,
+    sync::LazyLock,
 };
 
 use anyhow::{Context, Result, bail};
@@ -30,7 +31,6 @@ use flate2::read::GzDecoder;
 use heck::{AsSnakeCase, ToKebabCase};
 use indoc::{formatdoc, writedoc};
 use itertools::Itertools;
-use once_cell::sync::Lazy;
 use serde::Deserialize;
 use tempfile::tempdir;
 use tokio::process::Command;
@@ -98,7 +98,7 @@ async fn run() -> Result<()> {
     };
 
     tokio::spawn(async {
-        Lazy::force(&LICENSE_STORE);
+        LazyLock::force(&LICENSE_STORE);
     });
 
     let cfg = load_config(opts.config)?;
