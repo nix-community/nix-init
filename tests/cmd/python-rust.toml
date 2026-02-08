@@ -1,0 +1,6 @@
+args = [
+  "--headless",
+  "--url=https://github.com/pyca/cryptography",
+  "--rev=46.0.4",
+  "--builder=buildPythonPackage",
+]
