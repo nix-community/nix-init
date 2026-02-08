@@ -3231,7 +3231,6 @@ dependencies = [
  "indoc",
  "insta",
  "itertools",
- "once_cell",
  "owo-colors",
  "parse-display",
  "pep-508",

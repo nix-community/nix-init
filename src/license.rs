@@ -1,13 +1,14 @@
-use std::{collections::BTreeMap, ffi::OsStr, fmt::Display, fs::read_to_string, path::Path};
+use std::{
+    collections::BTreeMap, ffi::OsStr, fmt::Display, fs::read_to_string, path::Path, sync::LazyLock,
+};
 
 use askalono::{ScanStrategy, Store, TextData};
-use once_cell::sync::Lazy;
 use spdx::{Expression, ParseMode};
 use tracing::{debug, warn};
 
 use crate::utils::ResultExt;
 
-pub static LICENSE_STORE: Lazy<Option<Store>> = Lazy::new(|| {
+pub static LICENSE_STORE: LazyLock<Option<Store>> = LazyLock::new(|| {
     Store::from_cache(include_bytes!("../data/license-store-cache.zstd") as &[_])
         .ok_inspect(|e| warn!("{e}"))
 });
