@@ -17,7 +17,7 @@ pub(super) fn load_rust_dependency(inputs: &mut AllInputs, resolve: &Resolve, pk
             native_build!("curl");
             build!("curl");
         }
-        "evdev-sys" => build!("evdev-sys"),
+        "evdev-sys" => build!("libevdev"),
         "expat-sys" => build!("expat"),
         "freetype-sys" => build!("freetype"),
         "gdk-pixbuf-sys" => build!("gdk-pixbuf"),
