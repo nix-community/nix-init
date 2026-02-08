@@ -14,7 +14,9 @@
   gdk-pixbuf,
   glib,
   gtk4,
+  gtk4-layer-shell,
   libevdev,
+  libinput,
   libpulseaudio,
   pango,
   udev,
@@ -52,7 +54,9 @@ stdenv.mkDerivation (finalAttrs: {
     gdk-pixbuf
     glib
     gtk4
+    gtk4-layer-shell
     libevdev
+    libinput
     libpulseaudio
     pango
     udev
