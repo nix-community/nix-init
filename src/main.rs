@@ -222,7 +222,7 @@ async fn run() -> Result<()> {
 
     let pname = match opts.pname {
         Some(rev) => rev,
-        None => frontend.pname(pname)?,
+        None => frontend.pname(pname.map(|pname| pname.to_kebab_case()))?,
     };
 
     let nixpkgs = opts
