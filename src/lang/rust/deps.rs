@@ -24,6 +24,10 @@ pub(super) fn load_rust_dependency(inputs: &mut AllInputs, resolve: &Resolve, pk
         "gdk-sys" => build!("gtk3"),
         "gdk4-sys" => build!("gtk4"),
         "glib-sys" => build!("glib"),
+        "glycin" => {
+            native_build!("libglycin.patchVendorHook");
+            build!("libglycin.setupHook", "glycin-loaders");
+        }
         "gpgme-sys" => {
             native_build!("gpgme");
             build!("gpgme")
@@ -61,9 +65,10 @@ pub(super) fn load_rust_dependency(inputs: &mut AllInputs, resolve: &Resolve, pk
             native_build!("wrapGAppsHook4");
             build!("gtk4");
         }
+        "gweather-sys" => build!("libgweather"),
         "input-sys" => build!("libinput"),
-        "io-surface" => build!("IOSurface"),
         "jemalloc-sys" => build!("rust-jemalloc-sys"),
+        "lcms2-sys" => build!("lcms2"),
         "libadwaita-sys" => build!("libadwaita"),
         "libdbus-sys" => build!("dbus"),
         "libgit2-sys" => {
@@ -94,6 +99,7 @@ pub(super) fn load_rust_dependency(inputs: &mut AllInputs, resolve: &Resolve, pk
             }
         }
         "libseat-sys" => build!("seatd"),
+        "libseccomp-sys" => build!("libseccomp"),
         "libsecret-sys" => build!("libsecret"),
         "libshumate-sys" => build!("libshumate"),
         "libsodium-sys" | "libsodium-sys-stable" => {
