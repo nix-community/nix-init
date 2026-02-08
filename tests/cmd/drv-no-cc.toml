@@ -1,0 +1,6 @@
+args = [
+  "--headless",
+  "--url=https://github.com/z-shell/zi",
+  "--rev=v1.0.3",
+  "--builder=stdenvNoCC.mkDerivation",
+]

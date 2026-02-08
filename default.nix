@@ -49,6 +49,11 @@ rustPlatform.buildRustPackage rec {
   # lang::rust::tests needs additional cargo dependencies
   doCheck = false;
 
+  # e2e tests require internet access
+  checkFlags = [
+    "--skip=e2e"
+  ];
+
   postPatch = ''
     mkdir -p data
     ln -s ${get-nix-license} data/get_nix_license.rs

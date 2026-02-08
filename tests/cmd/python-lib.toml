@@ -1,0 +1,6 @@
+args = [
+  "--headless",
+  "--url=https://github.com/pallets/jinja",
+  "--rev=3.1.6",
+  "--builder=buildPythonPackage",
+]

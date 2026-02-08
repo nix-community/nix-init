@@ -1,0 +1,1 @@
+args = ["--headless", "--url=https://github.com/junegunn/fzf", "--rev=v0.67.0"]

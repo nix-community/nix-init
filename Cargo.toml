@@ -89,6 +89,7 @@ clap_mangen = "0.2.31"
 heck = "0.5.0"
 insta = "1.46.3"
 tempfile = "3.24.0"
+trycmd = "0.15.11"
 
 [features]
 default = ["vendored"]

@@ -1,0 +1,5 @@
+args = [
+  "--headless",
+  "--url=https://github.com/containers/bubblewrap",
+  "--rev=v0.11.0",
+]

@@ -1,0 +1,4 @@
+root = true
+
+[*.toml]
+indent_size = 2
