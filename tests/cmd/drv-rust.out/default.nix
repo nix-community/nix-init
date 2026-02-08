@@ -16,6 +16,7 @@
   gtk4,
   gtk4-layer-shell,
   libevdev,
+  libinput,
   libpulseaudio,
   pango,
   udev,
@@ -55,6 +56,7 @@ stdenv.mkDerivation (finalAttrs: {
     gtk4
     gtk4-layer-shell
     libevdev
+    libinput
     libpulseaudio
     pango
     udev

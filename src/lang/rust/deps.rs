@@ -61,6 +61,7 @@ pub(super) fn load_rust_dependency(inputs: &mut AllInputs, resolve: &Resolve, pk
             native_build!("wrapGAppsHook4");
             build!("gtk4");
         }
+        "input-sys" => build!("libinput"),
         "io-surface" => build!("IOSurface"),
         "jemalloc-sys" => build!("rust-jemalloc-sys"),
         "libadwaita-sys" => build!("libadwaita"),
