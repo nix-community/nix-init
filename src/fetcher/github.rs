@@ -1,10 +1,12 @@
+use std::cmp::Ordering;
+
 use anyhow::Result;
 use itertools::Itertools;
 use reqwest::{Client, header::HeaderMap};
 use rustc_hash::FxHashMap;
 use rustyline::completion::Pair;
 use serde::Deserialize;
-use version_compare::{Cmp, compare};
+use version_compare::Cmp;
 
 use crate::{
     cfg::AccessTokens,
@@ -106,10 +108,19 @@ impl Fetcher for FetchFromGitHub {
                     reference.strip_prefix("refs/tags/").map(ToOwned::to_owned)
                 })
                 .sorted_unstable_by(|x, y| {
-                    compare(y, x)
-                        .ok()
-                        .and_then(Cmp::ord)
-                        .unwrap_or_else(|| y.cmp(x))
+                    match (
+                        &version_compare::Version::from(x),
+                        &version_compare::Version::from(y),
+                    ) {
+                        (Some(x), Some(y)) => match y.compare(x) {
+                            Cmp::Lt => Ordering::Less,
+                            Cmp::Gt => Ordering::Greater,
+                            _ => y.as_str().cmp(x.as_str()),
+                        },
+                        (Some(_), None) => Ordering::Less,
+                        (None, Some(_)) => Ordering::Greater,
+                        (None, None) => y.cmp(x),
+                    }
                 })
                 .take(12);
 
