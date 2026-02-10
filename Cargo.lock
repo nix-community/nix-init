@@ -3254,7 +3254,6 @@ version = "0.3.3"
 dependencies = [
  "anyhow",
  "askalono",
- "bstr",
  "cargo",
  "chumsky",
  "clap",

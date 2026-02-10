@@ -16,6 +16,7 @@ use std::{
     fmt::Write as _,
     fs::{File, create_dir_all, metadata, read_dir},
     io::{IsTerminal, Seek, Write as _, pipe, stderr},
+    os::unix::ffi::OsStrExt,
     path::{Component, Path, PathBuf},
     process::Stdio,
     sync::LazyLock,
@@ -23,7 +24,6 @@ use std::{
 
 use anyhow::{Context, Result, bail};
 use askalono::ScanStrategy;
-use bstr::{ByteSlice, ByteVec};
 use cargo::core::Resolve;
 use clap::{Parser, crate_version};
 use expand::expand;
@@ -465,9 +465,7 @@ async fn run() -> Result<()> {
         } else {
             (output.parent(), output.clone())
         }
-    } else if <[u8] as ByteSlice>::from_path(&output)
-        .is_some_and(|out_path| out_path.ends_with_str(b"/"))
-    {
+    } else if output.as_os_str().as_bytes().ends_with(b"/") {
         let _ = create_dir_all(&output);
         (Some(output.as_ref()), output.join("default.nix"))
     } else {
@@ -997,7 +995,7 @@ async fn run() -> Result<()> {
             let name = entry.file_name();
 
             if !matches!(
-                Vec::from_os_str_lossy(&name).to_ascii_lowercase()[..],
+                name.as_bytes().to_ascii_lowercase()[..],
                 expand!([@b"license", ..] | [@b"licence", ..] | [@b"copying", ..]),
             ) {
                 continue;
