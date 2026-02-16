@@ -59,7 +59,7 @@ tracing-subscriber = { version = "0.3.22", features = ["env-filter"] }
 url = "2.5.8"
 which = "8.0.0"
 xdg = "3.0.0"
-zip = "7.4.0"
+zip = "8.0.0"
 
 [dependencies.clap]
 version = "4.5.58"
