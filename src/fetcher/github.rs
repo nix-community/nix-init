@@ -6,7 +6,7 @@ use reqwest::{Client, header::HeaderMap};
 use rustc_hash::FxHashMap;
 use rustyline::completion::Pair;
 use serde::Deserialize;
-use version_compare::Cmp;
+use versions::Versioning;
 
 use crate::{
     cfg::AccessTokens,
@@ -107,20 +107,11 @@ impl Fetcher for FetchFromGitHub {
                 .filter_map(|Reference { reference }| {
                     reference.strip_prefix("refs/tags/").map(ToOwned::to_owned)
                 })
-                .sorted_unstable_by(|x, y| {
-                    match (
-                        &version_compare::Version::from(x),
-                        &version_compare::Version::from(y),
-                    ) {
-                        (Some(x), Some(y)) => match y.compare(x) {
-                            Cmp::Lt => Ordering::Less,
-                            Cmp::Gt => Ordering::Greater,
-                            _ => y.as_str().cmp(x.as_str()),
-                        },
-                        (Some(_), None) => Ordering::Less,
-                        (None, Some(_)) => Ordering::Greater,
-                        (None, None) => y.cmp(x),
-                    }
+                .sorted_unstable_by(|x, y| match (&Versioning::new(x), &Versioning::new(y)) {
+                    (Some(x), Some(y)) => y.cmp(x),
+                    (Some(_), None) => Ordering::Less,
+                    (None, Some(_)) => Ordering::Greater,
+                    (None, None) => y.cmp(x),
                 })
                 .take(12);
 
