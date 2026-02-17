@@ -408,35 +408,38 @@ async fn run() -> Result<()> {
         }
         (None, rust) => {
             let mut builders = Vec::new();
-            let cargo_vendors = if has_cargo {
-                match rust {
-                    Some(vendor) => &[vendor] as &[_],
-                    None => &[CargoVendor::FetchCargoVendor, CargoVendor::ImportCargoLock],
-                }
-            } else {
-                &[]
-            };
-
             if has_go {
                 builders.push(Builder::BuildGoModule);
             }
 
-            if has_python {
-                for rust in cargo_vendors.iter().map(Some).chain(Some(None)) {
-                    for application in [true, false] {
-                        builders.push(Builder::BuildPythonPackage {
-                            application,
-                            rust: rust.copied(),
-                        });
-                    }
-                }
-            }
-
             if has_cargo {
+                let cargo_vendors: &[_] = match rust {
+                    Some(vendor) => &[vendor],
+                    None => &[CargoVendor::FetchCargoVendor, CargoVendor::ImportCargoLock],
+                };
+
                 for &vendor in cargo_vendors {
+                    if has_python {
+                        for application in [true, false] {
+                            builders.push(Builder::BuildPythonPackage {
+                                application,
+                                rust: Some(vendor),
+                            });
+                        }
+                    }
+
                     let drv = Builder::MkDerivation { rust: Some(vendor) };
                     let rust = Builder::BuildRustPackage { vendor };
                     builders.extend(if has_meson { [drv, rust] } else { [rust, drv] });
+                }
+            }
+
+            if has_python {
+                for application in [true, false] {
+                    builders.push(Builder::BuildPythonPackage {
+                        application,
+                        rust: None,
+                    });
                 }
             }
 
