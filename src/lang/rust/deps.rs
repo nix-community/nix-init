@@ -88,6 +88,7 @@ pub(super) fn load_rust_dependency(inputs: &mut AllInputs, resolve: &Resolve, pk
                 build!("libhandy");
             }
         }
+        "liblzma-sys" => build!("xz"),
         "libmpv-sys" => build!("mpv"),
         "libpanel-sys" => build!("libpanel"),
         "libpulse-sys" => build!("libpulseaudio"),
