@@ -529,7 +529,7 @@ async fn run() -> Result<()> {
                     .extend(["meson".into(), "ninja".into()]);
             }
             if has_zig {
-                inputs.native_build_inputs.always.insert("zig.hook".into());
+                inputs.native_build_inputs.always.insert("zig".into());
             }
             if rust.is_some() {
                 inputs.native_build_inputs.always.extend([
@@ -551,7 +551,7 @@ async fn run() -> Result<()> {
                     .extend(["meson".into(), "ninja".into()]);
             }
             if has_zig {
-                inputs.native_build_inputs.always.insert("zig.hook".into());
+                inputs.native_build_inputs.always.insert("zig".into());
             }
         }
     }
