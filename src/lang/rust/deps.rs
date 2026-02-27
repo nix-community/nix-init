@@ -7,6 +7,7 @@ pub(super) fn load_rust_dependency(inputs: &mut AllInputs, resolve: &Resolve, pk
     input_macros!(inputs);
 
     match &*pkg.name() {
+        // keep-sorted start block=yes
         "alsa-sys" => build!("alsa-lib"; linux),
         "ash" => build!("vulkan-loader"),
         "atk-sys" => build!("atk"),
@@ -235,6 +236,7 @@ pub(super) fn load_rust_dependency(inputs: &mut AllInputs, resolve: &Resolve, pk
                 environ!("ZSTD_SYS_USE_PKG_CONFIG", "true");
             }
         }
+        // keep-sorted end
         _ => {}
     }
 }

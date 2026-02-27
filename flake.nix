@@ -122,16 +122,23 @@
 
           treefmt = {
             programs = {
+              # keep-sorted start block=yes
               actionlint.enable = true;
               deadnix.enable = true;
-              deno.enable = true;
+              keep-sorted = {
+                priority = 1;
+                enable = true;
+              };
               nixfmt.enable = true;
+              oxfmt.enable = true;
               rustfmt = {
                 enable = true;
                 package = inputs'.fenix.packages.latest.rustfmt;
               };
+              shfmt.enable = true;
               statix.enable = true;
               taplo.enable = true;
+              # keep-sorted end
             };
             settings.global.excludes = [
               "*-lock.toml"

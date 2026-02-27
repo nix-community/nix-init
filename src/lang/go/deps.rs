@@ -6,6 +6,7 @@ pub(super) fn load_go_dependency(inputs: &mut AllInputs, pkg: GoPackage<'_>) {
     input_macros!(inputs);
 
     match pkg.name {
+        // keep-sorted start block=yes
         "github.com/diamondburned/gotk4-adwaita/pkg" => build!("libadwaita"),
         "github.com/diamondburned/gotk4/pkg" => {
             native_build!("pkg-config", "wrapGAppsHook4");
@@ -35,6 +36,7 @@ pub(super) fn load_go_dependency(inputs: &mut AllInputs, pkg: GoPackage<'_>) {
         "golang.design/x/clipboard" => {
             build!("xorg.libX11"; linux);
         }
+        // keep-sorted end
         _ => {}
     }
 }

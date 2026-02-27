@@ -21,6 +21,7 @@ let
   );
 
   deprecatedAliases = {
+    # keep-sorted start
     "AGPL-3.0" = "agpl3Only";
     "BSD-2-Clause-FreeBSD" = "bsd2WithViews";
     "BSD-2-Clause-NetBSD" = "bsd2";
@@ -39,6 +40,7 @@ let
     "LGPL-2.1+" = "lgpl21Plus";
     "LGPL-3.0" = "lgpl3Only";
     "LGPL-3.0+" = "lgpl3Plus";
+    # keep-sorted end
   };
 
   lints = {
