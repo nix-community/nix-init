@@ -25,6 +25,7 @@ categories = ["command-line-utilities"]
 include = ["data", "src", "Cargo.lock", "Cargo.toml", "build.rs"]
 
 [dependencies]
+# keep-sorted start
 anyhow = "1.0.101"
 askalono.workspace = true
 cargo = "0.94.0"
@@ -60,6 +61,7 @@ versions = "7.0.0"
 which = "8.0.0"
 xdg = "3.0.0"
 zip = "8.0.0"
+# keep-sorted end
 
 [dependencies.clap]
 version = "4.5.58"
