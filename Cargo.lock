@@ -443,9 +443,9 @@ dependencies = [
 
 [[package]]
 name = "cargo-credential-libsecret"
-version = "0.5.4"
+version = "0.5.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d2f79375b18d08df983ce4d7c50b84e41f081588077038ff75e1ad13a6eee44d"
+checksum = "e6f199366cecd4e86e3db8c16d4054ea3c53287250a18190929f74be26bb8642"
 dependencies = [
  "anyhow",
  "cargo-credential",
@@ -454,9 +454,9 @@ dependencies = [
 
 [[package]]
 name = "cargo-credential-macos-keychain"
-version = "0.4.19"
+version = "0.4.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c173c41f718723681b45ebfdf6b027dd8a33a19e03500d45c74ffea7fc4a04d2"
+checksum = "bf99df49467cac5cc000b9134f4faf9ecc54484462d314ce605ff6e19c523f90"
 dependencies = [
  "cargo-credential",
  "security-framework",
@@ -464,9 +464,9 @@ dependencies = [
 
 [[package]]
 name = "cargo-credential-wincred"
-version = "0.4.19"
+version = "0.4.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "84eb64cf8c19bacc536b06a4452cac120a51703b742b0721de69e4b6553fb70c"
+checksum = "9be5164881738c558a89fd0fd25cdda82a587dab6d2616e4a3ba0c9069a29c35"
 dependencies = [
  "cargo-credential",
  "windows-sys 0.61.2",
@@ -484,9 +484,9 @@ dependencies = [
 
 [[package]]
 name = "cargo-util"
-version = "0.2.26"
+version = "0.2.27"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f70b0c7772872ac3234e46a6591091d4da57f0c3aa24c381776ed1550624a14b"
+checksum = "4a4b72539a4e322539ac3cd07d7e63d60ca3823f3143a2d39a9f8fcdace0e8ca"
 dependencies = [
  "anyhow",
  "core-foundation 0.10.1",
@@ -788,9 +788,9 @@ dependencies = [
 
 [[package]]
 name = "crates-io"
-version = "0.40.16"
+version = "0.40.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0f7f333ded3737da5d7ba014b465470cec2c77572f5a4bc56e1a6432cf0a9207"
+checksum = "ec97b1f074b7b2fe478fb89e51a26e25a75ae2de02d4c8cc85c5f206dd628286"
 dependencies = [
  "curl",
  "percent-encoding",
@@ -3011,9 +3011,9 @@ dependencies = [
 
 [[package]]
 name = "libloading"
-version = "0.8.9"
+version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d7c4b02199fee7c5d21a5ae7d8cfa79a6ef5bb2fc834d6e9058e89c825efdc55"
+checksum = "754ca22de805bb5744484a5b151a9e1a8e837d5dc232c2d7d8c2e3492edc8b60"
 dependencies = [
  "cfg-if",
  "windows-link",
@@ -5758,9 +5758,9 @@ dependencies = [
 
 [[package]]
 name = "which"
-version = "8.0.0"
+version = "8.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d3fabb953106c3c8eea8306e4393700d7657561cb43122571b172bbfb7c7ba1d"
+checksum = "3a824aeba0fbb27264f815ada4cff43d65b1741b7a4ed7629ff9089148c4a4e0"
 dependencies = [
  "env_home",
  "rustix",
