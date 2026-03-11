@@ -24,7 +24,7 @@
 - Zig: use `zig` directly instead of `zig.hook`
   ([#730](https://github.com/nix-community/nix-init/pull/730))
 
-### Chore
+### Chores
 
 - Flake: remove dependency on the nurl flake
   ([#717](https://github.com/nix-community/nix-init/pull/717))
