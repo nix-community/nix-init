@@ -1,5 +1,34 @@
 # Changelog
 
+## v0.3.4 - 2026-03-11
+
+### Changes
+
+- Rust: demote `importCargoLock` when suggesting builders
+  ([#727](https://github.com/nix-community/nix-init/pull/727))
+
+### Features
+
+- Rust: improve dependency inference for a few crates
+  ([#710](https://github.com/nix-community/nix-init/pull/710))
+  ([#713](https://github.com/nix-community/nix-init/pull/713))
+  ([#714](https://github.com/nix-community/nix-init/pull/714))
+  ([#729](https://github.com/nix-community/nix-init/pull/729))
+
+### Fixes
+
+- GitHub: fix crash caused by non-total comparison of tags
+  ([#726](https://github.com/nix-community/nix-init/pull/726))
+- Headless: convert pname to kebab case
+  ([#711](https://github.com/nix-community/nix-init/pull/711))
+- Zig: use `zig` directly instead of `zig.hook`
+  ([#730](https://github.com/nix-community/nix-init/pull/730))
+
+### Chore
+
+- Flake: remove dependency on the nurl flake
+  ([#717](https://github.com/nix-community/nix-init/pull/717))
+
 ## v0.3.3 - 2026-02-06
 
 ### Changes
