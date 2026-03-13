@@ -40,6 +40,7 @@ rustPlatform.buildRustPackage (finalAttrs: {
 
   env = {
     LIBGIT2_NO_VENDOR = true;
+    LIBSQLITE3_SYS_USE_PKG_CONFIG = true;
     OPENSSL_NO_VENDOR = true;
     ZSTD_SYS_USE_PKG_CONFIG = true;
   };

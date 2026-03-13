@@ -115,7 +115,16 @@ pub(super) fn load_rust_dependency(inputs: &mut AllInputs, resolve: &Resolve, pk
             }
         }
         "libspa-sys" => build!("pipewire"),
-        "libsqlite3-sys" => build!("sqlite"),
+        "libsqlite3-sys" => {
+            build!("sqlite");
+            if resolve
+                .features(pkg)
+                .iter()
+                .any(|feat| feat == "bundled" || feat == "bundled-sqlcipher")
+            {
+                environ!("LIBSQLITE3_SYS_USE_PKG_CONFIG", "true");
+            }
+        }
         "libudev-sys" => build!("udev"),
         "libusb1-sys" => build!("libusb"),
         "libwebp-sys2" => {
