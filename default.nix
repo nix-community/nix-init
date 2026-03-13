@@ -7,6 +7,7 @@
   bzip2,
   libgit2,
   openssl,
+  sqlite,
   zlib,
   zstd,
   nix,
@@ -40,6 +41,7 @@ rustPlatform.buildRustPackage rec {
     curl
     libgit2
     openssl
+    sqlite
     zlib
     zstd
   ];
@@ -71,6 +73,7 @@ rustPlatform.buildRustPackage rec {
   env = {
     GEN_ARTIFACTS = "artifacts";
     LIBGIT2_NO_VENDOR = true;
+    LIBSQLITE3_SYS_USE_PKG_CONFIG = true;
     NIX = lib.getExe nix;
     NURL = lib.getExe nurl;
     ZSTD_SYS_USE_PKG_CONFIG = true;
