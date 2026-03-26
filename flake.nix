@@ -138,6 +138,7 @@
               shfmt.enable = true;
               statix.enable = true;
               taplo.enable = true;
+              zizmor.enable = true;
               # keep-sorted end
             };
             settings.global.excludes = [
