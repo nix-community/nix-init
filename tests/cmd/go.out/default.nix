@@ -2,6 +2,7 @@
   lib,
   buildGoModule,
   fetchFromGitHub,
+  nix-update-script,
 }:
 
 buildGoModule (finalAttrs: {
@@ -23,6 +24,8 @@ buildGoModule (finalAttrs: {
     "-X=main.version=${finalAttrs.version}"
     "-X=main.revision=${finalAttrs.src.rev}"
   ];
+
+  passthru.updateScript = nix-update-script { };
 
   meta = {
     description = "[..]";

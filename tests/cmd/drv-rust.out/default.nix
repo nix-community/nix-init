@@ -2,6 +2,7 @@
   lib,
   stdenv,
   fetchFromGitHub,
+  nix-update-script,
   cargo,
   meson,
   ninja,
@@ -61,6 +62,8 @@ stdenv.mkDerivation (finalAttrs: {
     pango
     udev
   ];
+
+  passthru.updateScript = nix-update-script { };
 
   meta = {
     description = "[..]";

@@ -2,6 +2,7 @@
   lib,
   stdenv,
   fetchFromGitHub,
+  nix-update-script,
   meson,
   ninja,
 }:
@@ -21,6 +22,8 @@ stdenv.mkDerivation (finalAttrs: {
     meson
     ninja
   ];
+
+  passthru.updateScript = nix-update-script { };
 
   meta = {
     description = "[..]";

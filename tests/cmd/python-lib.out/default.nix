@@ -2,6 +2,7 @@
   lib,
   buildPythonPackage,
   fetchFromGitHub,
+  nix-update-script,
   flit-core,
   markupsafe,
   babel,
@@ -36,6 +37,8 @@ buildPythonPackage (finalAttrs: {
   pythonImportsCheck = [
     "jinja2"
   ];
+
+  passthru.updateScript = nix-update-script { };
 
   meta = {
     description = "[..]";

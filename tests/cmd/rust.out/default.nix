@@ -2,6 +2,7 @@
   lib,
   rustPlatform,
   fetchFromGitHub,
+  nix-update-script,
   curl,
   pkg-config,
   libgit2,
@@ -44,6 +45,8 @@ rustPlatform.buildRustPackage (finalAttrs: {
     OPENSSL_NO_VENDOR = true;
     ZSTD_SYS_USE_PKG_CONFIG = true;
   };
+
+  passthru.updateScript = nix-update-script { };
 
   meta = {
     description = "[..]";

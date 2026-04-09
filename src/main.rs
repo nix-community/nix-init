@@ -556,6 +556,7 @@ async fn run() -> Result<()> {
         }
     }
 
+    let nix_update_supported = matches!(fetcher, MaybeFetcher::Known(_));
     match fetcher {
         MaybeFetcher::Known(fetcher) => {
             writeln!(out, "  {fetcher},")?;
@@ -563,6 +564,10 @@ async fn run() -> Result<()> {
         MaybeFetcher::Unknown { fetcher } => {
             writeln!(out, "  {fetcher},")?;
         }
+    }
+
+    if nix_update_supported {
+        writeln!(out, "  nix-update-script,")?;
     }
 
     let mut python_import = None;
@@ -949,6 +954,10 @@ async fn run() -> Result<()> {
             writeln!(out, "    {k} = {v};")?;
         }
         writeln!(out, "  }};\n")?;
+    }
+
+    if nix_update_supported {
+        writeln!(out, "  passthru.updateScript = nix-update-script {{ }};\n")?;
     }
 
     let mut desc = desc.trim_matches(|c: char| !c.is_alphanumeric()).to_owned();

@@ -2,6 +2,7 @@
   lib,
   buildPythonPackage,
   fetchFromGitHub,
+  nix-update-script,
   cargo,
   cffi,
   pkg-config,
@@ -112,6 +113,8 @@ buildPythonPackage (finalAttrs: {
   pythonImportsCheck = [
     "cryptography"
   ];
+
+  passthru.updateScript = nix-update-script { };
 
   meta = {
     description = "[..]";
