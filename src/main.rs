@@ -124,7 +124,7 @@ async fn run() -> Result<()> {
     let mut cmd = Command::new(NURL);
     let mut licenses = BTreeMap::new();
     let mut pypi_format = PypiFormat::TarGz;
-    let (pname, rev, version, desc, prefix, mut python_deps) =
+    let (pname, rev, version, desc, prefix, releases_page, mut python_deps) =
         if let MaybeFetcher::Known(fetcher) = &mut fetcher {
             let cl = fetcher.create_client(cfg.access_tokens).await?;
 
@@ -134,6 +134,7 @@ async fn run() -> Result<()> {
                 file_url_prefix,
                 homepage,
                 license,
+                mut releases_page,
                 python_dependencies,
                 mut revisions,
             } = fetcher.get_package_info(&cl).await;
@@ -168,6 +169,9 @@ async fn run() -> Result<()> {
                     Some(version) => Some(version),
                     None => fetcher.get_version(&cl, &rev).await,
                 };
+                if !matches!(version, Some(Version::Latest | Version::Tag)) {
+                    releases_page = None;
+                }
                 let version = match version {
                     Some(Version::Latest | Version::Tag) => get_version_number(&rev).into(),
                     Some(Version::Pypi {
@@ -195,6 +199,7 @@ async fn run() -> Result<()> {
                 version,
                 description,
                 file_url_prefix,
+                releases_page,
                 python_dependencies,
             )
         } else {
@@ -217,7 +222,15 @@ async fn run() -> Result<()> {
                 None => frontend.version(get_version(&rev))?,
             };
 
-            (pname, rev, version, "".into(), None, Default::default())
+            (
+                pname,
+                rev,
+                version,
+                "".into(),
+                None,
+                None,
+                Default::default(),
+            )
         };
 
     let pname = match opts.pname {
@@ -960,6 +973,7 @@ async fn run() -> Result<()> {
             homepage = {url:?};
     "}?;
 
+    let mut found_changelog = false;
     if let Some(prefix) = prefix
         && let Some(walk) = read_dir(&src_dir).ok_inspect(|e| warn!("{e}"))
     {
@@ -982,9 +996,13 @@ async fn run() -> Result<()> {
                 expand!([@b"changelog", ..] | [@b"changes", ..] | [@b"news"] | [@b"releases", ..]),
             ) {
                 writeln!(out, r#"    changelog = "{prefix}{name}";"#)?;
+                found_changelog = true;
                 break;
             }
         }
+    }
+    if !found_changelog && let Some(releases_page) = releases_page {
+        writeln!(out, r#"    changelog = "{releases_page}";"#)?;
     }
 
     if let (Some(store), Some(entries)) = (

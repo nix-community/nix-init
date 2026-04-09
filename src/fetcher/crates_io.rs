@@ -61,6 +61,7 @@ impl Fetcher for FetchCrate {
                 homepage,
                 license: Vec::new(),
                 python_dependencies: Default::default(),
+                releases_page: None,
                 revisions: Revisions {
                     latest: "".into(),
                     completions,
@@ -131,6 +132,7 @@ impl Fetcher for FetchCrate {
             }),
             homepage,
             python_dependencies: Default::default(),
+            releases_page: None,
             revisions: Revisions {
                 latest,
                 completions,

@@ -30,6 +30,8 @@ struct Repo {
 #[derive(Deserialize)]
 struct LatestRelease {
     tag_name: String,
+    #[serde(default)]
+    description: String,
 }
 
 #[derive(Deserialize)]
@@ -63,11 +65,7 @@ impl Fetcher for FetchFromGitLab {
                     .await
                     .map_or_else(String::new, |repo: Repo| repo.description)
             },
-            async {
-                json(cl, format!("{root}/releases/permalink/latest"))
-                    .await
-                    .map(|latest_release: LatestRelease| latest_release.tag_name)
-            },
+            json::<LatestRelease>(cl, format!("{root}/releases/permalink/latest")),
             json::<Vec<_>>(cl, format!("{root}/repository/tags?per_page=12")),
             json::<Vec<_>>(cl, format!("{root}/repository/commits?per_page=12")),
         );
@@ -75,13 +73,30 @@ impl Fetcher for FetchFromGitLab {
         let mut completions = vec![];
         let mut versions = FxHashMap::default();
 
-        let mut latest = if let Some(latest) = &latest_release {
-            versions.insert(latest.clone(), Version::Latest);
-            completions.push(Pair {
-                display: format!("{latest} (latest release)"),
-                replacement: latest.clone(),
+        let releases_page = latest_release
+            .as_ref()
+            .filter(|r| r.description.trim().len() >= 20)
+            .map(|_| {
+                let mut page = format!("https://{}/", self.domain);
+                if let Some(group) = &self.group {
+                    let _ = write!(page, "{group}/");
+                }
+                let _ = write!(
+                    page,
+                    "{}/{}/-/releases/${{finalAttrs.src.tag}}",
+                    self.owner, self.repo,
+                );
+                page
             });
-            latest.clone()
+
+        let mut latest = if let Some(latest) = &latest_release {
+            let tag = &latest.tag_name;
+            versions.insert(tag.clone(), Version::Latest);
+            completions.push(Pair {
+                display: format!("{tag} (latest release)"),
+                replacement: tag.clone(),
+            });
+            tag.clone()
         } else {
             "".into()
         };
@@ -94,7 +109,7 @@ impl Fetcher for FetchFromGitLab {
             }
 
             for Tag { name } in tags {
-                if matches!(&latest_release, Some(tag) if tag == &name) {
+                if matches!(&latest_release, Some(r) if r.tag_name == name) {
                     continue;
                 }
                 completions.push(Pair {
@@ -167,6 +182,7 @@ impl Fetcher for FetchFromGitLab {
             homepage,
             license: Vec::new(),
             python_dependencies: Default::default(),
+            releases_page,
             revisions: Revisions {
                 latest,
                 completions,

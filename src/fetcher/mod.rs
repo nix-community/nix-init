@@ -76,6 +76,7 @@ pub struct PackageInfo {
     pub homepage: String,
     pub license: Vec<&'static str>,
     pub python_dependencies: PythonDependencies,
+    pub releases_page: Option<String>,
     pub revisions: Revisions,
 }
 

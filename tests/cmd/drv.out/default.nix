@@ -25,6 +25,7 @@ stdenv.mkDerivation (finalAttrs: {
   meta = {
     description = "[..]";
     homepage = "https://github.com/containers/bubblewrap";
+    changelog = "https://github.com/containers/bubblewrap/releases/tag/${finalAttrs.src.tag}";
     license = lib.licenses.lgpl2Only;
     maintainers = with lib.maintainers; [ alice ];
     mainProgram = "bubblewrap";
