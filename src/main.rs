@@ -49,7 +49,7 @@ use crate::{
     inputs::{AllInputs, write_all_lambda_inputs, write_inputs, write_lambda_input},
     lang::{
         go::{load_go_dependencies, write_ldflags},
-        python::{Pyproject, parse_requirements_txt},
+        python::{Pyproject, PythonDependencies, parse_requirements_txt},
         rust::{cargo_deps_hash, load_cargo_lock, write_cargo_lock},
     },
     license::{LICENSE_STORE, load_license},
@@ -76,6 +76,17 @@ struct Outputs {
 #[tokio::main]
 async fn main() -> Result<()> {
     run().await
+}
+
+#[derive(Default)]
+struct SourceInfo {
+    pname: Option<String>,
+    rev: String,
+    version: String,
+    description: String,
+    file_url_prefix: Option<String>,
+    releases_page: Option<String>,
+    python_dependencies: PythonDependencies,
 }
 
 async fn run() -> Result<()> {
@@ -124,114 +135,118 @@ async fn run() -> Result<()> {
     let mut cmd = Command::new(NURL);
     let mut licenses = BTreeMap::new();
     let mut pypi_format = PypiFormat::TarGz;
-    let (pname, rev, version, desc, prefix, releases_page, mut python_deps) =
-        if let MaybeFetcher::Known(fetcher) = &mut fetcher {
-            let cl = fetcher.create_client(cfg.access_tokens).await?;
+    let SourceInfo {
+        pname,
+        rev,
+        version,
+        description,
+        file_url_prefix,
+        releases_page,
+        python_dependencies: mut python_deps,
+    } = if let MaybeFetcher::Known(fetcher) = &mut fetcher {
+        let cl = fetcher.create_client(cfg.access_tokens).await?;
 
-            let PackageInfo {
-                pname,
-                description,
-                file_url_prefix,
-                homepage,
-                license,
-                mut releases_page,
-                python_dependencies,
-                mut revisions,
-            } = fetcher.get_package_info(&cl).await;
+        let PackageInfo {
+            pname,
+            description,
+            file_url_prefix,
+            homepage,
+            license,
+            mut releases_page,
+            python_dependencies,
+            mut revisions,
+        } = fetcher.get_package_info(&cl).await;
 
-            url = homepage;
+        url = homepage;
 
-            for license in license {
-                licenses.insert(license, 1.0);
+        for license in license {
+            licenses.insert(license, 1.0);
+        }
+
+        let (rev, version) = match opts.rev {
+            Some(rev) => {
+                let version = revisions.versions.remove(&rev);
+                (rev, version)
             }
-
-            let (rev, version) = match opts.rev {
-                Some(rev) => {
-                    let version = revisions.versions.remove(&rev);
-                    (rev, version)
-                }
-                None => frontend.rev(Some(revisions))?,
-            };
-
-            let submodules = match opts.submodules {
-                Some(true) => fetcher.has_submodules(&cl, &rev).await,
-                Some(false) => false,
-                None => fetcher.has_submodules(&cl, &rev).await && frontend.fetch_submodules()?,
-            };
-            if submodules {
-                cmd.arg("-S");
-            }
-
-            let version = if let Some(version) = opt_version {
-                version
-            } else {
-                let version = match version {
-                    Some(version) => Some(version),
-                    None => fetcher.get_version(&cl, &rev).await,
-                };
-                if !matches!(version, Some(Version::Latest | Version::Tag)) {
-                    releases_page = None;
-                }
-                let version = match version {
-                    Some(Version::Latest | Version::Tag) => get_version_number(&rev).into(),
-                    Some(Version::Pypi {
-                        pname: pypi_pname,
-                        format,
-                    }) => {
-                        if let FetcherDispatch::FetchPypi(fetcher) = fetcher {
-                            fetcher.pname = pypi_pname;
-                        }
-                        pypi_format = format;
-                        rev.clone()
-                    }
-                    Some(Version::Head { date, .. } | Version::Commit { date, .. }) => {
-                        format!("0-unstable-{date}")
-                    }
-                    None => get_version(&rev).into(),
-                };
-
-                frontend.version(&version)?
-            };
-
-            (
-                Some(pname),
-                rev,
-                version,
-                description,
-                file_url_prefix,
-                releases_page,
-                python_dependencies,
-            )
-        } else {
-            let pname = url
-                .parse::<url::Url>()
-                .ok_inspect(|e| warn!("{e}"))
-                .and_then(|url| {
-                    url.path_segments()
-                        .and_then(|mut xs| xs.next_back())
-                        .map(|pname| pname.strip_suffix(".git").unwrap_or(pname).into())
-                });
-
-            let rev = match opts.rev {
-                Some(rev) => rev,
-                None => frontend.rev(None)?.0,
-            };
-
-            let version = match opt_version {
-                Some(version) => version,
-                None => frontend.version(get_version(&rev))?,
-            };
-
-            (
-                pname,
-                rev,
-                version,
-                "".into(),
-                None,
-                None,
-                Default::default(),
-            )
+            None => frontend.rev(Some(revisions))?,
         };
+
+        let submodules = match opts.submodules {
+            Some(true) => fetcher.has_submodules(&cl, &rev).await,
+            Some(false) => false,
+            None => fetcher.has_submodules(&cl, &rev).await && frontend.fetch_submodules()?,
+        };
+        if submodules {
+            cmd.arg("-S");
+        }
+
+        let version = if let Some(version) = opt_version {
+            version
+        } else {
+            let version = match version {
+                Some(version) => Some(version),
+                None => fetcher.get_version(&cl, &rev).await,
+            };
+            if !matches!(version, Some(Version::Latest | Version::Tag)) {
+                releases_page = None;
+            }
+            let version = match version {
+                Some(Version::Latest | Version::Tag) => get_version_number(&rev).into(),
+                Some(Version::Pypi {
+                    pname: pypi_pname,
+                    format,
+                }) => {
+                    if let FetcherDispatch::FetchPypi(fetcher) = fetcher {
+                        fetcher.pname = pypi_pname;
+                    }
+                    pypi_format = format;
+                    rev.clone()
+                }
+                Some(Version::Head { date, .. } | Version::Commit { date, .. }) => {
+                    format!("0-unstable-{date}")
+                }
+                None => get_version(&rev).into(),
+            };
+
+            frontend.version(&version)?
+        };
+
+        SourceInfo {
+            pname: Some(pname),
+            rev,
+            version,
+            description,
+            file_url_prefix,
+            releases_page,
+            python_dependencies,
+        }
+    } else {
+        let pname = url
+            .parse::<url::Url>()
+            .ok_inspect(|e| warn!("{e}"))
+            .and_then(|url| {
+                url.path_segments()
+                    .and_then(|mut xs| xs.next_back())
+                    .map(|pname| pname.strip_suffix(".git").unwrap_or(pname).into())
+            });
+
+        let rev = match opts.rev {
+            Some(rev) => rev,
+            None => frontend.rev(None)?.0,
+        };
+
+        let version = match opt_version {
+            Some(version) => version,
+            None => frontend.version(get_version(&rev))?,
+        };
+
+        SourceInfo {
+            pname,
+            rev,
+            version,
+            ..Default::default()
+        }
+    };
 
     let pname = match opts.pname {
         Some(rev) => rev,
@@ -1002,17 +1017,19 @@ async fn run() -> Result<()> {
         writeln!(out, "  passthru.updateScript = nix-update-script {{ }};\n")?;
     }
 
-    let mut desc = desc.trim_matches(|c: char| !c.is_alphanumeric()).to_owned();
-    desc.get_mut(0 .. 1).map(str::make_ascii_uppercase);
+    let mut description = description
+        .trim_matches(|c: char| !c.is_alphanumeric())
+        .to_owned();
+    description.get_mut(0 .. 1).map(str::make_ascii_uppercase);
     write!(out, "  ")?;
     writedoc! {out, r"
         meta = {{
-            description = {desc:?};
+            description = {description:?};
             homepage = {url:?};
     "}?;
 
     let mut found_changelog = false;
-    if let Some(prefix) = prefix
+    if let Some(file_url_prefix) = file_url_prefix
         && let Some(walk) = read_dir(&src_dir).ok_inspect(|e| warn!("{e}"))
     {
         for entry in walk {
@@ -1033,7 +1050,7 @@ async fn run() -> Result<()> {
                 name.to_ascii_lowercase().as_bytes(),
                 expand!([@b"changelog", ..] | [@b"changes", ..] | [@b"news"] | [@b"releases", ..]),
             ) {
-                writeln!(out, r#"    changelog = "{prefix}{name}";"#)?;
+                writeln!(out, r#"    changelog = "{file_url_prefix}{name}";"#)?;
                 found_changelog = true;
                 break;
             }
