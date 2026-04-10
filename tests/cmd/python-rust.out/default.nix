@@ -31,6 +31,7 @@
   pytest-cov,
   pytest-xdist,
   pytest-randomly,
+  nix-update-script,
 }:
 
 buildPythonPackage (finalAttrs: {
@@ -112,6 +113,8 @@ buildPythonPackage (finalAttrs: {
   pythonImportsCheck = [
     "cryptography"
   ];
+
+  passthru.updateScript = nix-update-script { };
 
   meta = {
     description = "[..]";

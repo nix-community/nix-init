@@ -2,6 +2,7 @@
   lib,
   python3,
   fetchFromGitHub,
+  nix-update-script,
 }:
 
 python3.pkgs.buildPythonApplication (finalAttrs: {
@@ -52,6 +53,8 @@ python3.pkgs.buildPythonApplication (finalAttrs: {
   pythonImportsCheck = [
     "black"
   ];
+
+  passthru.updateScript = nix-update-script { };
 
   meta = {
     description = "[..]";

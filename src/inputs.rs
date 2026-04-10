@@ -24,6 +24,8 @@ pub struct Inputs {
     pub x86_64_linux: BTreeSet<String>,
 }
 
+// "all" here refers to all systems
+// does not write out python inputs or nix-update-script
 pub fn write_all_lambda_inputs(
     out: &mut impl Write,
     inputs: &AllInputs,

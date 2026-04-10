@@ -2,6 +2,7 @@
   lib,
   stdenvNoCC,
   fetchFromGitHub,
+  nix-update-script,
 }:
 
 stdenvNoCC.mkDerivation (finalAttrs: {
@@ -14,6 +15,8 @@ stdenvNoCC.mkDerivation (finalAttrs: {
     tag = "v${finalAttrs.version}";
     hash = "sha256-nuw/riQaAdk0fYUpm3z978YGPDJnzc66DnOj774tPu0=";
   };
+
+  passthru.updateScript = nix-update-script { };
 
   meta = {
     description = "[..]";
