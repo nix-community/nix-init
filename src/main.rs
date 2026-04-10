@@ -556,7 +556,7 @@ async fn run() -> Result<()> {
         }
     }
 
-    let nix_update_supported = matches!(fetcher, MaybeFetcher::Known(_));
+    let nix_update_script = matches!(fetcher, MaybeFetcher::Known(_));
     match fetcher {
         MaybeFetcher::Known(fetcher) => {
             writeln!(out, "  {fetcher},")?;
@@ -564,10 +564,6 @@ async fn run() -> Result<()> {
         MaybeFetcher::Unknown { fetcher } => {
             writeln!(out, "  {fetcher},")?;
         }
-    }
-
-    if nix_update_supported {
-        writeln!(out, "  nix-update-script,")?;
     }
 
     let mut python_import = None;
@@ -593,6 +589,10 @@ async fn run() -> Result<()> {
             };
 
             let res = write_all_lambda_inputs(&mut out, &inputs, &mut BTreeSet::new())?;
+            if nix_update_script {
+                writeln!(out, "  nix-update-script,")?;
+            }
+
             writedoc! {out, r#"
                 }}:
 
@@ -679,6 +679,9 @@ async fn run() -> Result<()> {
                     write_lambda_input(&mut out, &mut written, &name.to_kebab_case())?;
                 }
             }
+            if nix_update_script {
+                writeln!(out, "  nix-update-script,")?;
+            }
 
             writedoc! {out, r#"
                 }}:
@@ -732,8 +735,13 @@ async fn run() -> Result<()> {
                 &nixpkgs,
             )
             .await;
+
             let res =
                 write_all_lambda_inputs(&mut out, &inputs, &mut ["rustPlatform".into()].into())?;
+            if nix_update_script {
+                writeln!(out, "  nix-update-script,")?;
+            }
+
             writedoc! {out, r#"
                 }}:
 
@@ -767,6 +775,10 @@ async fn run() -> Result<()> {
 
             let res =
                 write_all_lambda_inputs(&mut out, &inputs, &mut ["rustPlatform".into()].into())?;
+            if nix_update_script {
+                writeln!(out, "  nix-update-script,")?;
+            }
+
             writedoc! {out, r#"
                 }}:
 
@@ -784,6 +796,10 @@ async fn run() -> Result<()> {
 
         Builder::MkDerivation { rust: None } => {
             let res = write_all_lambda_inputs(&mut out, &inputs, &mut ["stdenv".into()].into())?;
+            if nix_update_script {
+                writeln!(out, "  nix-update-script,")?;
+            }
+
             writedoc! { out, r#"
                 }}:
 
@@ -810,7 +826,12 @@ async fn run() -> Result<()> {
                 &nixpkgs,
             )
             .await;
+
             let res = write_all_lambda_inputs(&mut out, &inputs, &mut ["stdenv".into()].into())?;
+            if nix_update_script {
+                writeln!(out, "  nix-update-script,")?;
+            }
+
             writedoc! {out, r#"
                 }}:
 
@@ -846,6 +867,10 @@ async fn run() -> Result<()> {
             };
 
             let res = write_all_lambda_inputs(&mut out, &inputs, &mut ["stdenv".into()].into())?;
+            if nix_update_script {
+                writeln!(out, "  nix-update-script,")?;
+            }
+
             writedoc! {out, r#"
                 }}:
 
@@ -864,6 +889,10 @@ async fn run() -> Result<()> {
         Builder::MkDerivationNoCC => {
             let res =
                 write_all_lambda_inputs(&mut out, &inputs, &mut ["stdenvNoCC".into()].into())?;
+            if nix_update_script {
+                writeln!(out, "  nix-update-script,")?;
+            }
+
             writedoc! { out, r#"
                 }}:
 
@@ -956,7 +985,7 @@ async fn run() -> Result<()> {
         writeln!(out, "  }};\n")?;
     }
 
-    if nix_update_supported {
+    if nix_update_script {
         writeln!(out, "  passthru.updateScript = nix-update-script {{ }};\n")?;
     }
 

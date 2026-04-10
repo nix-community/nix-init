@@ -2,7 +2,6 @@
   lib,
   stdenv,
   fetchFromGitHub,
-  nix-update-script,
   cargo,
   meson,
   ninja,
@@ -21,6 +20,7 @@
   libpulseaudio,
   pango,
   udev,
+  nix-update-script,
 }:
 
 stdenv.mkDerivation (finalAttrs: {

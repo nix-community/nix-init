@@ -2,7 +2,6 @@
   lib,
   buildPythonPackage,
   fetchFromGitHub,
-  nix-update-script,
   cargo,
   cffi,
   pkg-config,
@@ -32,6 +31,7 @@
   pytest-cov,
   pytest-xdist,
   pytest-randomly,
+  nix-update-script,
 }:
 
 buildPythonPackage (finalAttrs: {

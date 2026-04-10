@@ -2,9 +2,9 @@
   lib,
   stdenv,
   fetchFromGitHub,
-  nix-update-script,
   meson,
   ninja,
+  nix-update-script,
 }:
 
 stdenv.mkDerivation (finalAttrs: {

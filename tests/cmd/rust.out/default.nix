@@ -2,7 +2,6 @@
   lib,
   rustPlatform,
   fetchFromGitHub,
-  nix-update-script,
   curl,
   pkg-config,
   libgit2,
@@ -10,6 +9,7 @@
   sqlite,
   zlib,
   zstd,
+  nix-update-script,
 }:
 
 rustPlatform.buildRustPackage (finalAttrs: {

@@ -2,10 +2,10 @@
   lib,
   buildPythonPackage,
   fetchFromGitHub,
-  nix-update-script,
   flit-core,
   markupsafe,
   babel,
+  nix-update-script,
 }:
 
 buildPythonPackage (finalAttrs: {
