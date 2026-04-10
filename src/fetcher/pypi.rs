@@ -66,6 +66,7 @@ impl Fetcher for FetchPypi {
                 homepage,
                 license: Vec::new(),
                 python_dependencies: Default::default(),
+                releases_page: None,
                 revisions: Revisions {
                     latest: "".into(),
                     completions,
@@ -127,6 +128,7 @@ impl Fetcher for FetchPypi {
                 .license
                 .map_or_else(Vec::new, |license| parse_spdx_expression(&license, "pypi")),
             python_dependencies: get_python_dependencies(project.info.requires_dist),
+            releases_page: None,
             revisions: Revisions {
                 latest: completions
                     .first()

@@ -30,6 +30,8 @@ struct Repo {
 #[derive(Deserialize)]
 struct LatestRelease {
     tag_name: String,
+    #[serde(default)]
+    body: String,
 }
 
 #[derive(Deserialize)]
@@ -78,11 +80,7 @@ impl Fetcher for FetchFromGitHub {
                     .await
                     .map_or_else(String::new, |repo: Repo| repo.description)
             },
-            async {
-                json(cl, format!("{root}/releases/latest"))
-                    .await
-                    .map(|latest_release: LatestRelease| latest_release.tag_name)
-            },
+            json::<LatestRelease>(cl, format!("{root}/releases/latest")),
             json::<Vec<_>>(cl, format!("{root}/git/matching-refs/tags/")),
             json::<Vec<_>>(cl, format!("{root}/commits?per_page=12")),
         );
@@ -90,13 +88,24 @@ impl Fetcher for FetchFromGitHub {
         let mut completions = vec![];
         let mut versions = FxHashMap::default();
 
-        let mut latest = if let Some(latest) = &latest_release {
-            versions.insert(latest.clone(), Version::Latest);
-            completions.push(Pair {
-                display: format!("{latest} (latest release)"),
-                replacement: latest.clone(),
+        let releases_page = latest_release
+            .as_ref()
+            .filter(|r| r.body.trim().len() >= 20)
+            .map(|_| {
+                format!(
+                    "https://{}/{}/{}/releases/tag/${{finalAttrs.src.tag}}",
+                    self.github_base, self.owner, self.repo,
+                )
             });
-            latest.clone()
+
+        let mut latest = if let Some(latest) = &latest_release {
+            let tag = &latest.tag_name;
+            versions.insert(tag.clone(), Version::Latest);
+            completions.push(Pair {
+                display: format!("{tag} (latest release)"),
+                replacement: tag.clone(),
+            });
+            tag.clone()
         } else {
             "".into()
         };
@@ -127,7 +136,7 @@ impl Fetcher for FetchFromGitHub {
             }
 
             for tag in tags {
-                if matches!(&latest_release, Some(latest) if latest == &tag) {
+                if matches!(&latest_release, Some(r) if r.tag_name == tag) {
                     continue;
                 }
                 completions.push(Pair {
@@ -188,6 +197,7 @@ impl Fetcher for FetchFromGitHub {
             homepage,
             license: Vec::new(),
             python_dependencies: Default::default(),
+            releases_page,
             revisions: Revisions {
                 latest,
                 completions,

@@ -24,6 +24,8 @@ struct Repo {
 #[derive(Deserialize)]
 struct Release {
     tag_name: String,
+    #[serde(default)]
+    body: String,
 }
 
 #[derive(Deserialize)]
@@ -73,7 +75,7 @@ impl Fetcher for FetchFromGitea {
             async {
                 json::<[Release; 1]>(cl, format!("{root}/releases?limit=1"))
                     .await
-                    .map(|[release]| release.tag_name)
+                    .map(|[release]| release)
             },
             json::<Vec<_>>(cl, format!("{root}/tags?page=1&limit=12")),
             json::<Vec<_>>(cl, format!("{root}/commits?limit=12&stat=false")),
@@ -82,13 +84,24 @@ impl Fetcher for FetchFromGitea {
         let mut completions = vec![];
         let mut versions = FxHashMap::default();
 
-        let mut latest = if let Some(latest) = &latest_release {
-            versions.insert(latest.clone(), Version::Latest);
-            completions.push(Pair {
-                display: format!("{latest} (latest release)"),
-                replacement: latest.clone(),
+        let releases_page = latest_release
+            .as_ref()
+            .filter(|r| r.body.trim().len() >= 20)
+            .map(|_| {
+                format!(
+                    "https://{}/{}/{}/releases/tag/${{finalAttrs.src.tag}}",
+                    self.domain, self.owner, self.repo,
+                )
             });
-            latest.clone()
+
+        let mut latest = if let Some(latest) = &latest_release {
+            let tag = &latest.tag_name;
+            versions.insert(tag.clone(), Version::Latest);
+            completions.push(Pair {
+                display: format!("{tag} (latest release)"),
+                replacement: tag.clone(),
+            });
+            tag.clone()
         } else {
             "".into()
         };
@@ -101,7 +114,7 @@ impl Fetcher for FetchFromGitea {
             }
 
             for Tag { name } in tags {
-                if matches!(&latest_release, Some(tag) if tag == &name) {
+                if matches!(&latest_release, Some(r) if r.tag_name == name) {
                     continue;
                 }
                 completions.push(Pair {
@@ -162,6 +175,7 @@ impl Fetcher for FetchFromGitea {
             homepage,
             license: Vec::new(),
             python_dependencies: Default::default(),
+            releases_page,
             revisions: Revisions {
                 latest,
                 completions,

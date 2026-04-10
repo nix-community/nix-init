@@ -68,6 +68,7 @@ stdenv.mkDerivation (finalAttrs: {
   meta = {
     description = "[..]";
     homepage = "https://github.com/ErikReider/SwayOSD";
+    changelog = "https://github.com/ErikReider/SwayOSD/releases/tag/${finalAttrs.src.tag}";
     license = lib.licenses.gpl3Only;
     maintainers = with lib.maintainers; [ alice ];
     mainProgram = "sway-osd";
