@@ -15,6 +15,7 @@
 rustPlatform.buildRustPackage (finalAttrs: {
   pname = "nix-init";
   version = "0.3.3";
+  __structuredAttrs = true;
 
   src = fetchFromGitHub {
     owner = "nix-community";

@@ -7,6 +7,7 @@
 stdenv.mkDerivation (finalAttrs: {
   pname = "scdoc";
   version = "1.11.3";
+  __structuredAttrs = true;
 
   src = fetchFromSourcehut {
     owner = "~sircmpwn";
