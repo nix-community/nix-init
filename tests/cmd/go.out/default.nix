@@ -8,6 +8,7 @@
 buildGoModule (finalAttrs: {
   pname = "fzf";
   version = "0.67.0";
+  __structuredAttrs = true;
 
   src = fetchFromGitHub {
     owner = "junegunn";

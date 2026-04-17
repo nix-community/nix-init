@@ -627,6 +627,7 @@ async fn run() -> Result<()> {
                 buildGoModule (finalAttrs: {{
                   pname = {pname:?};
                   version = {version:?};
+                  __structuredAttrs = true;
 
                   src = {src_expr};
 
@@ -718,6 +719,7 @@ async fn run() -> Result<()> {
                   pname = {pname:?};
                   version = {version:?};
                   pyproject = true;
+                  __structuredAttrs = true;
 
                   src = {src_expr};
 
@@ -776,6 +778,7 @@ async fn run() -> Result<()> {
                 rustPlatform.buildRustPackage (finalAttrs: {{
                   pname = {pname:?};
                   version = {version:?};
+                  __structuredAttrs = true;
 
                   src = {src_expr};
 
@@ -813,6 +816,7 @@ async fn run() -> Result<()> {
                 rustPlatform.buildRustPackage (finalAttrs: {{
                   pname = "{pname}";
                   version = "{version}";
+                  __structuredAttrs = true;
 
                   src = {src_expr};
 
@@ -834,6 +838,7 @@ async fn run() -> Result<()> {
                 stdenv.mkDerivation (finalAttrs: {{
                   pname = {pname:?};
                   version = {version:?};
+                  __structuredAttrs = true;
 
                   src = {src_expr};
 
@@ -866,6 +871,7 @@ async fn run() -> Result<()> {
                 stdenv.mkDerivation (finalAttrs: {{
                   pname = {pname:?};
                   version = {version:?};
+                  __structuredAttrs = true;
 
                   src = {src_expr};
 
@@ -905,6 +911,7 @@ async fn run() -> Result<()> {
                 stdenv.mkDerivation (finalAttrs: {{
                   pname = "{pname}";
                   version = "{version}";
+                  __structuredAttrs = true;
 
                   src = {src_expr};
 
@@ -927,6 +934,7 @@ async fn run() -> Result<()> {
                 stdenvNoCC.mkDerivation (finalAttrs: {{
                   pname = {pname:?};
                   version = {version:?};
+                  __structuredAttrs = true;
 
                   src = {src_expr};
 

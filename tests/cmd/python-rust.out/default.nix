@@ -38,6 +38,7 @@ buildPythonPackage (finalAttrs: {
   pname = "cryptography";
   version = "46.0.4";
   pyproject = true;
+  __structuredAttrs = true;
 
   src = fetchFromGitHub {
     owner = "pyca";
