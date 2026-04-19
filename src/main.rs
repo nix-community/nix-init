@@ -839,6 +839,7 @@ async fn run() -> Result<()> {
                   pname = {pname:?};
                   version = {version:?};
                   __structuredAttrs = true;
+                  strictDeps = true;
 
                   src = {src_expr};
 
@@ -872,6 +873,7 @@ async fn run() -> Result<()> {
                   pname = {pname:?};
                   version = {version:?};
                   __structuredAttrs = true;
+                  strictDeps = true;
 
                   src = {src_expr};
 
@@ -912,6 +914,7 @@ async fn run() -> Result<()> {
                   pname = "{pname}";
                   version = "{version}";
                   __structuredAttrs = true;
+                  strictDeps = true;
 
                   src = {src_expr};
 
@@ -935,6 +938,7 @@ async fn run() -> Result<()> {
                   pname = {pname:?};
                   version = {version:?};
                   __structuredAttrs = true;
+                  strictDeps = true;
 
                   src = {src_expr};
 

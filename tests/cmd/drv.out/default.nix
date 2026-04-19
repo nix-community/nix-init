@@ -11,6 +11,7 @@ stdenv.mkDerivation (finalAttrs: {
   pname = "bubblewrap";
   version = "0.11.0";
   __structuredAttrs = true;
+  strictDeps = true;
 
   src = fetchFromGitHub {
     owner = "containers";
