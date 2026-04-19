@@ -27,6 +27,7 @@ stdenv.mkDerivation (finalAttrs: {
   pname = "sway-osd";
   version = "0.3.0";
   __structuredAttrs = true;
+  strictDeps = true;
 
   src = fetchFromGitHub {
     owner = "ErikReider";

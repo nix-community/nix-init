@@ -9,6 +9,7 @@ stdenvNoCC.mkDerivation (finalAttrs: {
   pname = "zi";
   version = "1.0.3";
   __structuredAttrs = true;
+  strictDeps = true;
 
   src = fetchFromGitHub {
     owner = "z-shell";
