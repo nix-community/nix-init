@@ -28,7 +28,7 @@ include = ["data", "src", "Cargo.lock", "Cargo.toml", "build.rs"]
 # keep-sorted start
 anyhow = "1.0.102"
 askalono.workspace = true
-cargo = "0.95.0"
+cargo = "0.96.0"
 chumsky = "=1.0.0-alpha.8"
 enum_dispatch = "0.3.13"
 expand = "0.3.0"
@@ -37,17 +37,17 @@ heck = "0.5.0"
 indoc = "2.0.7"
 itertools = "0.14.0"
 owo-colors = "4.3.0"
-parse-display = "0.10.0"
+parse-display = "0.11.0"
 pep-508 = "0.5.0"
 rayon = "1.12.0"
 regex = "1.12.3"
-reqwest = { version = "0.13.2", features = ["json"] }
+reqwest = { version = "0.13.3", features = ["json"] }
 rustc-hash = "2.1.2"
 secrecy = { version = "0.10.3", features = ["serde"] }
 semver = "1.0.28"
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.149"
-serde_with = "3.18.0"
+serde_with = "3.19.0"
 serde_yaml = "0.9.34"
 shlex = "1.3.0"
 spdx = "0.13.4"
@@ -60,35 +60,35 @@ url = "2.5.8"
 versions = "7.0.0"
 which = "8.0.2"
 xdg = "3.0.0"
-zip = "8.5.1"
+zip = "8.6.0"
 # keep-sorted end
 
 [dependencies.clap]
-version = "4.6.0"
+version = "4.6.1"
 features = ["cargo", "derive", "unicode", "wrap_help"]
 
 [dependencies.rustyline]
-version = "17.0.2"
+version = "18.0.0"
 default-features = false
 features = ["derive", "with-fuzzy"]
 
 [dependencies.tokio]
-version = "1.51.1"
+version = "1.52.2"
 features = ["macros", "process", "rt-multi-thread"]
 
 [dependencies.toml]
-version = "1.1.0"
+version = "1.1.2"
 default-features = false
 features = ["parse", "serde", "std"]
 
 [build-dependencies]
-clap = { version = "4.6.0", features = ["derive"] }
-clap_complete = "4.6.2"
+clap = { version = "4.6.1", features = ["derive"] }
+clap_complete = "4.6.3"
 clap_mangen = "0.3.0"
 
 [dev-dependencies]
 heck = "0.5.0"
-insta = "1.47.1"
+insta = "1.47.2"
 tempfile = "3.27.0"
 trycmd = "1.2.0"
 
