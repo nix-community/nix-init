@@ -517,7 +517,7 @@ async fn run() -> Result<()> {
                 out,
                 "  {},",
                 if application {
-                    "python3"
+                    "python3Packages"
                 } else {
                     "buildPythonPackage"
                 }
@@ -526,7 +526,7 @@ async fn run() -> Result<()> {
             if src_dir.join("poetry.lock").is_file() {
                 inputs.native_build_inputs.always.insert(
                     if application {
-                        "python3.pkgs.poetry-core"
+                        "python3Packages.poetry-core"
                     } else {
                         "poetry-core"
                     }
@@ -696,7 +696,7 @@ async fn run() -> Result<()> {
 
             let mut written = BTreeSet::new();
             if application {
-                written.insert("python3".into());
+                written.insert("python3Packages".into());
             }
             let res = write_all_lambda_inputs(&mut out, &inputs, &mut written)?;
             if !application {
@@ -725,7 +725,7 @@ async fn run() -> Result<()> {
 
                 "#,
                 if application {
-                    "python3.pkgs.buildPythonApplication"
+                    "python3Packages.buildPythonApplication"
                 } else {
                     "buildPythonPackage"
                 },
@@ -970,7 +970,7 @@ async fn run() -> Result<()> {
             if !python_deps.always.is_empty() {
                 write!(out, "  dependencies = ")?;
                 if application {
-                    write!(out, "with python3.pkgs; ")?;
+                    write!(out, "with python3Packages; ")?;
                 }
                 writeln!(out, "[")?;
 
@@ -988,7 +988,7 @@ async fn run() -> Result<()> {
             if let Some((extra, deps)) = optional.next() {
                 write!(out, "  optional-dependencies = ")?;
                 if application {
-                    write!(out, "with python3.pkgs; ")?;
+                    write!(out, "with python3Packages; ")?;
                 }
                 writeln!(out, "{{\n    {extra} = [",)?;
                 for name in deps {

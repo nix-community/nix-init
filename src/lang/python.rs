@@ -119,7 +119,7 @@ impl Pyproject {
                 }
                 name => {
                     inputs.native_build_inputs.always.insert(if application {
-                        format!("python3.pkgs.{}", AsKebabCase(name.to_lowercase()))
+                        format!("python3Packages.{}", AsKebabCase(name.to_lowercase()))
                     } else {
                         name.to_lowercase().to_kebab_case()
                     });
