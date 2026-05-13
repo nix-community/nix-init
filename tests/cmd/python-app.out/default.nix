@@ -1,11 +1,11 @@
 {
   lib,
-  python3,
+  python3Packages,
   fetchFromGitHub,
   nix-update-script,
 }:
 
-python3.pkgs.buildPythonApplication (finalAttrs: {
+python3Packages.buildPythonApplication (finalAttrs: {
   pname = "black";
   version = "26.1.0";
   pyproject = true;
@@ -19,12 +19,12 @@ python3.pkgs.buildPythonApplication (finalAttrs: {
   };
 
   build-system = [
-    python3.pkgs.hatch-fancy-pypi-readme
-    python3.pkgs.hatch-vcs
-    python3.pkgs.hatchling
+    python3Packages.hatch-fancy-pypi-readme
+    python3Packages.hatch-vcs
+    python3Packages.hatchling
   ];
 
-  dependencies = with python3.pkgs; [
+  dependencies = with python3Packages; [
     click
     mypy-extensions
     packaging
@@ -35,7 +35,7 @@ python3.pkgs.buildPythonApplication (finalAttrs: {
     typing-extensions
   ];
 
-  optional-dependencies = with python3.pkgs; {
+  optional-dependencies = with python3Packages; {
     colorama = [
       colorama
     ];
