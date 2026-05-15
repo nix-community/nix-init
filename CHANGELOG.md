@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.3.6 - 2026-05-15
+
+### Fixes
+
+- Rust: remove dependency on rustc
+  ([#797](https://github.com/nix-community/nix-init/pull/797))
+
 ## v0.3.5 - 2026-05-15
 
 ### Changes
