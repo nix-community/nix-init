@@ -1,5 +1,30 @@
 # Changelog
 
+## v0.3.5 - 2026-05-15
+
+### Changes
+
+- Set `__structuredAttrs`
+  ([#774](https://github.com/nix-community/nix-init/pull/774))
+- Set `strictDeps` when needed
+  ([#775](https://github.com/nix-community/nix-init/pull/775))
+
+### Features
+
+- Set `passthru.updateScript` for supported fetchers
+  ([#768](https://github.com/nix-community/nix-init/pull/768))
+- Use release page as a fallback for changelogs
+  ([#765](https://github.com/nix-community/nix-init/pull/765))
+- Commit: Add assisted-by trailer
+  ([#784](https://github.com/nix-community/nix-init/pull/784))
+- Rust: force libsqlite3-sys to use pkg-config when needed
+  ([#747](https://github.com/nix-community/nix-init/pull/747))
+
+### Fixes
+
+- Use `wrapGAppsHook3` instead of `wrapGAppsHook`
+  ([#785](https://github.com/nix-community/nix-init/pull/785))
+
 ## v0.3.4 - 2026-03-11
 
 ### Changes
