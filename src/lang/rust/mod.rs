@@ -89,7 +89,7 @@ pub async fn load_cargo_lock(
                     .map_err(anyhow::Error::from)
                     .and_then(|mut target| {
                         let cfg = cargo_config(src_dir)?;
-                        let ws = Workspace::new(&src_dir.join("Cargo.toml"), &cfg)?;
+                        let ws = cargo_workspace(src_dir, &cfg)?;
                         let resolve = resolve_with_previous(
                             &mut PackageRegistry::new_with_source_config(
                                 &cfg,
@@ -187,7 +187,7 @@ fn resolve_workspace(src_dir: &Path) -> Option<Resolve> {
     cfg.configure(0, false, None, false, true, false, &None, &[], &[])
         .ok_inspect(|e| error!("{e}"))?;
 
-    let ws = Workspace::new(&src_dir.join("Cargo.toml"), &cfg).ok_inspect(|e| error!("{e}"))?;
+    let ws = cargo_workspace(src_dir, &cfg).ok_inspect(|e| error!("{e}"))?;
     let lock = load_pkg_lockfile(&ws).ok_inspect(|e| error!("{e}"))?;
 
     let mut registry =
@@ -213,6 +213,13 @@ fn cargo_config(src_dir: &Path) -> Result<GlobalContext> {
         src_dir.into(),
         homedir(src_dir).context("failed to find cargo home")?,
     ))
+}
+
+fn cargo_workspace<'a>(src_dir: &Path, cfg: &'a GlobalContext) -> Result<Workspace<'a>> {
+    let mut ws = Workspace::new(&src_dir.join("Cargo.toml"), cfg)?;
+    // avoid dependency on rustc
+    ws.set_resolve_honors_rust_version(Some(false));
+    Ok(ws)
 }
 
 fn load_rust_dependencies(inputs: &mut AllInputs, resolve: &Resolve) {
