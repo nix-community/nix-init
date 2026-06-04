@@ -7,7 +7,7 @@ pub(super) fn load_rust_dependency(inputs: &mut AllInputs, resolve: &Resolve, pk
     input_macros!(inputs);
 
     match &*pkg.name() {
-        // keep-sorted start block=yes
+        // keep-sorted start group_start_regex=^\s*"
         "alsa-sys" => build!("alsa-lib"; linux),
         "ash" => build!("vulkan-loader"),
         "atk-sys" => build!("atk"),
@@ -127,10 +127,8 @@ pub(super) fn load_rust_dependency(inputs: &mut AllInputs, resolve: &Resolve, pk
         }
         "libudev-sys" => build!("udev"),
         "libusb1-sys" => build!("libusb"),
-        "libwebp-sys2" => {
-            if resolve.features(pkg).iter().all(|feat| feat != "static") {
-                build!("libwebp");
-            }
+        "libwebp-sys2" if resolve.features(pkg).iter().all(|feat| feat != "static") => {
+            build!("libwebp");
         }
         "libxml" => build!("libxml2"),
         "libz-sys" => {
