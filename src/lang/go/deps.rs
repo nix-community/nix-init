@@ -6,7 +6,7 @@ pub(super) fn load_go_dependency(inputs: &mut AllInputs, pkg: GoPackage<'_>) {
     input_macros!(inputs);
 
     match pkg.name {
-        // keep-sorted start block=yes
+        // keep-sorted start group_start_regex=^\s*"
         "github.com/diamondburned/gotk4-adwaita/pkg" => build!("libadwaita"),
         "github.com/diamondburned/gotk4/pkg" => {
             native_build!("pkg-config", "wrapGAppsHook4");
@@ -25,13 +25,13 @@ pub(super) fn load_go_dependency(inputs: &mut AllInputs, pkg: GoPackage<'_>) {
             native_build!("pkg-config", "wrapGAppsHook3");
             build!("gtk3");
         }
-        "github.com/shirou/gopsutil" => {
+        "github.com/shirou/gopsutil"
             if pkg.version.get().is_some_and(|version| {
                 version < Version::new(3, 21, 3)
                     && (version.major != 2 || version < Version::new(2, 21, 11))
-            }) {
-                environ!("CGO_CFLAGS", r#""-Wno-undef-prefix""#);
-            }
+            }) =>
+        {
+            environ!("CGO_CFLAGS", r#""-Wno-undef-prefix""#);
         }
         "golang.design/x/clipboard" => {
             build!("xorg.libX11"; linux);
