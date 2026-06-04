@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Features
+
+- Add support for `buildNpmPackage`
+
 ## v0.3.6 - 2026-05-15
 
 ### Fixes
