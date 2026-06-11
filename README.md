@@ -72,6 +72,7 @@ Options:
 - `buildRustPackage`
 - `buildPythonApplication` and `buildPythonPackage`
 - `buildGoModule`
+- `buildNpmPackage`
 
 ### Supported fetchers
 

@@ -74,6 +74,7 @@ pub struct Opts {
 #[clap(rename_all = "camelCase")]
 pub enum BuilderFunction {
     BuildGoModule,
+    BuildNpmPackage,
     BuildPythonApplication,
     BuildPythonPackage,
     BuildRustPackage,

@@ -9,6 +9,7 @@ pub enum Builder {
         application: bool,
         rust: Option<CargoVendor>,
     },
+    BuildNpmPackage,
     BuildRustPackage {
         vendor: CargoVendor,
     },
@@ -38,6 +39,10 @@ impl Display for Builder {
                 if let Some(rust) = rust {
                     write!(f, " + {rust}")?;
                 }
+            }
+
+            Builder::BuildNpmPackage => {
+                write!(f, "buildNpmPackage")?;
             }
 
             Builder::BuildRustPackage { vendor } => {
