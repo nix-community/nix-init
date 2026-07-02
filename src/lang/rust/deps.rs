@@ -185,6 +185,7 @@ pub(super) fn load_rust_dependency(inputs: &mut AllInputs, resolve: &Resolve, pk
         "sourceview4-sys" => build!("gtksourceview4"),
         "sourceview5-sys" => build!("gtksourceview5"),
         "spirv-tools-sys" => build!("spirv-tools"),
+        "tauri" =>  native_build!("cargo-tauri.hook"),
         "tikv-jemalloc-sys" => build!("rust-jemalloc-sys"),
         "tracker-sys" => build!("tracker"),
         "vte4-sys" => build!("vte-gtk4"),
