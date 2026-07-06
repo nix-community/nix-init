@@ -584,7 +584,7 @@ async fn run() -> Result<()> {
         }
     }
 
-    let nix_update_script = matches!(fetcher, MaybeFetcher::Known(_));
+    let nix_update_script = matches!(fetcher, MaybeFetcher::Known(ref f) if !matches!(f, FetcherDispatch::FetchFromGitHub(_)));
     match fetcher {
         MaybeFetcher::Known(fetcher) => {
             writeln!(out, "  {fetcher},")?;
