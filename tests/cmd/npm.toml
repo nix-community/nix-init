@@ -1,0 +1,1 @@
+args = ["--headless", "--url=https://github.com/piuccio/cowsay", "--rev=v1.5.0"]

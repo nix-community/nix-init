@@ -49,6 +49,7 @@ use crate::{
     inputs::{AllInputs, write_all_lambda_inputs, write_inputs, write_lambda_input},
     lang::{
         go::{load_go_dependencies, write_ldflags},
+        npm::npm_has_build_script,
         python::{Pyproject, PythonDependencies, parse_requirements_txt},
         rust::{cargo_deps_hash, load_cargo_lock, write_cargo_lock},
     },
@@ -396,6 +397,9 @@ async fn run() -> Result<()> {
     let has_cmake = src_dir.join("CMakeLists.txt").is_file();
     let has_go = src_dir.join("go.mod").is_file();
     let has_meson = src_dir.join("meson.build").is_file();
+    let has_npm = src_dir.join("package.json").is_file();
+    let has_npm_lock = src_dir.join("package-lock.json").is_file()
+        || src_dir.join("npm-shrinkwrap.json").is_file();
     let has_zig = src_dir.join("build.zig").is_file();
     let pyproject_toml = src_dir.join("pyproject.toml");
     let has_python = pyproject_toml.is_file() || src_dir.join("setup.py").is_file();
@@ -403,6 +407,7 @@ async fn run() -> Result<()> {
     let builder = match (opts.builder, opts.cargo_vendor) {
         (Some(builder), rust @ Some(vendor)) if has_cargo => match builder {
             BuilderFunction::BuildGoModule => Builder::BuildGoModule,
+            BuilderFunction::BuildNpmPackage => Builder::BuildNpmPackage,
             BuilderFunction::BuildPythonApplication => Builder::BuildPythonPackage {
                 application: true,
                 rust,
@@ -419,6 +424,7 @@ async fn run() -> Result<()> {
             let rust = has_cargo.then_some(CargoVendor::FetchCargoVendor);
             match builder {
                 BuilderFunction::BuildGoModule => Builder::BuildGoModule,
+                BuilderFunction::BuildNpmPackage => Builder::BuildNpmPackage,
                 BuilderFunction::BuildPythonApplication => Builder::BuildPythonPackage {
                     application: true,
                     rust,
@@ -471,6 +477,10 @@ async fn run() -> Result<()> {
                 }
             }
 
+            if has_npm {
+                builders.push(Builder::BuildNpmPackage);
+            }
+
             builders.push(Builder::MkDerivation { rust: None });
             builders.push(Builder::MkDerivationNoCC);
 
@@ -511,6 +521,9 @@ async fn run() -> Result<()> {
     match builder {
         Builder::BuildGoModule => {
             writeln!(out, "  buildGoModule,")?;
+        }
+        Builder::BuildNpmPackage => {
+            writeln!(out, "  buildNpmPackage,")?;
         }
         Builder::BuildPythonPackage { application, rust } => {
             writeln!(
@@ -634,6 +647,44 @@ async fn run() -> Result<()> {
                   vendorHash = {hash};
 
             "#}?;
+            res
+        }
+
+        Builder::BuildNpmPackage => {
+            let hash = if has_npm_lock
+                && let Some(hash) = fod_hash(format!(
+                    r#"(import({nixpkgs}){{}}).fetchNpmDeps{{src={src};hash="{FAKE_HASH}";}}"#,
+                ))
+                .await
+            {
+                hash
+            } else {
+                FAKE_HASH.into()
+            };
+
+            let res = write_all_lambda_inputs(&mut out, &inputs, &mut BTreeSet::new())?;
+            if nix_update_script {
+                writeln!(out, "  nix-update-script,")?;
+            }
+
+            writedoc! {out, r#"
+                }}:
+
+                buildNpmPackage (finalAttrs: {{
+                  pname = {pname:?};
+                  version = {version:?};
+                  __structuredAttrs = true;
+
+                  src = {src_expr};
+
+                  npmDepsHash = "{hash}";
+
+            "#}?;
+
+            if !npm_has_build_script(&src_dir) {
+                writeln!(out, "  dontNpmBuild = true;\n")?;
+            }
+
             res
         }
 
