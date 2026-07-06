@@ -2,7 +2,6 @@
   lib,
   python3Packages,
   fetchFromGitHub,
-  nix-update-script,
 }:
 
 python3Packages.buildPythonApplication (finalAttrs: {
@@ -54,8 +53,6 @@ python3Packages.buildPythonApplication (finalAttrs: {
   pythonImportsCheck = [
     "black"
   ];
-
-  passthru.updateScript = nix-update-script { };
 
   meta = {
     description = "[..]";

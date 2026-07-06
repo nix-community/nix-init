@@ -228,7 +228,7 @@ impl FetchFromGitLab {
         if let Some(group) = &self.group {
             let _ = write!(root, "{}%2F", group.replace("/", "%2F"));
         }
-        let _ = write!(root, "{}%2F{}", &self.owner, &self.repo);
+        let _ = write!(root, "{}%2F{}", self.owner, self.repo);
         root
     }
 }
