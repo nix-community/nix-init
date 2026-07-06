@@ -49,7 +49,7 @@ use crate::{
     inputs::{AllInputs, write_all_lambda_inputs, write_inputs, write_lambda_input},
     lang::{
         go::{load_go_dependencies, write_ldflags},
-        node::npm_lacks_build_script,
+        npm::npm_lacks_build_script,
         python::{Pyproject, PythonDependencies, parse_requirements_txt},
         rust::{cargo_deps_hash, load_cargo_lock, write_cargo_lock},
     },

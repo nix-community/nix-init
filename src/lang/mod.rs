@@ -1,4 +1,4 @@
 pub mod go;
-pub mod node;
+pub mod npm;
 pub mod python;
 pub mod rust;
