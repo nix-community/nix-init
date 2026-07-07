@@ -7,7 +7,7 @@ use anyhow::Result;
 use enum_dispatch::enum_dispatch;
 
 use crate::{
-    builder::Builder,
+    codegen::{Builder, BuilderDispatch},
     fetcher::{Revisions, Version},
     frontend::{headless::Headless, readline::Readline},
 };
@@ -24,9 +24,9 @@ pub trait Frontend {
 
     fn pname(&mut self, pname: Option<String>) -> Result<String>;
 
-    fn builder(&mut self, builders: Vec<Builder>) -> Result<Builder>;
+    fn builder(&mut self, builders: Vec<BuilderDispatch>) -> Result<BuilderDispatch>;
 
-    fn output(&mut self, pname: &str, builder: &Builder) -> Result<PathBuf>;
+    fn output(&mut self, pname: &str, builder: &impl Builder) -> Result<PathBuf>;
 
     fn overwrite(&mut self, path: &Path) -> Result<bool>;
 }

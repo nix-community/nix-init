@@ -4,7 +4,7 @@ use anyhow::{Result, bail};
 use tokio::process::Command;
 use tracing::{info, warn};
 
-use crate::{builder::Builder, cmd::NIX};
+use crate::{cmd::NIX, codegen::Builder};
 
 pub const FAKE_HASH: &str = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
 
@@ -122,14 +122,8 @@ pub async fn fod_hash(expr: String) -> Option<String> {
     }
 }
 
-pub fn by_name_path(pname: &str, builder: &Builder) -> Option<String> {
-    if matches!(
-        builder,
-        Builder::BuildPythonPackage {
-            application: false,
-            ..
-        }
-    ) {
+pub fn by_name_path(pname: &str, builder: &impl Builder) -> Option<String> {
+    if !builder.allow_by_name() {
         return None;
     }
 
