@@ -1222,8 +1222,8 @@ async fn run() -> Result<()> {
     writeln!(out, "  }};\n}})")?;
 
     let mut out_file = File::create(&out_path).context("failed to create output file")?;
-    if let Some(fmt) = cfg.format {
-        let mut args = fmt.command.into_iter();
+    if let Some(ref fmt) = cfg.format {
+        let mut args = fmt.command.iter();
         if let Some(cmd) = args.next() {
             let mut cmd = Command::new(cmd);
             cmd.args(args);
@@ -1236,6 +1236,51 @@ async fn run() -> Result<()> {
         maybe_format(&out, out_file, Command::new("nixfmt")).await?;
     } else {
         write!(out_file, "{out}")?;
+    }
+
+    if opts.flake || cfg.flake {
+        if let Some(out_dir) = out_dir {
+            let flake_path = out_dir.join("flake.nix");
+            if !flake_path.exists() || frontend.should_overwrite(&flake_path, opts.overwrite)? {
+                let package_filename = out_path.file_name().unwrap().to_string_lossy();
+                let flake_content = formatdoc! {r#"
+                    {{
+                      description = {description:?};
+
+                      inputs.nixpkgs.url = "github:nixos/nixpkgs?ref=nixos-unstable";
+
+                      outputs = {{ self, nixpkgs }}: {{
+                        packages = nixpkgs.lib.genAttrs [
+                          "x86_64-linux"
+                          "aarch64-linux"
+                          "x86_64-darwin"
+                          "aarch64-darwin"
+                        ] (system: {{
+                          default = nixpkgs.legacyPackages.${{system}}.callPackage ./{package_filename} {{ }};
+                        }});
+                      }};
+                    }}
+                "#};
+                let flake_file =
+                    File::create(&flake_path).context("failed to create flake file")?;
+                if let Some(ref fmt) = cfg.format {
+                    let mut args = fmt.command.iter();
+                    if let Some(cmd) = args.next() {
+                        let mut cmd_obj = Command::new(cmd);
+                        cmd_obj.args(args);
+                        maybe_format(&flake_content, flake_file, cmd_obj).await?;
+                    } else {
+                        let mut f = flake_file;
+                        write!(f, "{flake_content}")?;
+                    }
+                } else if which("nixfmt").is_ok() {
+                    maybe_format(&flake_content, flake_file, Command::new("nixfmt")).await?;
+                } else {
+                    let mut f = flake_file;
+                    write!(f, "{flake_content}")?;
+                }
+            }
+        }
     }
 
     if !opts.commit.unwrap_or(cfg.commit) || !Path::new(".git").is_dir() {
