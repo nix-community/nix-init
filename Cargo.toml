@@ -26,69 +26,70 @@ include = ["data", "src", "Cargo.lock", "Cargo.toml", "build.rs"]
 
 [dependencies]
 # keep-sorted start
-anyhow = "1.0.102"
+anyhow = "1.0.103"
 askalono.workspace = true
-cargo = "0.96.0"
+cargo = "0.98.0"
+cargo-util-terminal = "0.1.0"
 chumsky = "=1.0.0-alpha.8"
 enum_dispatch = "0.3.13"
 expand = "0.3.0"
 flate2 = "1.1.9"
 heck = "0.5.0"
 indoc = "2.0.7"
-itertools = "0.14.0"
+itertools = "0.15.0"
 owo-colors = "4.3.0"
 parse-display = "0.11.0"
 pep-508 = "0.5.0"
 rayon = "1.12.0"
-regex = "1.12.3"
-reqwest = { version = "0.13.3", features = ["json"] }
-rustc-hash = "2.1.2"
+regex = "1.13.1"
+reqwest = { version = "0.13.4", features = ["json"] }
+rustc-hash = "2.1.3"
 secrecy = { version = "0.10.3", features = ["serde"] }
 semver = "1.0.28"
 serde = { version = "1.0.228", features = ["derive"] }
-serde_json = "1.0.149"
-serde_with = "3.19.0"
+serde_json = "1.0.150"
+serde_with = "3.21.0"
 serde_yaml = "0.9.34"
-shlex = "1.3.0"
+shlex = "2.0.1"
 spdx = "0.13.4"
-tar = "0.4.45"
+tar = "0.4.46"
 tempfile = "3.27.0"
-time = { version = "0.3.47", features = ["parsing", "serde"] }
+time = { version = "0.3.53", features = ["parsing", "serde"] }
 tracing = "0.1.44"
 tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
 url = "2.5.8"
 versions = "7.0.0"
-which = "8.0.2"
+which = "8.0.5"
 xdg = "3.0.0"
 zip = "8.6.0"
 # keep-sorted end
 
 [dependencies.clap]
-version = "4.6.1"
+version = "4.6.2"
 features = ["cargo", "derive", "unicode", "wrap_help"]
 
 [dependencies.rustyline]
-version = "18.0.0"
+version = "18.0.1"
 default-features = false
 features = ["derive", "with-fuzzy"]
 
 [dependencies.tokio]
-version = "1.52.2"
+version = "1.53.0"
 features = ["macros", "process", "rt-multi-thread"]
 
 [dependencies.toml]
-version = "1.1.2"
+version = "1.1.3"
 default-features = false
 features = ["parse", "serde", "std"]
 
 [build-dependencies]
-clap = { version = "4.6.1", features = ["derive"] }
-clap_complete = "4.6.3"
+clap = { version = "4.6.2", features = ["derive"] }
+clap_complete = "4.6.7"
 clap_mangen = "0.3.0"
 
 [dev-dependencies]
 heck = "0.5.0"
-insta = "1.47.2"
+insta = "1.48.0"
 tempfile = "3.27.0"
 trycmd = "1.2.0"
 
