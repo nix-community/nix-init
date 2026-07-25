@@ -14,7 +14,7 @@ use std::{
 use anyhow::{Context, Result, anyhow};
 use cargo::{
     core::{
-        Resolve, Shell, Workspace,
+        Resolve, Workspace,
         registry::PackageRegistry,
         resolver::{CliFeatures, HasDevUnits},
     },
@@ -22,6 +22,7 @@ use cargo::{
     sources::SourceConfigMap,
     util::{context::GlobalContext, homedir},
 };
+use cargo_util_terminal::Shell;
 use indoc::writedoc;
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use rustc_hash::FxHashMap;
