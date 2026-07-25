@@ -4,7 +4,7 @@ use anyhow::{Result, bail};
 use tracing::error;
 
 use crate::{
-    builder::Builder,
+    codegen::{Builder, BuilderDispatch},
     fetcher::{Revisions, Version},
     frontend::Frontend,
     utils::by_name_path,
@@ -37,11 +37,11 @@ impl Frontend for Headless {
         Ok(pname.unwrap_or_default())
     }
 
-    fn builder(&mut self, builders: Vec<Builder>) -> Result<Builder> {
+    fn builder(&mut self, builders: Vec<BuilderDispatch>) -> Result<BuilderDispatch> {
         Ok(builders[0])
     }
 
-    fn output(&mut self, pname: &str, builder: &Builder) -> Result<PathBuf> {
+    fn output(&mut self, pname: &str, builder: &impl Builder) -> Result<PathBuf> {
         Ok(match by_name_path(pname, builder) {
             Some(path) => path.into(),
             None => PathBuf::from("."),

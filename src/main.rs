@@ -1,7 +1,7 @@
-mod builder;
 mod cfg;
 mod cli;
 mod cmd;
+mod codegen;
 mod fetcher;
 mod frontend;
 mod inputs;
@@ -11,10 +11,9 @@ mod macros;
 mod utils;
 
 use std::{
-    cmp::Ordering,
-    collections::{BTreeMap, BTreeSet},
+    collections::BTreeMap,
     fmt::Write as _,
-    fs::{File, create_dir_all, metadata, read_dir},
+    fs::{File, create_dir_all, metadata},
     io::{IsTerminal, Seek, Write as _, pipe, stderr},
     os::unix::ffi::OsStrExt,
     path::{Component, Path, PathBuf},
@@ -22,15 +21,11 @@ use std::{
     sync::LazyLock,
 };
 
-use anyhow::{Context, Result, bail};
-use askalono::ScanStrategy;
-use cargo::core::Resolve;
+use anyhow::{Context as _, Result, bail};
 use clap::{Parser, crate_version};
-use expand::expand;
 use flate2::read::GzDecoder;
-use heck::{AsSnakeCase, ToKebabCase};
-use indoc::{formatdoc, writedoc};
-use itertools::Itertools;
+use heck::ToKebabCase;
+use indoc::formatdoc;
 use serde::Deserialize;
 use tempfile::tempdir;
 use tokio::process::Command;
@@ -40,21 +35,18 @@ use which::which;
 use zip::ZipArchive;
 
 use crate::{
-    builder::Builder,
     cfg::load_config,
     cli::{BuilderFunction, CargoVendor, Opts},
     cmd::{NIX, NURL},
+    codegen::{
+        BuilderDispatch, Codegen, SourceLayout, drv::MkDerivation, go::BuildGoModule,
+        npm::BuildNpmPackage, python::BuildPythonPackage, rust::BuildRustPackage,
+    },
     fetcher::{Fetcher, FetcherDispatch, PackageInfo, PypiFormat, Revisions, Version},
     frontend::{Frontend, headless, readline},
-    inputs::{AllInputs, write_all_lambda_inputs, write_inputs, write_lambda_input},
-    lang::{
-        go::{load_go_dependencies, write_ldflags},
-        npm::npm_has_build_script,
-        python::{Pyproject, PythonDependencies, parse_requirements_txt},
-        rust::{cargo_deps_hash, load_cargo_lock, write_cargo_lock},
-    },
-    license::{LICENSE_STORE, load_license},
-    utils::{CommandExt, FAKE_HASH, ResultExt, fod_hash},
+    lang::python::PythonDependencies,
+    license::LICENSE_STORE,
+    utils::{CommandExt, ResultExt},
 };
 
 #[derive(Debug, Deserialize)]
@@ -121,9 +113,6 @@ async fn run() -> Result<()> {
         readline()?
     };
 
-    let mut out = String::new();
-    writeln!(out, "{{\n  lib,")?;
-
     let mut url = match opts.url {
         Some(url) => url,
         None => frontend.url()?,
@@ -143,7 +132,7 @@ async fn run() -> Result<()> {
         description,
         file_url_prefix,
         releases_page,
-        python_dependencies: mut python_deps,
+        python_dependencies,
     } = if let MaybeFetcher::Known(fetcher) = &mut fetcher {
         let cl = fetcher.create_client(cfg.access_tokens).await?;
 
@@ -391,98 +380,76 @@ async fn run() -> Result<()> {
         PathBuf::from(&src)
     };
 
-    let has_cargo = src_dir.join("Cargo.toml").is_file();
-    let cargo_lock = File::open(src_dir.join("Cargo.lock"));
-    let has_cargo_lock = cargo_lock.is_ok();
-    let has_cmake = src_dir.join("CMakeLists.txt").is_file();
-    let has_go = src_dir.join("go.mod").is_file();
-    let has_meson = src_dir.join("meson.build").is_file();
-    let has_npm = src_dir.join("package.json").is_file();
-    let has_npm_lock = src_dir.join("package-lock.json").is_file()
-        || src_dir.join("npm-shrinkwrap.json").is_file();
-    let has_zig = src_dir.join("build.zig").is_file();
-    let pyproject_toml = src_dir.join("pyproject.toml");
-    let has_python = pyproject_toml.is_file() || src_dir.join("setup.py").is_file();
+    let layout = SourceLayout::detect(&src_dir);
 
     let builder = match (opts.builder, opts.cargo_vendor) {
-        (Some(builder), rust @ Some(vendor)) if has_cargo => match builder {
-            BuilderFunction::BuildGoModule => Builder::BuildGoModule,
-            BuilderFunction::BuildNpmPackage => Builder::BuildNpmPackage,
-            BuilderFunction::BuildPythonApplication => Builder::BuildPythonPackage {
-                application: true,
-                rust,
-            },
-            BuilderFunction::BuildPythonPackage => Builder::BuildPythonPackage {
-                application: false,
-                rust,
-            },
-            BuilderFunction::BuildRustPackage => Builder::BuildRustPackage { vendor },
-            BuilderFunction::MkDerivation => Builder::MkDerivation { rust },
-            BuilderFunction::MkDerivationNoCC => Builder::MkDerivationNoCC,
+        (Some(builder), rust @ Some(vendor)) if layout.has_cargo => match builder {
+            BuilderFunction::BuildGoModule => BuildGoModule.into(),
+            BuilderFunction::BuildNpmPackage => BuildNpmPackage.into(),
+            BuilderFunction::BuildPythonApplication => BuildPythonPackage::new(true, rust).into(),
+            BuilderFunction::BuildPythonPackage => BuildPythonPackage::new(false, rust).into(),
+            BuilderFunction::BuildRustPackage => BuildRustPackage::new(vendor).into(),
+            BuilderFunction::MkDerivation => MkDerivation::new(rust).into(),
+            BuilderFunction::MkDerivationNoCC => MkDerivation::no_cc().into(),
         },
         (Some(builder), _) => {
-            let rust = has_cargo.then_some(CargoVendor::FetchCargoVendor);
+            let rust = layout.has_cargo.then_some(CargoVendor::FetchCargoVendor);
             match builder {
-                BuilderFunction::BuildGoModule => Builder::BuildGoModule,
-                BuilderFunction::BuildNpmPackage => Builder::BuildNpmPackage,
-                BuilderFunction::BuildPythonApplication => Builder::BuildPythonPackage {
-                    application: true,
-                    rust,
-                },
-                BuilderFunction::BuildPythonPackage => Builder::BuildPythonPackage {
-                    application: false,
-                    rust,
-                },
-                BuilderFunction::BuildRustPackage => Builder::BuildRustPackage {
-                    vendor: CargoVendor::FetchCargoVendor,
-                },
-                BuilderFunction::MkDerivation => Builder::MkDerivation { rust },
-                BuilderFunction::MkDerivationNoCC => Builder::MkDerivationNoCC,
+                BuilderFunction::BuildGoModule => BuildGoModule.into(),
+                BuilderFunction::BuildNpmPackage => BuildNpmPackage.into(),
+                BuilderFunction::BuildPythonApplication => {
+                    BuildPythonPackage::new(true, rust).into()
+                }
+                BuilderFunction::BuildPythonPackage => BuildPythonPackage::new(false, rust).into(),
+                BuilderFunction::BuildRustPackage => {
+                    BuildRustPackage::new(CargoVendor::FetchCargoVendor).into()
+                }
+                BuilderFunction::MkDerivation => MkDerivation::new(rust).into(),
+                BuilderFunction::MkDerivationNoCC => MkDerivation::no_cc().into(),
             }
         }
         (None, rust) => {
             let mut builders = Vec::new();
-            if has_go {
-                builders.push(Builder::BuildGoModule);
+            if layout.has_go {
+                builders.push(BuildGoModule.into());
             }
 
-            if has_cargo {
-                let cargo_vendors: &[_] = match rust {
+            if layout.has_cargo {
+                let cargo_deps_options: &[_] = match rust {
                     Some(vendor) => &[vendor],
                     None => &[CargoVendor::FetchCargoVendor, CargoVendor::ImportCargoLock],
                 };
 
-                for &vendor in cargo_vendors {
-                    if has_python {
+                for &vendor in cargo_deps_options {
+                    if layout.has_python {
                         for application in [true, false] {
-                            builders.push(Builder::BuildPythonPackage {
-                                application,
-                                rust: Some(vendor),
-                            });
+                            builders
+                                .push(BuildPythonPackage::new(application, Some(vendor)).into());
                         }
                     }
 
-                    let drv = Builder::MkDerivation { rust: Some(vendor) };
-                    let rust = Builder::BuildRustPackage { vendor };
-                    builders.extend(if has_meson { [drv, rust] } else { [rust, drv] });
-                }
-            }
-
-            if has_python {
-                for application in [true, false] {
-                    builders.push(Builder::BuildPythonPackage {
-                        application,
-                        rust: None,
+                    let drv = BuilderDispatch::from(MkDerivation::new(Some(vendor)));
+                    let rust = BuilderDispatch::from(BuildRustPackage::new(vendor));
+                    builders.extend(if layout.has_meson {
+                        [drv, rust]
+                    } else {
+                        [rust, drv]
                     });
                 }
             }
 
-            if has_npm {
-                builders.push(Builder::BuildNpmPackage);
+            if layout.has_python {
+                for application in [true, false] {
+                    builders.push(BuildPythonPackage::new(application, None).into());
+                }
             }
 
-            builders.push(Builder::MkDerivation { rust: None });
-            builders.push(Builder::MkDerivationNoCC);
+            if layout.has_npm {
+                builders.push(BuildNpmPackage.into());
+            }
+
+            builders.push(MkDerivation::new(None).into());
+            builders.push(MkDerivation::no_cc().into());
 
             frontend.builder(builders)?
         }
@@ -517,709 +484,35 @@ async fn run() -> Result<()> {
         (out_dir, output.clone())
     };
 
-    let mut inputs = AllInputs::default();
-    match builder {
-        Builder::BuildGoModule => {
-            writeln!(out, "  buildGoModule,")?;
-        }
-        Builder::BuildNpmPackage => {
-            writeln!(out, "  buildNpmPackage,")?;
-        }
-        Builder::BuildPythonPackage { application, rust } => {
-            writeln!(
-                out,
-                "  {},",
-                if application {
-                    "python3Packages"
-                } else {
-                    "buildPythonPackage"
-                }
-            )?;
-
-            if src_dir.join("poetry.lock").is_file() {
-                inputs.native_build_inputs.always.insert(
-                    if application {
-                        "python3Packages.poetry-core"
-                    } else {
-                        "poetry-core"
-                    }
-                    .into(),
-                );
-            }
-
-            if rust.is_some() {
-                inputs.native_build_inputs.always.extend([
-                    "cargo".into(),
-                    "rustPlatform.cargoSetupHook".into(),
-                    "rustc".into(),
-                ]);
-            }
-        }
-        Builder::BuildRustPackage { .. } => {
-            writeln!(out, "  rustPlatform,")?;
-        }
-        Builder::MkDerivation { rust } => {
-            writeln!(out, "  stdenv,")?;
-            if has_cmake {
-                inputs.native_build_inputs.always.insert("cmake".into());
-            }
-            if has_meson {
-                inputs
-                    .native_build_inputs
-                    .always
-                    .extend(["meson".into(), "ninja".into()]);
-            }
-            if has_zig {
-                inputs.native_build_inputs.always.insert("zig".into());
-            }
-            if rust.is_some() {
-                inputs.native_build_inputs.always.extend([
-                    "cargo".into(),
-                    "rustPlatform.cargoSetupHook".into(),
-                    "rustc".into(),
-                ]);
-            }
-        }
-        Builder::MkDerivationNoCC => {
-            writeln!(out, "  stdenvNoCC,")?;
-            if has_cmake {
-                inputs.native_build_inputs.always.insert("cmake".into());
-            }
-            if has_meson {
-                inputs
-                    .native_build_inputs
-                    .always
-                    .extend(["meson".into(), "ninja".into()]);
-            }
-            if has_zig {
-                inputs.native_build_inputs.always.insert("zig".into());
-            }
-        }
-    }
-
     let nix_update_script = matches!(fetcher, MaybeFetcher::Known(ref f) if !matches!(f, FetcherDispatch::FetchFromGitHub(_)));
-    match fetcher {
-        MaybeFetcher::Known(fetcher) => {
-            writeln!(out, "  {fetcher},")?;
-        }
-        MaybeFetcher::Unknown { fetcher } => {
-            writeln!(out, "  {fetcher},")?;
-        }
-    }
-
-    let mut python_import = None;
-    let (native_build_inputs, build_inputs) = match builder {
-        Builder::BuildGoModule => {
-            let go_sum = File::open(src_dir.join("go.sum")).ok_inspect(|e| warn!("{e}"));
-
-            if let Some(go_sum) = &go_sum {
-                load_go_dependencies(&mut inputs, go_sum);
-            }
-
-            let hash = if src_dir.join("vendor").is_dir()
-                || go_sum.and_then(|go_sum| go_sum.metadata().ok_inspect(|e| warn!("{e}")))
-                    .is_none_or(|metadata| metadata.len() == 0)
-            {
-                "null".into()
-            } else if let Some(hash) = fod_hash(format!(
-                r#"(import({nixpkgs}){{}}).buildGoModule{{pname={pname:?};version={version:?};src={src};vendorHash="{FAKE_HASH}";}}"#,
-            )).await {
-                format!(r#""{hash}""#)
-            } else {
-                format!(r#""{FAKE_HASH}""#)
-            };
-
-            let res = write_all_lambda_inputs(&mut out, &inputs, &mut BTreeSet::new())?;
-            if nix_update_script {
-                writeln!(out, "  nix-update-script,")?;
-            }
-
-            writedoc! {out, r#"
-                }}:
-
-                buildGoModule (finalAttrs: {{
-                  pname = {pname:?};
-                  version = {version:?};
-                  __structuredAttrs = true;
-
-                  src = {src_expr};
-
-                  vendorHash = {hash};
-
-            "#}?;
-            res
-        }
-
-        Builder::BuildNpmPackage => {
-            let hash = if has_npm_lock
-                && let Some(hash) = fod_hash(format!(
-                    r#"(import({nixpkgs}){{}}).fetchNpmDeps{{src={src};hash="{FAKE_HASH}";}}"#,
-                ))
-                .await
-            {
-                hash
-            } else {
-                FAKE_HASH.into()
-            };
-
-            let res = write_all_lambda_inputs(&mut out, &inputs, &mut BTreeSet::new())?;
-            if nix_update_script {
-                writeln!(out, "  nix-update-script,")?;
-            }
-
-            writedoc! {out, r#"
-                }}:
-
-                buildNpmPackage (finalAttrs: {{
-                  pname = {pname:?};
-                  version = {version:?};
-                  __structuredAttrs = true;
-
-                  src = {src_expr};
-
-                  npmDepsHash = "{hash}";
-
-            "#}?;
-
-            if !npm_has_build_script(&src_dir) {
-                writeln!(out, "  dontNpmBuild = true;\n")?;
-            }
-
-            res
-        }
-
-        Builder::BuildPythonPackage { application, rust } => {
-            enum CargoVendorData {
-                Hash(String),
-                Lock(Box<Option<Resolve>>),
-                None,
-            }
-            let rust = match rust {
-                Some(CargoVendor::FetchCargoVendor) => CargoVendorData::Hash(
-                    cargo_deps_hash(
-                        &mut inputs,
-                        &pname,
-                        &version,
-                        &src,
-                        &src_dir,
-                        has_cargo_lock,
-                        &nixpkgs,
-                    )
-                    .await,
-                ),
-                Some(CargoVendor::ImportCargoLock) => {
-                    if let Some(out_dir) = out_dir {
-                        let resolve = load_cargo_lock(
-                            &mut frontend,
-                            out_dir,
-                            &mut inputs,
-                            &src_dir,
-                            opts.overwrite,
-                        )
-                        .await?;
-                        CargoVendorData::Lock(Box::new(resolve))
-                    } else {
-                        CargoVendorData::Lock(Box::new(None))
-                    }
-                }
-                None => CargoVendorData::None,
-            };
-
-            let mut pyproject = Pyproject::from_path(pyproject_toml);
-
-            if let Some(name) = pyproject.get_name() {
-                python_import = Some(name);
-            }
-
-            pyproject.load_license(&mut licenses);
-            pyproject.load_build_dependencies(&mut inputs, application);
-
-            if let Some(deps) = pyproject.get_dependencies() {
-                python_deps = deps;
-            }
-
-            if python_deps.always.is_empty()
-                && python_deps.optional.is_empty()
-                && let Some(deps) = parse_requirements_txt(&src_dir)
-            {
-                python_deps = deps;
-            }
-
-            let mut written = BTreeSet::new();
-            if application {
-                written.insert("python3Packages".into());
-            }
-            let res = write_all_lambda_inputs(&mut out, &inputs, &mut written)?;
-            if !application {
-                for name in python_deps
-                    .always
-                    .iter()
-                    .chain(python_deps.optional.values().flatten())
-                {
-                    write_lambda_input(&mut out, &mut written, &name.to_kebab_case())?;
-                }
-            }
-            if nix_update_script {
-                writeln!(out, "  nix-update-script,")?;
-            }
-
-            writedoc! {out, r#"
-                }}:
-
-                {} (finalAttrs: {{
-                  pname = {pname:?};
-                  version = {version:?};
-                  pyproject = true;
-                  __structuredAttrs = true;
-
-                  src = {src_expr};
-
-                "#,
-                if application {
-                    "python3Packages.buildPythonApplication"
-                } else {
-                    "buildPythonPackage"
-                },
-            }?;
-
-            match rust {
-                CargoVendorData::Hash(hash) => {
-                    write!(out, "  ")?;
-                    writedoc! {out, r#"
-                        cargoDeps = rustPlatform.fetchCargoVendor {{
-                            inherit (finalAttrs) pname version src;
-                            hash = "{hash}";
-                          }};
-
-                    "#}?;
-                }
-                CargoVendorData::Lock(resolve) => {
-                    write!(out, "  cargoDeps = rustPlatform.importCargoLock ")?;
-                    write_cargo_lock(&mut out, has_cargo_lock, *resolve).await?;
-                }
-                CargoVendorData::None => {}
-            }
-
-            res
-        }
-
-        Builder::BuildRustPackage {
-            vendor: CargoVendor::FetchCargoVendor,
-        } => {
-            let hash = cargo_deps_hash(
-                &mut inputs,
-                &pname,
-                &version,
-                &src,
-                &src_dir,
-                has_cargo_lock,
-                &nixpkgs,
-            )
-            .await;
-
-            let res =
-                write_all_lambda_inputs(&mut out, &inputs, &mut ["rustPlatform".into()].into())?;
-            if nix_update_script {
-                writeln!(out, "  nix-update-script,")?;
-            }
-
-            writedoc! {out, r#"
-                }}:
-
-                rustPlatform.buildRustPackage (finalAttrs: {{
-                  pname = {pname:?};
-                  version = {version:?};
-                  __structuredAttrs = true;
-
-                  src = {src_expr};
-
-                  cargoHash = "{hash}";
-
-            "#}?;
-            res
-        }
-
-        Builder::BuildRustPackage {
-            vendor: CargoVendor::ImportCargoLock,
-        } => {
-            let resolve = if let Some(out_dir) = out_dir {
-                load_cargo_lock(
-                    &mut frontend,
-                    out_dir,
-                    &mut inputs,
-                    &src_dir,
-                    opts.overwrite,
-                )
-                .await?
-            } else {
-                None
-            };
-
-            let res =
-                write_all_lambda_inputs(&mut out, &inputs, &mut ["rustPlatform".into()].into())?;
-            if nix_update_script {
-                writeln!(out, "  nix-update-script,")?;
-            }
-
-            writedoc! {out, r#"
-                }}:
-
-                rustPlatform.buildRustPackage (finalAttrs: {{
-                  pname = "{pname}";
-                  version = "{version}";
-                  __structuredAttrs = true;
-
-                  src = {src_expr};
-
-                  cargoLock = "#,
-            }?;
-            write_cargo_lock(&mut out, has_cargo_lock, resolve).await?;
-            res
-        }
-
-        Builder::MkDerivation { rust: None } => {
-            let res = write_all_lambda_inputs(&mut out, &inputs, &mut ["stdenv".into()].into())?;
-            if nix_update_script {
-                writeln!(out, "  nix-update-script,")?;
-            }
-
-            writedoc! { out, r#"
-                }}:
-
-                stdenv.mkDerivation (finalAttrs: {{
-                  pname = {pname:?};
-                  version = {version:?};
-                  __structuredAttrs = true;
-                  strictDeps = true;
-
-                  src = {src_expr};
-
-            "#}?;
-            res
-        }
-
-        Builder::MkDerivation {
-            rust: Some(CargoVendor::FetchCargoVendor),
-        } => {
-            let hash = cargo_deps_hash(
-                &mut inputs,
-                &pname,
-                &version,
-                &src,
-                &src_dir,
-                has_cargo_lock,
-                &nixpkgs,
-            )
-            .await;
-
-            let res = write_all_lambda_inputs(&mut out, &inputs, &mut ["stdenv".into()].into())?;
-            if nix_update_script {
-                writeln!(out, "  nix-update-script,")?;
-            }
-
-            writedoc! {out, r#"
-                }}:
-
-                stdenv.mkDerivation (finalAttrs: {{
-                  pname = {pname:?};
-                  version = {version:?};
-                  __structuredAttrs = true;
-                  strictDeps = true;
-
-                  src = {src_expr};
-
-                  cargoDeps = rustPlatform.fetchCargoVendor {{
-                    inherit (finalAttrs) pname version src;
-                    hash = "{hash}";
-                  }};
-
-            "#}?;
-            res
-        }
-
-        Builder::MkDerivation {
-            rust: Some(CargoVendor::ImportCargoLock),
-        } => {
-            let resolve = if let Some(out_dir) = out_dir {
-                load_cargo_lock(
-                    &mut frontend,
-                    out_dir,
-                    &mut inputs,
-                    &src_dir,
-                    opts.overwrite,
-                )
-                .await?
-            } else {
-                None
-            };
-
-            let res = write_all_lambda_inputs(&mut out, &inputs, &mut ["stdenv".into()].into())?;
-            if nix_update_script {
-                writeln!(out, "  nix-update-script,")?;
-            }
-
-            writedoc! {out, r#"
-                }}:
-
-                stdenv.mkDerivation (finalAttrs: {{
-                  pname = "{pname}";
-                  version = "{version}";
-                  __structuredAttrs = true;
-                  strictDeps = true;
-
-                  src = {src_expr};
-
-                  cargoDeps = rustPlatform.importCargoLock "#,
-            }?;
-            write_cargo_lock(&mut out, has_cargo_lock, resolve).await?;
-            res
-        }
-
-        Builder::MkDerivationNoCC => {
-            let res =
-                write_all_lambda_inputs(&mut out, &inputs, &mut ["stdenvNoCC".into()].into())?;
-            if nix_update_script {
-                writeln!(out, "  nix-update-script,")?;
-            }
-
-            writedoc! { out, r#"
-                }}:
-
-                stdenvNoCC.mkDerivation (finalAttrs: {{
-                  pname = {pname:?};
-                  version = {version:?};
-                  __structuredAttrs = true;
-                  strictDeps = true;
-
-                  src = {src_expr};
-
-            "#}?;
-            res
-        }
+    let fetcher_input = match fetcher {
+        MaybeFetcher::Known(fetcher) => fetcher.to_string(),
+        MaybeFetcher::Unknown { fetcher } => fetcher,
     };
-
-    if native_build_inputs {
-        match builder {
-            Builder::BuildPythonPackage { .. } => {
-                write_inputs(&mut out, &inputs.native_build_inputs, "build-system")?;
-            }
-            _ => {
-                write_inputs(&mut out, &inputs.native_build_inputs, "nativeBuildInputs")?;
-            }
-        }
-    }
-    if build_inputs {
-        write_inputs(&mut out, &inputs.build_inputs, "buildInputs")?;
-    }
-
-    match builder {
-        Builder::BuildGoModule => {
-            write_ldflags(&mut out, &src_dir)?;
-        }
-
-        Builder::BuildPythonPackage { application, .. } => {
-            if !python_deps.always.is_empty() {
-                write!(out, "  dependencies = ")?;
-                if application {
-                    write!(out, "with python3Packages; ")?;
-                }
-                writeln!(out, "[")?;
-
-                for name in python_deps.always {
-                    writeln!(out, "    {name}")?;
-                }
-                writeln!(out, "  ];\n")?;
-            }
-
-            let mut optional = python_deps
-                .optional
-                .into_iter()
-                .filter(|(_, deps)| !deps.is_empty());
-
-            if let Some((extra, deps)) = optional.next() {
-                write!(out, "  optional-dependencies = ")?;
-                if application {
-                    write!(out, "with python3Packages; ")?;
-                }
-                writeln!(out, "{{\n    {extra} = [",)?;
-                for name in deps {
-                    writeln!(out, "      {name}")?;
-                }
-                writeln!(out, "    ];")?;
-
-                for (extra, deps) in optional {
-                    writeln!(out, "    {extra} = [")?;
-                    for name in deps {
-                        writeln!(out, "      {name}")?;
-                    }
-                    writeln!(out, "    ];")?;
-                }
-
-                writeln!(out, "  }};\n")?;
-            }
-
-            writeln!(
-                out,
-                "  pythonImportsCheck = [\n    \"{}\"\n  ];\n",
-                AsSnakeCase(python_import.as_ref().unwrap_or(&pname)),
-            )?;
-        }
-
-        _ => {}
-    }
-
-    if !inputs.env.is_empty() {
-        writeln!(out, "  env = {{")?;
-        for (k, (v, _)) in inputs.env {
-            writeln!(out, "    {k} = {v};")?;
-        }
-        writeln!(out, "  }};\n")?;
-    }
-
-    if nix_update_script {
-        writeln!(out, "  passthru.updateScript = nix-update-script {{ }};\n")?;
-    }
-
-    let mut description = description
-        .trim_matches(|c: char| !c.is_alphanumeric())
-        .to_owned();
-    description.get_mut(0 .. 1).map(str::make_ascii_uppercase);
-    write!(out, "  ")?;
-    writedoc! {out, r"
-        meta = {{
-            description = {description:?};
-            homepage = {url:?};
-    "}?;
-
-    let mut found_changelog = false;
-    if let Some(file_url_prefix) = file_url_prefix
-        && let Some(walk) = read_dir(&src_dir).ok_inspect(|e| warn!("{e}"))
-    {
-        for entry in walk {
-            let Ok(entry) = entry else {
-                continue;
-            };
-            let path = entry.path();
-
-            if !path.is_file() {
-                continue;
-            }
-
-            let name = entry.file_name();
-            let Some(name) = name.to_str() else {
-                continue;
-            };
-            if matches!(
-                name.to_ascii_lowercase().as_bytes(),
-                expand!([@b"changelog", ..] | [@b"changes", ..] | [@b"news"] | [@b"releases", ..]),
-            ) {
-                writeln!(out, r#"    changelog = "{file_url_prefix}{name}";"#)?;
-                found_changelog = true;
-                break;
-            }
-        }
-    }
-    if !found_changelog && let Some(releases_page) = releases_page {
-        writeln!(out, r#"    changelog = "{releases_page}";"#)?;
-    }
-
-    if let (Some(store), Some(entries)) = (
-        &*LICENSE_STORE,
-        read_dir(src_dir).ok_inspect(|e| warn!("{e}")),
-    ) {
-        let strategy = ScanStrategy::new(store).confidence_threshold(0.8);
-
-        for entry in entries.flatten() {
-            let path = entry.path();
-            let name = entry.file_name();
-
-            if !matches!(
-                name.as_bytes().to_ascii_lowercase()[..],
-                expand!([@b"license", ..] | [@b"licence", ..] | [@b"copying", ..]),
-            ) {
-                continue;
-            }
-
-            let Ok(metadata) = path.metadata() else {
-                continue;
-            };
-
-            if metadata.is_dir() {
-                let Some(entries) = path.read_dir().ok_inspect(|e| warn!("{e}")) else {
-                    continue;
-                };
-
-                for entry in entries.flatten() {
-                    let path = entry.path();
-                    if path.is_file() {
-                        load_license(
-                            &mut licenses,
-                            PathBuf::from(&name).join(entry.file_name()).display(),
-                            &strategy,
-                            &path,
-                        );
-                    }
-                }
-            } else if metadata.is_file() {
-                load_license(&mut licenses, name.display(), &strategy, &path);
-            }
-        }
-    }
-
-    let licenses: Vec<_> = licenses
-        .into_iter()
-        .sorted_unstable_by(|x, y| match x.1.partial_cmp(&y.1) {
-            None | Some(Ordering::Equal) => x.0.cmp(y.0),
-            Some(cmp) => cmp,
-        })
-        .map(|(license, _)| license)
-        .collect();
-
-    write!(out, "    license = ")?;
-    if licenses.is_empty() {
-        writeln!(
-            out,
-            "lib.licenses.unfree; # FIXME: nix-init did not find a license",
-        )?;
-    } else if let [license] = &licenses[..] {
-        writeln!(out, "lib.licenses.{license};")?;
-    } else {
-        writeln!(out, "with lib.licenses; [")?;
-        for license in licenses {
-            writeln!(out, "      {license}")?;
-        }
-        writeln!(out, "    ];")?;
-    }
-
-    if cfg.maintainers.len() < 2 {
-        write!(out, "    maintainers = with lib.maintainers; [ ")?;
-        for maintainer in cfg.maintainers {
-            write!(out, "{maintainer} ")?;
-        }
-        writeln!(out, "];")?;
-    } else {
-        writeln!(out, "    maintainers = with lib.maintainers; [")?;
-        for maintainer in cfg.maintainers {
-            writeln!(out, "      {maintainer}")?;
-        }
-        writeln!(out, "    ];")?;
-    }
-
-    if !matches!(builder, Builder::BuildPythonPackage { application, .. } if !application) {
-        writeln!(out, "    mainProgram = {pname:?};")?;
-    }
-
-    match builder {
-        Builder::MkDerivation { .. } if has_zig => {
-            writeln!(out, "    inherit (zig.meta) platforms;")?;
-        }
-        Builder::MkDerivation { .. } | Builder::MkDerivationNoCC => {
-            writeln!(out, "    platforms = lib.platforms.all;")?;
-        }
-        _ => {}
-    }
-
-    writeln!(out, "  }};\n}})")?;
+    let cg = Codegen {
+        description,
+        fetcher_input,
+        file_url_prefix,
+        frontend: &mut frontend,
+        inputs: Default::default(),
+        layout,
+        licenses,
+        maintainers: &cfg.maintainers,
+        nix_update_script,
+        nixpkgs: &nixpkgs,
+        out: String::new(),
+        out_dir,
+        overwrite: opts.overwrite,
+        pname: &pname,
+        python_deps: python_dependencies,
+        releases_page,
+        src: &src,
+        src_dir: &src_dir,
+        src_expr: &src_expr,
+        url: &url,
+        version: &version,
+    };
+    let out = cg.generate(builder).await?;
 
     let mut out_file = File::create(&out_path).context("failed to create output file")?;
     if let Some(fmt) = cfg.format {

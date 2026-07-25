@@ -15,7 +15,7 @@ use rustyline::{
 };
 
 use crate::{
-    builder::Builder,
+    codegen::{Builder, BuilderDispatch},
     fetcher::{Revisions, Version},
     frontend::Frontend,
     utils::by_name_path,
@@ -31,7 +31,7 @@ enum Prompter {
     Revision(Revisions),
     NonEmpty,
     YesNo,
-    Builder(Vec<Builder>),
+    Builder(Vec<BuilderDispatch>),
 }
 
 impl Readline {
@@ -110,7 +110,7 @@ impl Frontend for Readline {
         })
     }
 
-    fn builder(&mut self, builders: Vec<Builder>) -> Result<Builder> {
+    fn builder(&mut self, builders: Vec<BuilderDispatch>) -> Result<BuilderDispatch> {
         self.editor.set_helper(Some(Prompter::Builder(builders)));
         let builder = self
             .editor
@@ -125,7 +125,7 @@ impl Frontend for Readline {
             .unwrap_or_else(|| &builders[0]))
     }
 
-    fn output(&mut self, pname: &str, builder: &Builder) -> Result<PathBuf> {
+    fn output(&mut self, pname: &str, builder: &impl Builder) -> Result<PathBuf> {
         self.editor
             .set_helper(Some(Prompter::Path(FilenameCompleter::new())));
 
