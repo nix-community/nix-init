@@ -20,6 +20,7 @@
   libpulseaudio,
   pango,
   udev,
+  nix-update-script,
 }:
 
 stdenv.mkDerivation (finalAttrs: {
@@ -63,6 +64,8 @@ stdenv.mkDerivation (finalAttrs: {
     pango
     udev
   ];
+
+  passthru.updateScript = nix-update-script { };
 
   meta = {
     description = "[..]";
