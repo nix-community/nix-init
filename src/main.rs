@@ -484,7 +484,7 @@ async fn run() -> Result<()> {
         (out_dir, output.clone())
     };
 
-    let nix_update_script = matches!(fetcher, MaybeFetcher::Known(ref f) if !matches!(f, FetcherDispatch::FetchFromGitHub(_)));
+    let nix_update_script = matches!(fetcher, MaybeFetcher::Known(_));
     let fetcher_input = match fetcher {
         MaybeFetcher::Known(fetcher) => fetcher.to_string(),
         MaybeFetcher::Unknown { fetcher } => fetcher,
