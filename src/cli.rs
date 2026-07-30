@@ -68,6 +68,10 @@ pub struct Opts {
     /// Specify the config file
     #[arg(short, long)]
     pub config: Option<PathBuf>,
+
+    /// Generate a flake.nix file in the output directory
+    #[arg(long)]
+    pub flake: bool,
 }
 
 #[derive(Clone, ValueEnum)]
