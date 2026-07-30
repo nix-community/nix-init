@@ -31,5 +31,14 @@ AllInputs {
         aarch64_linux: {},
         x86_64_linux: {},
     },
+    check_inputs: Inputs {
+        always: {},
+        darwin: {},
+        aarch64_darwin: {},
+        x86_64_darwin: {},
+        linux: {},
+        aarch64_linux: {},
+        x86_64_linux: {},
+    },
     env: {},
 }

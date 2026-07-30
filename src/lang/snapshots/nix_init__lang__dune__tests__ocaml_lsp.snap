@@ -1,0 +1,42 @@
+---
+source: src/lang/dune.rs
+expression: get_dune_dependencies(dir.path())
+---
+DuneDependencies {
+    build: {
+        "astring",
+        "base",
+        "camlp-streams",
+        "chrome-trace",
+        "csexp",
+        "dune-build-info",
+        "dune-rpc",
+        "dyn",
+        "fiber",
+        "jsonrpc",
+        "lsp",
+        "merlin-lib",
+        "ocamlc-loc",
+        "ocamlformat-rpc-lib",
+        "ordering",
+        "pp",
+        "ppx_yojson_conv_lib",
+        "re",
+        "spawn",
+        "stdune",
+        "uutf",
+        "xdg",
+        "yojson",
+    },
+    check: {
+        "cinaps",
+        "ocamlformat",
+        "ppx_expect",
+    },
+    tools: {
+        "cinaps",
+    },
+    licenses: {
+        "isc",
+    },
+}

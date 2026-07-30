@@ -1,0 +1,65 @@
+---
+source: src/codegen/dune.rs
+expression: generate_dune(true).await
+---
+{
+  lib,
+  buildDunePackage,
+  fetchFromGitHub,
+  ocamlPackages,
+  nix-update-script,
+}:
+
+buildDunePackage (finalAttrs: {
+  pname = "ocaml-lsp";
+  version = "1.27.0";
+  __structuredAttrs = true;
+
+  src = src;
+
+  nativeBuildInputs = [
+    ocamlPackages.cinaps
+  ];
+
+  buildInputs = [
+    ocamlPackages.astring
+    ocamlPackages.base
+    ocamlPackages.camlp-streams
+    ocamlPackages.chrome-trace
+    ocamlPackages.csexp
+    ocamlPackages.dune-build-info
+    ocamlPackages.dune-rpc
+    ocamlPackages.dyn
+    ocamlPackages.fiber
+    ocamlPackages.jsonrpc
+    ocamlPackages.lsp
+    ocamlPackages.merlin-lib
+    ocamlPackages.ocamlc-loc
+    ocamlPackages.ocamlformat-rpc-lib
+    ocamlPackages.ordering
+    ocamlPackages.pp
+    ocamlPackages.ppx_yojson_conv_lib
+    ocamlPackages.re
+    ocamlPackages.spawn
+    ocamlPackages.stdune
+    ocamlPackages.uutf
+    ocamlPackages.xdg
+    ocamlPackages.yojson
+  ];
+
+  checkInputs = [
+    ocamlPackages.cinaps
+    ocamlPackages.ocamlformat
+    ocamlPackages.ppx_expect
+  ];
+
+  passthru.updateScript = nix-update-script { };
+
+  meta = {
+    description = "LSP Server for OCaml";
+    homepage = "https://github.com/ocaml/ocaml-lsp";
+    license = lib.licenses.isc;
+    maintainers = with lib.maintainers; [ alice ];
+    mainProgram = "ocaml-lsp";
+  };
+})

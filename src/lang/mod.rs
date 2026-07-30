@@ -1,3 +1,4 @@
+pub mod dune;
 pub mod go;
 pub mod npm;
 pub mod python;

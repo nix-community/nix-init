@@ -5,6 +5,7 @@
 ### Features
 
 - Add support for `buildNpmPackage`
+- Dune: extract dependencies from `dune-project` and `.opam` files
 
 ### Fixes
 

@@ -10,6 +10,7 @@ use anyhow::Result;
 pub struct AllInputs {
     pub native_build_inputs: Inputs,
     pub build_inputs: Inputs,
+    pub check_inputs: Inputs,
     pub env: BTreeMap<Cow<'static, str>, (Cow<'static, str>, Vec<String>)>,
 }
 
@@ -30,15 +31,16 @@ pub fn write_all_lambda_inputs(
     out: &mut impl Write,
     inputs: &AllInputs,
     written: &mut BTreeSet<String>,
-) -> Result<(bool, bool)> {
+) -> Result<(bool, bool, bool)> {
     let native_build_inputs = write_lambda_inputs(out, written, &inputs.native_build_inputs)?;
     let build_inputs = write_lambda_inputs(out, written, &inputs.build_inputs)?;
+    let check_inputs = write_lambda_inputs(out, written, &inputs.check_inputs)?;
     for input in inputs.env.values().flat_map(|(_, inputs)| inputs) {
         if written.insert(input.clone()) {
             writeln!(out, "  {input},")?;
         }
     }
-    Ok((native_build_inputs, build_inputs))
+    Ok((native_build_inputs, build_inputs, check_inputs))
 }
 
 fn write_lambda_inputs(
