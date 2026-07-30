@@ -526,7 +526,9 @@ async fn run() -> Result<()> {
             write!(out_file, "{out}")?;
         }
     } else if which("nixfmt").is_ok() {
-        maybe_format(&out, out_file, Command::new("nixfmt")).await?;
+        let mut cmd = Command::new("nixfmt");
+        cmd.arg("-");
+        maybe_format(&out, out_file, cmd).await?;
     } else {
         write!(out_file, "{out}")?;
     }
