@@ -41,6 +41,7 @@
         {
           devShells.default = pkgs.mkShell {
             packages = [
+              inputs'.fenix.packages.stable.defaultToolchain
               pkgs.nurl
             ];
 
