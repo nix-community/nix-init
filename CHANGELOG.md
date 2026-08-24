@@ -5,6 +5,7 @@
 ### Features
 
 - Add support for `buildNpmPackage`
+- Add support for `buildNimPackage`
 
 ## v0.3.6 - 2026-05-15
 
