@@ -104,6 +104,10 @@ impl Builder for BuildPythonPackage {
             .filter(|(_, deps)| !deps.is_empty());
 
         if let Some((extra, deps)) = optional.next() {
+            writeln!(
+                out,
+                "  # TODO: look through these dependency groups and remove unnecessary ones. For example, nixpkgs doesn't include test dependencies."
+            )?;
             write!(out, "  optional-dependencies = ")?;
             if self.application {
                 write!(out, "with python3Packages; ")?;
