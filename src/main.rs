@@ -40,7 +40,8 @@ use crate::{
     cmd::{NIX, NURL},
     codegen::{
         BuilderDispatch, Codegen, SourceLayout, drv::MkDerivation, go::BuildGoModule,
-        npm::BuildNpmPackage, python::BuildPythonPackage, rust::BuildRustPackage,
+        nim::BuildNimPackage, npm::BuildNpmPackage, python::BuildPythonPackage,
+        rust::BuildRustPackage,
     },
     fetcher::{Fetcher, FetcherDispatch, PackageInfo, PypiFormat, Revisions, Version},
     frontend::{Frontend, headless, readline},
@@ -385,6 +386,7 @@ async fn run() -> Result<()> {
     let builder = match (opts.builder, opts.cargo_vendor) {
         (Some(builder), rust @ Some(vendor)) if layout.has_cargo => match builder {
             BuilderFunction::BuildGoModule => BuildGoModule.into(),
+            BuilderFunction::BuildNimPackage => BuildNimPackage.into(),
             BuilderFunction::BuildNpmPackage => BuildNpmPackage.into(),
             BuilderFunction::BuildPythonApplication => BuildPythonPackage::new(true, rust).into(),
             BuilderFunction::BuildPythonPackage => BuildPythonPackage::new(false, rust).into(),
@@ -396,6 +398,7 @@ async fn run() -> Result<()> {
             let rust = layout.has_cargo.then_some(CargoVendor::FetchCargoVendor);
             match builder {
                 BuilderFunction::BuildGoModule => BuildGoModule.into(),
+                BuilderFunction::BuildNimPackage => BuildNimPackage.into(),
                 BuilderFunction::BuildNpmPackage => BuildNpmPackage.into(),
                 BuilderFunction::BuildPythonApplication => {
                     BuildPythonPackage::new(true, rust).into()
@@ -412,6 +415,10 @@ async fn run() -> Result<()> {
             let mut builders = Vec::new();
             if layout.has_go {
                 builders.push(BuildGoModule.into());
+            }
+
+            if layout.has_nim {
+                builders.push(BuildNimPackage.into());
             }
 
             if layout.has_cargo {
