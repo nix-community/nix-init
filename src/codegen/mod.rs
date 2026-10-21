@@ -1,4 +1,5 @@
 pub mod drv;
+pub mod dune;
 pub mod go;
 pub mod npm;
 pub mod python;
@@ -26,8 +27,8 @@ use tracing::warn;
 use crate::{
     cli::CargoVendor,
     codegen::{
-        drv::MkDerivation, go::BuildGoModule, npm::BuildNpmPackage, python::BuildPythonPackage,
-        rust::BuildRustPackage,
+        drv::MkDerivation, dune::BuildDunePackage, go::BuildGoModule, npm::BuildNpmPackage,
+        python::BuildPythonPackage, rust::BuildRustPackage,
     },
     frontend::FrontendDispatch,
     inputs::{AllInputs, write_all_lambda_inputs, write_inputs, write_lambda_input},
@@ -43,6 +44,7 @@ use crate::{
 #[derive(Clone, Copy, Display)]
 #[display("{0}")]
 pub enum BuilderDispatch {
+    BuildDunePackage(BuildDunePackage),
     BuildGoModule(BuildGoModule),
     BuildNpmPackage(BuildNpmPackage),
     BuildPythonPackage(BuildPythonPackage),
@@ -77,6 +79,7 @@ pub struct Codegen<'a> {
 pub struct SourceLayout {
     pub has_cargo: bool,
     pub has_cargo_lock: bool,
+    pub has_dune: bool,
     pub has_cmake: bool,
     pub has_go: bool,
     pub has_meson: bool,
@@ -473,6 +476,7 @@ impl SourceLayout {
             has_cargo_lock: src_dir.join("Cargo.lock").is_file(),
             has_cmake: src_dir.join("CMakeLists.txt").is_file(),
             has_go: src_dir.join("go.mod").is_file(),
+            has_dune: src_dir.join("dune-project").is_file(),
             has_meson: src_dir.join("meson.build").is_file(),
             has_npm: src_dir.join("package.json").is_file(),
             has_npm_lock: src_dir.join("package-lock.json").is_file()

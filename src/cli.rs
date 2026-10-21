@@ -73,6 +73,7 @@ pub struct Opts {
 #[derive(Clone, ValueEnum)]
 #[clap(rename_all = "camelCase")]
 pub enum BuilderFunction {
+    BuildDunePackage,
     BuildGoModule,
     BuildNpmPackage,
     BuildPythonApplication,

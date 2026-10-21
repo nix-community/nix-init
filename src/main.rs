@@ -36,11 +36,15 @@ use zip::ZipArchive;
 
 use crate::{
     cfg::load_config,
-    cli::{BuilderFunction, CargoVendor, Opts},
+    cli::{
+        BuilderFunction::{self},
+        CargoVendor, Opts,
+    },
     cmd::{NIX, NURL},
     codegen::{
-        BuilderDispatch, Codegen, SourceLayout, drv::MkDerivation, go::BuildGoModule,
-        npm::BuildNpmPackage, python::BuildPythonPackage, rust::BuildRustPackage,
+        BuilderDispatch, Codegen, SourceLayout, drv::MkDerivation, dune::BuildDunePackage,
+        go::BuildGoModule, npm::BuildNpmPackage, python::BuildPythonPackage,
+        rust::BuildRustPackage,
     },
     fetcher::{Fetcher, FetcherDispatch, PackageInfo, PypiFormat, Revisions, Version},
     frontend::{Frontend, headless, readline},
@@ -384,6 +388,7 @@ async fn run() -> Result<()> {
 
     let builder = match (opts.builder, opts.cargo_vendor) {
         (Some(builder), rust @ Some(vendor)) if layout.has_cargo => match builder {
+            BuilderFunction::BuildDunePackage => BuildDunePackage.into(),
             BuilderFunction::BuildGoModule => BuildGoModule.into(),
             BuilderFunction::BuildNpmPackage => BuildNpmPackage.into(),
             BuilderFunction::BuildPythonApplication => BuildPythonPackage::new(true, rust).into(),
@@ -395,6 +400,7 @@ async fn run() -> Result<()> {
         (Some(builder), _) => {
             let rust = layout.has_cargo.then_some(CargoVendor::FetchCargoVendor);
             match builder {
+                BuilderFunction::BuildDunePackage => BuildDunePackage.into(),
                 BuilderFunction::BuildGoModule => BuildGoModule.into(),
                 BuilderFunction::BuildNpmPackage => BuildNpmPackage.into(),
                 BuilderFunction::BuildPythonApplication => {
@@ -436,6 +442,10 @@ async fn run() -> Result<()> {
                         [rust, drv]
                     });
                 }
+            }
+
+            if layout.has_dune {
+                builders.push(BuildDunePackage.into());
             }
 
             if layout.has_python {
