@@ -23,13 +23,6 @@
   ruff,
   build,
   bcrypt,
-  certifi,
-  cryptography-vectors,
-  pretend,
-  pytest,
-  pytest-benchmark,
-  pytest-cov,
-  pytest-xdist,
   pytest-randomly,
   nix-update-script,
 }:
@@ -96,15 +89,6 @@ buildPythonPackage (finalAttrs: {
     ];
     ssh = [
       bcrypt
-    ];
-    test = [
-      certifi
-      cryptography-vectors
-      pretend
-      pytest
-      pytest-benchmark
-      pytest-cov
-      pytest-xdist
     ];
     test-randomorder = [
       pytest-randomly

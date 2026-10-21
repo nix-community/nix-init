@@ -115,6 +115,11 @@ impl Builder for BuildPythonPackage {
             writeln!(out, "    ];")?;
 
             for (extra, deps) in optional {
+                // <<< TODO: link to justification, or if none exists, write up an explanation >>>
+                if extra == "dev" || extra == "test" {
+                    continue;
+                }
+
                 writeln!(out, "    {extra} = [")?;
                 for name in deps {
                     writeln!(out, "      {name}")?;
