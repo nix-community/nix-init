@@ -118,9 +118,15 @@ async fn run() -> Result<()> {
         None => frontend.url()?,
     };
 
-    let mut fetcher =
-        serde_json::from_slice(&Command::new(NURL).arg(&url).arg("-p").get_stdout().await?)
-            .context("failed to parse nurl output")?;
+    let mut fetcher = serde_json::from_slice(
+        &Command::new(NURL)
+            .arg(&url)
+            .arg("-p")
+            .get_stdout()
+            .await
+            .context("failed to run nurl")?,
+    )
+    .context("failed to parse nurl output")?;
 
     let mut cmd = Command::new(NURL);
     let mut licenses = BTreeMap::new();
