@@ -95,22 +95,22 @@ pub fn write_inputs(out: &mut impl Write, inputs: &Inputs, name: &'static str) -
 
     let mut inputs = [
         ("", &inputs.always),
-        ("lib.optionals stdenv.isDarwin ", &inputs.darwin),
+        ("lib.optionals stdenv.hostPlatform.isDarwin ", &inputs.darwin),
         (
-            "lib.optionals (stdenv.isDarwin && stdenv.isAarch64) ",
+            "lib.optionals (stdenv.hostPlatform.isDarwin && stdenv.hostPlatform.isAarch64) ",
             &inputs.aarch64_darwin,
         ),
         (
-            "lib.optionals (stdenv.isDarwin && stdenv.isx86_64) ",
+            "lib.optionals (stdenv.hostPlatform.isDarwin && stdenv.hostPlatform.isx86_64) ",
             &inputs.x86_64_darwin,
         ),
-        ("lib.optionals stdenv.isLinux ", &inputs.linux),
+        ("lib.optionals stdenv.hostPlatform.isLinux ", &inputs.linux),
         (
-            "lib.optionals (stdenv.isLinux && stdenv.isAarch64) ",
+            "lib.optionals (stdenv.hostPlatform.isLinux && stdenv.hostPlatform.isAarch64) ",
             &inputs.aarch64_linux,
         ),
         (
-            "lib.optionals (stdenv.isLinux && stdenv.isx86_64) ",
+            "lib.optionals (stdenv.hostPlatform.isLinux && stdenv.hostPlatform.isx86_64) ",
             &inputs.x86_64_linux,
         ),
     ]
