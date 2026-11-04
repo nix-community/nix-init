@@ -1,4 +1,4 @@
-use cargo::core::{PackageId, Resolve};
+use cargo::{resolver::Resolve, workspace::PackageId};
 use semver::Version;
 
 use crate::{inputs::AllInputs, macros::input_macros};

@@ -13,14 +13,11 @@ use std::{
 
 use anyhow::{Context, Result, anyhow};
 use cargo::{
-    core::{
-        Resolve, Workspace,
-        registry::PackageRegistry,
-        resolver::{CliFeatures, HasDevUnits},
-    },
+    context::{GlobalContext, homedir},
     ops::{load_pkg_lockfile, resolve_to_string, resolve_with_previous},
+    resolver::{CliFeatures, HasDevUnits, Resolve},
     sources::SourceConfigMap,
-    util::{context::GlobalContext, homedir},
+    workspace::{Workspace, registry::PackageRegistry},
 };
 use cargo_util_terminal::Shell;
 use indoc::writedoc;
