@@ -15,7 +15,7 @@ use std::{
 
 use anyhow::Result;
 use askalono::ScanStrategy;
-use cargo::core::Resolve;
+use cargo::resolver::Resolve;
 use enum_dispatch::enum_dispatch;
 use expand::expand;
 use indoc::writedoc;
