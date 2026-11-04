@@ -35,6 +35,7 @@ python3Packages.buildPythonApplication (finalAttrs: {
     typing-extensions
   ];
 
+  # TODO: look through these dependency groups and remove unnecessary ones. For example, nixpkgs doesn't include test dependencies.
   optional-dependencies = with python3Packages; {
     colorama = [
       colorama

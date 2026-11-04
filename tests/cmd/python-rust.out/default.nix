@@ -71,6 +71,7 @@ buildPythonPackage (finalAttrs: {
     typing-extensions
   ];
 
+  # TODO: look through these dependency groups and remove unnecessary ones. For example, nixpkgs doesn't include test dependencies.
   optional-dependencies = {
     docs = [
       sphinx
