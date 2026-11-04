@@ -95,7 +95,10 @@ pub fn write_inputs(out: &mut impl Write, inputs: &Inputs, name: &'static str) -
 
     let mut inputs = [
         ("", &inputs.always),
-        ("lib.optionals stdenv.hostPlatform.isDarwin ", &inputs.darwin),
+        (
+            "lib.optionals stdenv.hostPlatform.isDarwin ",
+            &inputs.darwin,
+        ),
         (
             "lib.optionals (stdenv.hostPlatform.isDarwin && stdenv.hostPlatform.isAarch64) ",
             &inputs.aarch64_darwin,
