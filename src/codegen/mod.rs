@@ -1,5 +1,6 @@
 pub mod drv;
 pub mod go;
+pub mod nim;
 pub mod npm;
 pub mod python;
 pub mod rust;
@@ -26,8 +27,8 @@ use tracing::warn;
 use crate::{
     cli::CargoVendor,
     codegen::{
-        drv::MkDerivation, go::BuildGoModule, npm::BuildNpmPackage, python::BuildPythonPackage,
-        rust::BuildRustPackage,
+        drv::MkDerivation, go::BuildGoModule, nim::BuildNimPackage, npm::BuildNpmPackage,
+        python::BuildPythonPackage, rust::BuildRustPackage,
     },
     frontend::FrontendDispatch,
     inputs::{AllInputs, write_all_lambda_inputs, write_inputs, write_lambda_input},
@@ -44,6 +45,7 @@ use crate::{
 #[display("{0}")]
 pub enum BuilderDispatch {
     BuildGoModule(BuildGoModule),
+    BuildNimPackage(BuildNimPackage),
     BuildNpmPackage(BuildNpmPackage),
     BuildPythonPackage(BuildPythonPackage),
     BuildRustPackage(BuildRustPackage),
@@ -80,6 +82,7 @@ pub struct SourceLayout {
     pub has_cmake: bool,
     pub has_go: bool,
     pub has_meson: bool,
+    pub has_nim: bool,
     pub has_npm: bool,
     pub has_npm_lock: bool,
     pub has_python: bool,
@@ -474,6 +477,10 @@ impl SourceLayout {
             has_cmake: src_dir.join("CMakeLists.txt").is_file(),
             has_go: src_dir.join("go.mod").is_file(),
             has_meson: src_dir.join("meson.build").is_file(),
+            has_nim: std::fs::read_dir(src_dir).is_ok_and(|dir| {
+                dir.filter_map(Result::ok)
+                    .any(|entry| entry.path().extension().is_some_and(|ext| ext == "nimble"))
+            }),
             has_npm: src_dir.join("package.json").is_file(),
             has_npm_lock: src_dir.join("package-lock.json").is_file()
                 || src_dir.join("npm-shrinkwrap.json").is_file(),

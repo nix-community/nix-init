@@ -73,6 +73,7 @@ Options:
 - `buildPythonApplication` and `buildPythonPackage`
 - `buildGoModule`
 - `buildNpmPackage`
+- `buildNimPackage`
 
 ### Supported fetchers
 
