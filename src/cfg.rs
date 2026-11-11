@@ -15,6 +15,7 @@ use crate::utils::{CommandExt, ResultExt};
 #[serde(default, deny_unknown_fields, rename_all = "kebab-case")]
 pub struct Config {
     pub commit: bool,
+    pub flake: bool,
     pub maintainers: Vec<String>,
     pub nixpkgs: Option<String>,
     pub access_tokens: AccessTokens,
