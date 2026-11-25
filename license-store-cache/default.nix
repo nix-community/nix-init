@@ -1,7 +1,9 @@
 {
   lib,
+  pkg-config,
   rustPlatform,
   spdx-license-list-data,
+  zstd,
 }:
 
 rustPlatform.buildRustPackage {
@@ -16,6 +18,14 @@ rustPlatform.buildRustPackage {
   cargoLock = {
     lockFile = ../Cargo.lock;
   };
+
+  nativeBuildInputs = [
+    pkg-config
+  ];
+
+  buildInputs = [
+    zstd
+  ];
 
   doCheck = false;
 
