@@ -5,6 +5,7 @@
   curl,
   pkg-config,
   libgit2,
+  libssh2,
   openssl,
   sqlite,
   zlib,
@@ -34,18 +35,12 @@ rustPlatform.buildRustPackage (finalAttrs: {
   buildInputs = [
     curl
     libgit2
+    libssh2
     openssl
     sqlite
     zlib
     zstd
   ];
-
-  env = {
-    LIBGIT2_NO_VENDOR = true;
-    LIBSQLITE3_SYS_USE_PKG_CONFIG = true;
-    OPENSSL_NO_VENDOR = true;
-    ZSTD_SYS_USE_PKG_CONFIG = true;
-  };
 
   passthru.updateScript = nix-update-script { };
 

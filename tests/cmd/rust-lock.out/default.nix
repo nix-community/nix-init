@@ -36,10 +36,6 @@ rustPlatform.buildRustPackage (finalAttrs: {
     xz
   ];
 
-  env = {
-    OPENSSL_NO_VENDOR = true;
-  };
-
   passthru.updateScript = nix-update-script { };
 
   meta = {
