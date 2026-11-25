@@ -102,6 +102,10 @@ pub trait Builder {
         Ok(String::new())
     }
 
+    fn explicit_structured_attrs(&self) -> bool {
+        true
+    }
+
     fn explicit_strict_deps(&self) -> bool {
         false
     }
@@ -239,7 +243,9 @@ impl Codegen<'_> {
             version = self.version,
         }?;
         write!(self.out, "{after_version}")?;
-        writeln!(self.out, "  __structuredAttrs = true;")?;
+        if builder.explicit_structured_attrs() {
+            writeln!(self.out, "  __structuredAttrs = true;")?;
+        }
         if builder.explicit_strict_deps() {
             writeln!(self.out, "  strictDeps = true;")?;
         }

@@ -12,7 +12,6 @@ buildPythonPackage (finalAttrs: {
   pname = "jinja";
   version = "3.1.6";
   pyproject = true;
-  __structuredAttrs = true;
 
   src = fetchFromGitHub {
     owner = "pallets";

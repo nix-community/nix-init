@@ -34,6 +34,10 @@ impl Builder for BuildPythonPackage {
         Ok("  pyproject = true;\n".into())
     }
 
+    fn explicit_structured_attrs(&self) -> bool {
+        false
+    }
+
     fn cargo_deps(&self) -> Option<CargoVendor> {
         self.rust
     }
