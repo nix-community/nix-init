@@ -4,6 +4,7 @@
   curl,
   installShellFiles,
   pkg-config,
+  aws-lc,
   bzip2,
   libgit2,
   openssl,
@@ -37,6 +38,7 @@ rustPlatform.buildRustPackage rec {
   ];
 
   buildInputs = [
+    aws-lc
     bzip2
     curl
     libgit2
