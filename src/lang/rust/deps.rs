@@ -11,6 +11,7 @@ pub(super) fn load_rust_dependency(inputs: &mut AllInputs, resolve: &Resolve, pk
         "alsa-sys" => build!("alsa-lib"; linux),
         "ash" => build!("vulkan-loader"),
         "atk-sys" => build!("atk"),
+        "aws-lc-sys" if pkg.version() >= &Version::new(0, 42, 0) => build!("aws-lc"),
         "bindgen" => native_build!("rustPlatform.bindgenHook"),
         "bzip2-sys" => build!("bzip2"),
         "cairo-sys-rs" => build!("cairo"),
@@ -72,12 +73,11 @@ pub(super) fn load_rust_dependency(inputs: &mut AllInputs, resolve: &Resolve, pk
         "lcms2-sys" => build!("lcms2"),
         "libadwaita-sys" => build!("libadwaita"),
         "libdbus-sys" => build!("dbus"),
-        "libgit2-sys" => {
-            build!("libgit2");
-            if resolve.features(pkg).iter().any(|feat| feat == "vendored") {
-                environ!("LIBGIT2_NO_VENDOR", "true");
-            }
+        "libduckdb-sys" => {
+            environ!("DUCKDB_INCLUDE_DIR", r#""${lib.getDev duckdb}/include""#; "duckdb".into());
+            environ!("DUCKDB_LIB_DIR", r#""${lib.getLib duckdb}/lib""#);
         }
+        "libgit2-sys" => build!("libgit2"),
         "libgpg-error-sys" => {
             native_build!("libgpg-error");
             build!("libgpg-error")
@@ -104,29 +104,12 @@ pub(super) fn load_rust_dependency(inputs: &mut AllInputs, resolve: &Resolve, pk
         "libseccomp-sys" => build!("libseccomp"),
         "libsecret-sys" => build!("libsecret"),
         "libshumate-sys" => build!("libshumate"),
-        "libsodium-sys" | "libsodium-sys-stable" => {
-            build!("libsodium");
-            if resolve
-                .features(pkg)
-                .iter()
-                .all(|feat| feat != "use-pkg-config")
-            {
-                environ!("SODIUM_USE_PKG_CONFIG", "true");
-            }
-        }
+        "libsodium-sys" | "libsodium-sys-stable" => build!("libsodium"),
         "libspa-sys" => build!("pipewire"),
-        "libsqlite3-sys" => {
-            build!("sqlite");
-            if resolve
-                .features(pkg)
-                .iter()
-                .any(|feat| feat == "bundled" || feat == "bundled-sqlcipher")
-            {
-                environ!("LIBSQLITE3_SYS_USE_PKG_CONFIG", "true");
-            }
-        }
+        "libsqlite3-sys" => build!("sqlite"),
+        "libssh2-sys" => build!("libssh2"),
         "libudev-sys" => build!("udev"),
-        "libusb1-sys" => build!("libusb"),
+        "libusb1-sys" => build!("libusb1"),
         "libwebp-sys2" if resolve.features(pkg).iter().all(|feat| feat != "static") => {
             build!("libwebp");
         }
@@ -136,9 +119,9 @@ pub(super) fn load_rust_dependency(inputs: &mut AllInputs, resolve: &Resolve, pk
             let mut stock = false;
             for feat in resolve.features(pkg) {
                 match &**feat {
-                    "static" => return,
+                    "static" if pkg.version() < &Version::new(1, 1, 24) => return,
                     "stock-zlib" => stock = true,
-                    "zlib-ng" => ng = true,
+                    "zlib-ng" | "zlib-ng-no-cmake-experimental-community-maintained" => ng = true,
                     _ => {}
                 }
             }
@@ -159,16 +142,8 @@ pub(super) fn load_rust_dependency(inputs: &mut AllInputs, resolve: &Resolve, pk
         "lzma-sys" => build!("xz"),
         "ncurses" => build!("ncurses"),
         "nettle-sys" => build!("nettle"),
-        "onig_sys" => {
-            build!("oniguruma");
-            environ!("RUSTONIG_SYSTEM_LIBONIG", "true");
-        }
-        "openssl-sys" => {
-            build!("openssl");
-            if resolve.features(pkg).iter().any(|feat| feat == "vendored") {
-                environ!("OPENSSL_NO_VENDOR", "true");
-            }
-        }
+        "onig_sys" => build!("oniguruma"),
+        "openssl-sys" => build!("openssl"),
         "pam-sys" => build!("pam"),
         "pango-sys" => build!("pango"),
         "pipewire-sys" => build!("pipewire"),
@@ -179,19 +154,17 @@ pub(super) fn load_rust_dependency(inputs: &mut AllInputs, resolve: &Resolve, pk
         "rdkafka-sys" => build!("rdkafka"),
         "servo-fontconfig-sys" => build!("fontconfig"),
         "smithay-client-toolkit" => build!("libxkbcommon"),
-        "soup-sys" => build!("libsoup"),
-        "soup2-sys" => build!("libsoup"),
         "soup3-sys" => build!("libsoup_3"),
         "sourceview4-sys" => build!("gtksourceview4"),
         "sourceview5-sys" => build!("gtksourceview5"),
         "spirv-tools-sys" => build!("spirv-tools"),
         "tauri" => native_build!("cargo-tauri.hook"),
         "tikv-jemalloc-sys" => build!("rust-jemalloc-sys"),
-        "tracker-sys" => build!("tracker"),
+        "tracker-sys" => build!("tinysparql"),
         "vte4-sys" => build!("vte-gtk4"),
         "wayland-sys" => build!("wayland"; linux),
-        "webkit2gtk-sys" => build!("webkitgtk"),
-        "webkit2gtk-webextension-sys" => build!("webkitgtk"),
+        "webkit2gtk-sys" => build!("webkitgtk_4_1"),
+        "webkit2gtk-webextension-sys" => build!("webkitgtk_4_1"),
         "webkit2gtk5-sys" => build!("webkitgtk_5_0"),
         "webkit2gtk5-webextension-sys" => build!("webkitgtk_5_0"),
         "webkit6-sys" => build!("webkitgtk_6_0"),
@@ -201,29 +174,29 @@ pub(super) fn load_rust_dependency(inputs: &mut AllInputs, resolve: &Resolve, pk
                 // https://github.com/AltF02/x11-rs/blob/fced94ef6eb5935c892079a46812806f7b7a9237/x11/build.rs#L14
                 let dep = match &**feat {
                     "glx" => "libGL",
-                    "xlib" => "xorg.libX11",
-                    "xlib_xcb" => "xorg.libX11",
-                    "xcursor" => "xorg.libXcursor",
-                    "dpms" => "xorg.libXext",
-                    "xfixes" => "xorg.libXfixes",
-                    "xft" => "xorg.libXft",
-                    "xinput" => "xorg.libX1",
-                    "xinerama" => "xorg.libXinerama",
-                    "xmu" => "xorg.libXmu",
-                    "xrandr" => "xorg.libXrandr",
-                    "xrender" => "xorg.libXrender",
-                    "xpresent" => "xorg.libXpresent",
-                    "xss" => "xorg.libXScrnSaver",
-                    "xt" => "xorg.libXt",
-                    "xtst" => "xorg.libXtst",
-                    "xf86vmode" => "xorg.libXxf86vm",
+                    "xlib" => "libx11",
+                    "xlib_xcb" => "libx11",
+                    "xcursor" => "libxcursor",
+                    "dpms" => "libxext",
+                    "xfixes" => "libxfixes",
+                    "xft" => "libxft",
+                    "xinput" => "libxi",
+                    "xinerama" => "libxinerama",
+                    "xmu" => "libxmu",
+                    "xrandr" => "libxrandr",
+                    "xrender" => "libxrender",
+                    "xpresent" => "libxpresent",
+                    "xss" => "libxscrnsaver",
+                    "xt" => "libxt",
+                    "xtst" => "libxtst",
+                    "xf86vmode" => "libxxf86vm",
                     _ => continue,
                 };
                 build!(dep; linux);
             }
         }
         "xcb" => {
-            build!("xorg.libxcb"; linux);
+            build!("libxcb"; linux);
             if pkg.version() < &Version::new(0, 10, 0) {
                 native_build!("python3"; linux);
             }
@@ -232,17 +205,14 @@ pub(super) fn load_rust_dependency(inputs: &mut AllInputs, resolve: &Resolve, pk
         "xkbcommon-sys" => build!("libxkbcommon"),
         "yeslogic-fontconfig-sys" => build!("fontconfig"),
         "zmq-sys" => build!("zeromq"),
-        "zstd-sys" => {
-            if resolve
-                .features(pkg)
-                .iter()
-                .any(|feat| feat == "pkg-config")
-            {
-                build!("zstd");
-            } else if pkg.version() >= &Version::new(2, 0, 5) {
-                build!("zstd");
-                environ!("ZSTD_SYS_USE_PKG_CONFIG", "true");
-            }
+        "zstd-sys"
+            if pkg.version() >= &Version::new(2, 0, 5)
+                || resolve
+                    .features(pkg)
+                    .iter()
+                    .any(|feat| feat == "pkg-config") =>
+        {
+            build!("zstd");
         }
         // keep-sorted end
         _ => {}
