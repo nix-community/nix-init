@@ -2,7 +2,7 @@
 members = ["license-store-cache"]
 
 [workspace.package]
-version = "0.3.6"
+version = "0.3.7"
 authors = ["figsoda <figsoda@pm.me>"]
 edition = "2024"
 license = "MPL-2.0"
@@ -17,7 +17,6 @@ authors.workspace = true
 edition.workspace = true
 description = "Generate Nix packages from URLs with hash prefetching, dependency inference, license detection, and more"
 readme = "README.md"
-homepage = "https://github.com/nix-community/nix-init"
 repository = "https://github.com/nix-community/nix-init"
 license.workspace = true
 keywords = ["cli", "interactive", "generate", "nix", "package"]
