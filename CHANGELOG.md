@@ -5,6 +5,7 @@
 ### Features
 
 - Add support for `buildNpmPackage`
+- Add support for `buildNimPackage`
 
 ### Fixes
 

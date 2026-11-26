@@ -75,6 +75,7 @@ pub struct Opts {
 pub enum BuilderFunction {
     BuildGoModule,
     BuildNpmPackage,
+    BuildNimPackage,
     BuildPythonApplication,
     BuildPythonPackage,
     BuildRustPackage,
