@@ -3842,7 +3842,7 @@ dependencies = [
 
 [[package]]
 name = "license-store-cache"
-version = "0.3.6"
+version = "0.3.7"
 dependencies = [
  "askalono",
 ]
@@ -4155,7 +4155,7 @@ dependencies = [
 
 [[package]]
 name = "nix-init"
-version = "0.3.6"
+version = "0.3.7"
 dependencies = [
  "anyhow",
  "askalono",

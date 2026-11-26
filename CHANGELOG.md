@@ -1,15 +1,28 @@
 # Changelog
 
-## Unreleased
+## v0.3.7 - 2026-11-26
 
 ### Features
 
 - Add support for `buildNpmPackage`
+  ([#809](https://github.com/nix-community/nix-init/pull/809))
+- Rust: support tauri hook
+  ([#825](https://github.com/nix-community/nix-init/pull/825))
+- Rust: lots of dependency inference changes to keep up with nixpkgs updates
+  ([#908](https://github.com/nix-community/nix-init/pull/908))
+- Clearer error message when `nurl` is not found
+  ([#876](https://github.com/nix-community/nix-init/pull/876))
 
 ### Fixes
 
 - Rust: cargoLock: clear query and fragment from package urls
   ([#865](https://github.com/nix-community/nix-init/pull/865))
+- Stop using deprecated `stdenv.is*`
+  ([#893](https://github.com/nix-community/nix-init/pull/893))
+- Fix nixfmt warning
+  ([#851](https://github.com/nix-community/nix-init/pull/851))
+- Python: omit `__structuredAttrs`
+  ([#907](https://github.com/nix-community/nix-init/pull/907))
 
 ## v0.3.6 - 2026-05-15
 
